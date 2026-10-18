@@ -1,0 +1,228 @@
+name: dev-sandbox
+description: >-
+  A disposable cloud VM for one developer, with coding agents already pointed at the AI Platform.
+  Reached through Session Manager, with no inbound ports and no cloud credentials beyond its own.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/dev-sandbox
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Lowest cost
+      size: light
+      chip: arm
+      workspace_gb: 20
+      network_mode: public
+      idle_stop: 30m
+      nightly_stop: "20:00"
+      timezone: America/Los_Angeles
+      agents: [opencode]
+      autonomy: free
+      languages: [python, node]
+      dotfiles_repo: ""
+    - __name: Heavy builds
+      size: heavy
+      chip: arm
+      workspace_gb: 100
+      network_mode: private
+      idle_stop: 1h
+      nightly_stop: "22:00"
+      timezone: America/New_York
+      agents: [opencode, claude-code]
+      autonomy: free
+      languages: [python, node, go]
+      dotfiles_repo: ""
+  required:
+    - size
+    - chip
+    - workspace_gb
+    - network_mode
+    - idle_stop
+    - nightly_stop
+    - timezone
+    - agents
+    - autonomy
+    - languages
+  properties:
+    size:
+      title: Size
+      description: Light runs agents, docker and normal builds comfortably. Go bigger for large monorepos or parallel agents.
+      type: string
+      default: light
+      oneOf:
+        - const: light
+          title: Light — 2 vCPU, 4 GB (~$25/month if never stopped)
+        - const: standard
+          title: Standard — 2 vCPU, 8 GB (~$49/month if never stopped)
+        - const: heavy
+          title: Heavy — 4 vCPU, 16 GB (~$98/month if never stopped)
+    chip:
+      title: Chip
+      description: >-
+        ARM is cheaper and runs almost everything. Intel is ~20% more and only needed for tools
+        without ARM builds. Changing it rebuilds the VM; the workspace disk is kept.
+      type: string
+      default: arm
+      oneOf:
+        - const: arm
+          title: ARM (Graviton)
+        - const: intel
+          title: Intel
+    workspace_gb:
+      title: Workspace disk (GB)
+      description: >-
+        Mounted at /workspace and kept when the VM is rebuilt. Can grow, never shrink.
+        ***~$0.08/GB-month, billed even while stopped.***
+      type: integer
+      default: 20
+      minimum: 20
+      maximum: 500
+    network_mode:
+      title: Network
+      description: >-
+        Either way nothing can connect in; you reach it through Session Manager.
+      type: string
+      default: public
+      oneOf:
+        - const: public
+          title: Public IP, no inbound — ~$4/month for the address, no NAT needed
+        - const: private
+          title: Private — goes out through the VPC's egress, which must be on
+    idle_stop:
+      title: Stop when idle for
+      description: >-
+        Stops the VM when CPU stays near zero. ***A stopped VM costs only its disks.***
+      type: string
+      default: 30m
+      oneOf:
+        - const: 30m
+          title: 30 minutes
+        - const: 1h
+          title: 1 hour
+        - const: 2h
+          title: 2 hours
+        - const: never
+          title: Never
+    nightly_stop:
+      title: Stop every night at
+      description: A backstop for sessions left open. ***Off means it runs all night.***
+      type: string
+      default: "20:00"
+      oneOf:
+        - const: "off"
+          title: "Off"
+        - const: "18:00"
+          title: 6 pm
+        - const: "20:00"
+          title: 8 pm
+        - const: "22:00"
+          title: 10 pm
+        - const: "00:00"
+          title: Midnight
+    timezone:
+      title: Timezone
+      type: string
+      default: America/Los_Angeles
+      enum:
+        - America/Los_Angeles
+        - America/Denver
+        - America/Chicago
+        - America/New_York
+        - America/Sao_Paulo
+        - Europe/London
+        - Europe/Berlin
+        - Asia/Kolkata
+        - Asia/Singapore
+        - Asia/Tokyo
+        - Australia/Sydney
+        - UTC
+    agents:
+      title: Coding agents
+      description: Each one is set up to use the AI Platform when it's connected.
+      type: array
+      uniqueItems: true
+      minItems: 1
+      default: [opencode]
+      items:
+        type: string
+        oneOf:
+          - const: opencode
+            title: opencode
+          - const: claude-code
+            title: Claude Code
+    autonomy:
+      title: How much do agents do on their own?
+      description: >-
+        The VM is disposable and holds no cloud credentials, so letting agents run freely only
+        risks the VM itself.
+      type: string
+      default: free
+      oneOf:
+        - const: free
+          title: Run freely inside the sandbox
+        - const: ask
+          title: Ask before editing files or running commands
+    languages:
+      title: Languages to install
+      description: Installed with mise. Agents can add others themselves.
+      type: array
+      uniqueItems: true
+      default: [python, node]
+      items:
+        type: string
+        oneOf:
+          - const: python
+            title: Python
+          - const: node
+            title: Node.js
+          - const: go
+            title: Go
+          - const: java
+            title: Java
+          - const: rust
+            title: Rust
+    dotfiles_repo:
+      title: Dotfiles repository
+      description: A public git URL. It's cloned into your home directory and its install.sh is run on first boot.
+      type: string
+      default: ""
+      pattern: ^(|https://[^\s]+)$
+      message:
+        pattern: "Must be an https:// git URL, or empty."
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: true
+  llm:
+    resource_type: llm-endpoint@0.0.0
+    required: false
+
+resources: {}
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - size
+    - chip
+    - workspace_gb
+    - network_mode
+    - idle_stop
+    - nightly_stop
+    - timezone
+    - agents
+    - autonomy
+    - languages
+    - dotfiles_repo
+    - "*"
+  workspace_gb:
+    ui:widget: updown
+  agents:
+    ui:widget: checkboxes
+  languages:
+    ui:widget: checkboxes

@@ -1,0 +1,96 @@
+#!/bin/bash
+set -euxo pipefail
+exec > >(tee -a /var/log/dev-sandbox-setup.log) 2>&1
+
+REGION="${region}"
+WORKSPACE_DEVICE="${workspace_device}"
+KEY_PARAMETER="${key_parameter_name}"
+
+dnf install -y git tmux docker jq tar gzip unzip gcc gcc-c++ make
+id dev >/dev/null 2>&1 || useradd -m -s /bin/bash dev
+usermod -aG docker dev
+echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-dev
+
+# The workspace volume attaches after boot starts; wait for it.
+for _ in $(seq 1 120); do [ -e "$WORKSPACE_DEVICE" ] && break; sleep 5; done
+blkid "$WORKSPACE_DEVICE" || mkfs.xfs "$WORKSPACE_DEVICE"
+UUID=$(blkid -s UUID -o value "$WORKSPACE_DEVICE")
+mkdir -p /workspace
+grep -q "$UUID" /etc/fstab || echo "UUID=$UUID /workspace xfs defaults,nofail 0 2" >> /etc/fstab
+mount -a
+chown dev:dev /workspace
+
+# Images and build cache live with the work, not on the root disk.
+mkdir -p /workspace/.docker /etc/docker
+echo '{"data-root": "/workspace/.docker"}' > /etc/docker/daemon.json
+systemctl enable --now docker
+
+case "$(uname -m)" in
+  aarch64) MASS_ARCH=arm64 ;;
+  *) MASS_ARCH=amd64 ;;
+esac
+MASS_VERSION=$(curl -fsSL https://api.github.com/repos/massdriver-cloud/mass/releases/latest | jq -r .tag_name)
+mkdir -p /tmp/mass
+curl -fsSL "https://github.com/massdriver-cloud/mass/releases/download/$MASS_VERSION/mass-$MASS_VERSION-linux-$MASS_ARCH.tar.gz" | tar -xz -C /tmp/mass
+install -m 0755 "$(find /tmp/mass -type f -name mass | head -n 1)" /usr/local/bin/mass
+
+install -d -o dev -g dev -m 0700 /home/dev/.config/sandbox /home/dev/.config/opencode /home/dev/.claude
+
+if [ -n "$KEY_PARAMETER" ]; then
+  for _ in $(seq 1 30); do
+    KEY=$(aws ssm get-parameter --region "$REGION" --name "$KEY_PARAMETER" --with-decryption --query Parameter.Value --output text) && break
+    sleep 5
+  done
+  cat > /home/dev/.config/sandbox/llm.env <<EOF
+export AIPLATFORM_BASE_URL="${base_url}"
+export AIPLATFORM_API_KEY="$KEY"
+export AIPLATFORM_MODEL="${default_model}"
+export ANTHROPIC_BASE_URL="${anthropic_base_url}"
+export ANTHROPIC_AUTH_TOKEN="$KEY"
+export ANTHROPIC_MODEL="${default_model}"
+EOF
+else
+  : > /home/dev/.config/sandbox/llm.env
+fi
+
+cat > /home/dev/.config/opencode/opencode.json <<'EOF'
+${opencode_config}
+EOF
+
+cat > /home/dev/.claude/settings.json <<'EOF'
+${claude_settings}
+EOF
+
+cat >> /home/dev/.bashrc <<'EOF'
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+[ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+command -v mise >/dev/null && eval "$(mise activate bash)"
+[ "$PWD" = "$HOME" ] && cd /workspace
+EOF
+
+chown -R dev:dev /home/dev
+chmod 600 /home/dev/.config/sandbox/llm.env
+
+cat > /home/dev/.sandbox-setup.sh <<'EOF'
+set -euxo pipefail
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+curl -fsSL https://herdr.dev/install.sh | sh
+curl -fsSL https://mise.run | sh
+LANGUAGES="${languages}"
+[ -n "$LANGUAGES" ] && mise use -g $LANGUAGES
+for agent in ${agents}; do
+  case "$agent" in
+    opencode) curl -fsSL https://opencode.ai/install | bash ;;
+    claude-code) curl -fsSL https://claude.ai/install.sh | bash ;;
+  esac
+done
+DOTFILES="${dotfiles_repo}"
+if [ -n "$DOTFILES" ] && [ ! -d "$HOME/dotfiles" ]; then
+  git clone "$DOTFILES" "$HOME/dotfiles"
+  [ -x "$HOME/dotfiles/install.sh" ] && (cd "$HOME/dotfiles" && ./install.sh) || true
+fi
+EOF
+chown dev:dev /home/dev/.sandbox-setup.sh
+sudo -iu dev bash /home/dev/.sandbox-setup.sh
+
+touch /var/lib/dev-sandbox-ready

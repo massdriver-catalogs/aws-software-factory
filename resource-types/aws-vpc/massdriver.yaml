@@ -9,18 +9,15 @@ ui:
 schema:
   title: AWS VPC
   description: >-
-    A shared VPC. It owns the internet gateway, egress, VPC endpoints and the route tables;
-    landing zones carve their own subnets out of it.
+    A VPC shared by every project. Workloads go in its public, private or internal subnets and
+    are kept apart by their own security groups.
   type: object
   additionalProperties: false
   required:
     - id
     - region
     - cidr
-    - shared_cidr
     - availability_zones
-    - landing_zone_ranges
-    - route_tables
     - subnets
     - internet_egress
   properties:
@@ -34,10 +31,6 @@ schema:
       minLength: 1
     cidr:
       title: CIDR
-      type: string
-    shared_cidr:
-      title: Shared CIDR
-      description: Range reserved for the VPC's own subnets — NAT, VPC endpoints and shared services.
       type: string
     availability_zones:
       title: Availability Zones
@@ -58,46 +51,8 @@ schema:
             title: Zone Name
             description: This account's name for the zone (e.g. us-east-1a).
             type: string
-    landing_zone_ranges:
-      title: Landing Zone Ranges
-      description: The /20 ranges landing zones may claim.
-      type: array
-      items:
-        type: string
-    route_tables:
-      title: Route Tables
-      type: object
-      additionalProperties: false
-      required:
-        - public
-        - private
-        - internal
-      properties:
-        public:
-          title: Public
-          description: Default route to the internet gateway.
-          type: string
-        internal:
-          title: Internal
-          description: No route out of the VPC.
-          type: string
-        private:
-          title: Private
-          description: One per availability zone, default route through that zone's egress.
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - availability_zone_id
-              - id
-            properties:
-              availability_zone_id:
-                type: string
-              id:
-                type: string
     subnets:
-      title: Shared Subnets
+      title: Subnets
       type: array
       items:
         type: object
@@ -115,10 +70,14 @@ schema:
           availability_zone_id:
             type: string
           tier:
+            description: >-
+              public routes to the internet gateway, private routes out through the VPC's egress,
+              internal has no route out of the VPC.
             type: string
             enum:
               - public
               - private
+              - internal
     internet_egress:
       title: Internet Egress
       description: Whether private subnets have a route to the internet.

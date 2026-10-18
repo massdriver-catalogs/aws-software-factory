@@ -39,26 +39,23 @@ The "out of ports" alarm means a single destination is getting more than ~55,000
 ```bash
 aws logs start-query --region {{params.region}} \
   --log-group-name /vpc/{{id}}/flow-logs \
-  --start-time $(date -v-1H +%s) --end-time $(date +%s) \
+  --start-time $(( $(date +%s) - 3600 )) --end-time $(date +%s) \
   --query-string 'stats count(*) as flows by srcAddr, dstAddr | sort flows desc | limit 20'
 ```
 
 The usual cause is a client that doesn't reuse connections. Fix the client; switching to **NAT gateway per zone** spreads the load but doesn't remove the cause.
 
-## A landing zone can't create subnets
+## A subnet is running out of addresses
 
-`InvalidSubnet.Conflict` means another landing zone already holds that range.
 {{#resources.network}}
-List what's claimed:
-
 ```bash
 aws ec2 describe-subnets --region {{params.region}} \
   --filters Name=vpc-id,Values={{resources.network.id}} \
-  --query 'Subnets[].[CidrBlock,Tags[?Key==`Name`].Value|[0]]' --output table
+  --query 'Subnets[].[Tags[?Key==`Name`].Value|[0],CidrBlock,AvailableIpAddressCount]' --output table
 ```
 {{/resources.network}}
 
-Pick a range that doesn't appear, or decommission the landing zone that holds it.
+Workloads that pick a zone themselves tend to pile into the first one. Spread them across zones before anything else. If every zone is short, the VPC needs a second address range — that's a rebuild of this bundle's layout, so plan it rather than doing it at 2am.
 
 ## Traffic is being dropped
 
@@ -67,8 +64,8 @@ Flow logs record every rejected connection. Filter by the address that can't con
 ```bash
 aws logs start-query --region {{params.region}} \
   --log-group-name /vpc/{{id}}/flow-logs \
-  --start-time $(date -v-1H +%s) --end-time $(date +%s) \
+  --start-time $(( $(date +%s) - 3600 )) --end-time $(date +%s) \
   --query-string 'filter action="REJECT" and (srcAddr="<ip>" or dstAddr="<ip>") | fields @timestamp, srcAddr, dstAddr, dstPort, protocol | sort @timestamp desc | limit 50'
 ```
 
-Rejects between two landing zones are their network ACLs doing their job; set **Block traffic from other landing zones** off on both if they need to talk. Anything else is a security group.
+Every reject comes from a security group: the receiving workload's group doesn't name the sender. Fix it in the receiving workload's bundle, not here.

@@ -1,27 +1,20 @@
 # Shared VPC
 
-One VPC per region, shared by every team. It owns everything that has to exist once: the internet gateway, egress, VPC endpoints, flow logs and the route tables. Teams never connect to it directly; they get a landing zone carved out of it.
+One VPC per region, shared by every project. It is the only bundle that deals with address ranges: everything else drops into one of its subnets and is kept apart by its own security group.
 
-## Address layout
+## Subnets
 
-The CIDR is cut into /20s.
+Every availability zone gets three subnets.
 
-- **The first /20** holds the VPC's own subnets: a public /24 per zone for egress, and a private /24 per zone for interface endpoints and shared services such as the model gateway.
-- **Every other /20** can be claimed by one landing zone.
+| Tier | Size on a /16 | Routes to | For |
+|---|---|---|---|
+| Private | /19 | The VPC's egress | Most workloads: sandboxes, model serving, functions that reach private services |
+| Internal | /21 | Nowhere outside the VPC | Databases and anything that must never reach the internet |
+| Public | /22 | Internet gateway | Load balancers, NAT, and anything with a public IP |
 
 Space is always laid out for three zones, so going from two zones to three later doesn't move any subnet.
 
-## Route tables
-
-Landing zones attach their subnets to the VPC's route tables instead of creating their own, so egress and gateway endpoints stay managed in one place.
-
-| Route table | Default route |
-|---|---|
-| Public | Internet gateway |
-| Private (one per zone) | The zone's NAT gateway, the single NAT gateway, or the NAT instance |
-| Internal | None |
-
-The S3 and DynamoDB gateway endpoints are attached to all of them.
+S3 and DynamoDB gateway endpoints are attached to every subnet, so that traffic never goes through egress.
 
 ## Egress
 

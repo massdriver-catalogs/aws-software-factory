@@ -1,7 +1,7 @@
 name: shared-vpc
 description: >-
-  A VPC shared by every team in a region. It runs the internet gateway, egress, VPC endpoints and
-  flow logs; teams get their subnets from a landing zone carved out of it.
+  A VPC shared by every project in a region, with public, private and internal subnets in each
+  availability zone. Workloads share the subnets and are kept apart by security groups.
 source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/shared-vpc
 version: 0.0.0
 
@@ -54,8 +54,8 @@ params:
     cidr:
       title: CIDR
       description: >-
-        Split into /20s. The first /20 is kept for the VPC's own subnets; each landing zone claims
-        one of the rest. A /16 gives 15 landing zones, a /18 gives 3.
+        Every subnet is cut from this range automatically. A /16 holds about 8,000 workloads per
+        zone in the private subnets.
       type: string
       default: 10.0.0.0/16
       pattern: ^(10\.([0-9]{1,3})\.0\.0/16|10\.([0-9]{1,3})\.([0-9]{1,3})\.0/1[78]|172\.(1[6-9]|2[0-9]|3[01])\.0\.0/16|172\.(1[6-9]|2[0-9]|3[01])\.([0-9]{1,3})\.0/1[78]|192\.168\.0\.0/16|192\.168\.([0-9]{1,3})\.0/1[78])$

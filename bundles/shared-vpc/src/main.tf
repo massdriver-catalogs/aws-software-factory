@@ -9,13 +9,15 @@ data "aws_availability_zones" "available" {
 locals {
   name = var.md_metadata.name_prefix
 
-  slice_bits          = 20 - tonumber(split("/", var.cidr)[1])
-  shared_cidr         = cidrsubnet(var.cidr, local.slice_bits, 0)
-  landing_zone_ranges = [for i in range(1, pow(2, local.slice_bits)) : cidrsubnet(var.cidr, local.slice_bits, i)]
-
-  # Laid out for three zones regardless of zone_count, so adding a zone never
-  # moves an existing subnet.
-  shared_blocks = cidrsubnets(local.shared_cidr, 4, 4, 4, 4, 4, 4)
+  # Sized relative to the VPC and laid out for three zones regardless of
+  # zone_count, so adding a zone never moves an existing subnet. On a /16:
+  # private /19, internal /21, public /22 per zone.
+  blocks = cidrsubnets(var.cidr, 3, 3, 3, 5, 5, 5, 6, 6, 6)
+  tier_offset = {
+    private  = 0
+    internal = 3
+    public   = 6
+  }
 
   zone_name_by_id = zipmap(data.aws_availability_zones.available.zone_ids, data.aws_availability_zones.available.names)
   zone_ids        = slice(sort(data.aws_availability_zones.available.zone_ids), 0, var.zone_count)
@@ -41,19 +43,37 @@ resource "aws_internet_gateway" "main" {
 resource "aws_subnet" "public" {
   count                               = var.zone_count
   vpc_id                              = aws_vpc.main.id
-  cidr_block                          = local.shared_blocks[count.index]
+  cidr_block                          = local.blocks[local.tier_offset.public + count.index]
   availability_zone_id                = local.zone_ids[count.index]
   private_dns_hostname_type_on_launch = "resource-name"
-  tags                                = { Name = "${local.name}-shared-public-${local.zone_ids[count.index]}" }
+  tags = {
+    Name = "${local.name}-public-${local.zone_ids[count.index]}"
+    Tier = "public"
+  }
 }
 
 resource "aws_subnet" "private" {
   count                               = var.zone_count
   vpc_id                              = aws_vpc.main.id
-  cidr_block                          = local.shared_blocks[count.index + 3]
+  cidr_block                          = local.blocks[local.tier_offset.private + count.index]
   availability_zone_id                = local.zone_ids[count.index]
   private_dns_hostname_type_on_launch = "resource-name"
-  tags                                = { Name = "${local.name}-shared-private-${local.zone_ids[count.index]}" }
+  tags = {
+    Name = "${local.name}-private-${local.zone_ids[count.index]}"
+    Tier = "private"
+  }
+}
+
+resource "aws_subnet" "internal" {
+  count                               = var.zone_count
+  vpc_id                              = aws_vpc.main.id
+  cidr_block                          = local.blocks[local.tier_offset.internal + count.index]
+  availability_zone_id                = local.zone_ids[count.index]
+  private_dns_hostname_type_on_launch = "resource-name"
+  tags = {
+    Name = "${local.name}-internal-${local.zone_ids[count.index]}"
+    Tier = "internal"
+  }
 }
 
 resource "aws_route_table" "public" {
@@ -88,6 +108,12 @@ resource "aws_route_table_association" "private" {
 resource "aws_route_table" "internal" {
   vpc_id = aws_vpc.main.id
   tags   = { Name = "${local.name}-internal" }
+}
+
+resource "aws_route_table_association" "internal" {
+  count          = var.zone_count
+  subnet_id      = aws_subnet.internal[count.index].id
+  route_table_id = aws_route_table.internal.id
 }
 
 resource "aws_vpc_endpoint" "gateway" {

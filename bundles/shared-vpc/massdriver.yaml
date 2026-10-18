@@ -65,8 +65,8 @@ params:
     zone_count:
       title: Availability zones
       description: >-
-        Load balancers need at least two. Adding a zone later is safe; removing one fails while
-        anything runs in it. With per-zone NAT gateways, ***each zone adds a NAT gateway, which costs extra***.
+        ***Affects cost.*** Load balancers need at least two. Adding a zone later is safe; removing
+        one fails while anything runs in it.
       type: integer
       default: 2
       minimum: 2
@@ -74,15 +74,15 @@ params:
     egress:
       title: Internet egress for private subnets
       description: >-
-        How private subnets reach the internet. Public subnets always use the internet gateway.
-        ***NAT gateways cost more than the NAT instance and charge for every GB they carry.***
+        ***Affects cost.*** How private subnets reach the internet. Public subnets always use the
+        internet gateway.
       type: string
       default: nat_instance
       oneOf:
         - const: none
           title: None — private subnets have no route to the internet
         - const: nat_instance
-          title: NAT instance — lowest cost, egress pauses while it recovers
+          title: NAT instance — one instance, egress pauses while it recovers
         - const: nat_gateway
           title: NAT gateway — managed, one zone
         - const: nat_gateway_per_zone
@@ -90,8 +90,8 @@ params:
     private_endpoints:
       title: Interface endpoints
       description: >-
-        Lets private subnets reach these AWS APIs without going through egress. S3 and DynamoDB
-        gateway endpoints are always on and free. ***Each endpoint is billed hourly in every zone.***
+        ***Affects cost.*** Lets private subnets reach these AWS APIs without going through egress.
+        S3 and DynamoDB gateway endpoints are always on.
       type: array
       uniqueItems: true
       default: []
@@ -113,8 +113,7 @@ params:
     flow_log_retention_days:
       title: Flow log retention (days)
       description: >-
-        Flow logs are always on. ***CloudWatch bills for every GB ingested and stored***, so busy
-        VPCs with long retention add up.
+        ***Affects cost.*** Flow logs are always on.
       type: integer
       default: 30
       enum:

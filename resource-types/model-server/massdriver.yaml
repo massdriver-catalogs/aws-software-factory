@@ -1,0 +1,42 @@
+name: model-server
+version: 0.0.0
+label: Model Server
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Model Server
+  description: >-
+    A self-hosted, OpenAI-compatible model server. Only the LLM gateway should connect to it;
+    consumers go through the gateway.
+  type: object
+  additionalProperties: false
+  required:
+    - url
+    - model
+    - region
+    - api_key_secret_arn
+    - security_group_id
+  properties:
+    url:
+      title: URL
+      description: OpenAI-compatible base URL inside the VPC (e.g. http://ip-10-0-1-20.ec2.internal:8000/v1).
+      type: string
+    model:
+      title: Model
+      description: The model name the server answers to.
+      type: string
+    region:
+      title: Region
+      type: string
+    api_key_secret_arn:
+      title: API Key Secret
+      description: Secrets Manager ARN holding the server's API key.
+      type: string
+      pattern: ^arn:aws[a-z-]*:secretsmanager:.+$
+    security_group_id:
+      title: Security Group
+      description: The server's security group. The gateway adds its own ingress rule to it.
+      type: string
+      pattern: ^sg-[a-f0-9]+$

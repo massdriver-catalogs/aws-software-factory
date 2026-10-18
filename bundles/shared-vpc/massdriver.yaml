@@ -1,0 +1,152 @@
+name: shared-vpc
+description: >-
+  A VPC shared by every team in a region. It runs the internet gateway, egress, VPC endpoints and
+  flow logs; teams get their subnets from a landing zone carved out of it.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/shared-vpc
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Lowest cost
+      region: us-east-1
+      cidr: 10.0.0.0/16
+      zone_count: 2
+      egress: nat_instance
+      private_endpoints: []
+      flow_log_retention_days: 30
+    - __name: Production
+      region: us-east-1
+      cidr: 10.0.0.0/16
+      zone_count: 3
+      egress: nat_gateway_per_zone
+      private_endpoints:
+        - ssm
+        - ecr
+        - sts
+        - logs
+      flow_log_retention_days: 365
+  required:
+    - region
+    - cidr
+    - zone_count
+    - egress
+    - private_endpoints
+    - flow_log_retention_days
+  properties:
+    region:
+      title: Region
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 (N. Virginia)
+        - const: us-east-2
+          title: us-east-2 (Ohio)
+        - const: us-west-2
+          title: us-west-2 (Oregon)
+        - const: eu-west-1
+          title: eu-west-1 (Ireland)
+        - const: eu-central-1
+          title: eu-central-1 (Frankfurt)
+        - const: ap-northeast-1
+          title: ap-northeast-1 (Tokyo)
+    cidr:
+      title: CIDR
+      description: >-
+        Split into /20s. The first /20 is kept for the VPC's own subnets; each landing zone claims
+        one of the rest. A /16 gives 15 landing zones, a /18 gives 3.
+      type: string
+      default: 10.0.0.0/16
+      pattern: ^(10\.([0-9]{1,3})\.0\.0/16|10\.([0-9]{1,3})\.([0-9]{1,3})\.0/1[78]|172\.(1[6-9]|2[0-9]|3[01])\.0\.0/16|172\.(1[6-9]|2[0-9]|3[01])\.([0-9]{1,3})\.0/1[78]|192\.168\.0\.0/16|192\.168\.([0-9]{1,3})\.0/1[78])$
+      message:
+        pattern: "Must be an RFC 1918 range between /16 and /18, for example 10.0.0.0/16."
+      $md.immutable: true
+    zone_count:
+      title: Availability zones
+      description: >-
+        Load balancers need at least two. Adding a zone later is safe; removing one fails while
+        anything runs in it. With per-zone NAT gateways, ***each zone adds a NAT gateway (~$33/month)***.
+      type: integer
+      default: 2
+      minimum: 2
+      maximum: 3
+    egress:
+      title: Internet egress for private subnets
+      description: >-
+        How private subnets reach the internet. Public subnets always use the internet gateway.
+      type: string
+      default: nat_instance
+      oneOf:
+        - const: none
+          title: None — private subnets have no route to the internet
+        - const: nat_instance
+          title: NAT instance — ~$7/month, one instance, egress pauses while it recovers
+        - const: nat_gateway
+          title: NAT gateway — ~$33/month + $0.045/GB, one zone
+        - const: nat_gateway_per_zone
+          title: NAT gateway per zone — ~$33/month each + $0.045/GB, survives a zone outage
+    private_endpoints:
+      title: Interface endpoints
+      description: >-
+        Lets private subnets reach these AWS APIs without going through egress. S3 and DynamoDB
+        gateway endpoints are always on and free. ***Each endpoint costs ~$7/month per zone***, so
+        on two zones SSM alone (three endpoints) is ~$44/month.
+      type: array
+      uniqueItems: true
+      default: []
+      items:
+        type: string
+        oneOf:
+          - const: ssm
+            title: Session Manager (3 endpoints)
+          - const: ecr
+            title: ECR image pulls (2 endpoints)
+          - const: sts
+            title: STS
+          - const: logs
+            title: CloudWatch Logs
+          - const: secretsmanager
+            title: Secrets Manager
+          - const: bedrock
+            title: Bedrock runtime
+    flow_log_retention_days:
+      title: Flow log retention (days)
+      description: >-
+        Flow logs are always on. ***CloudWatch charges ~$0.50/GB ingested and ~$0.03/GB-month
+        stored***, so busy VPCs with long retention add up.
+      type: integer
+      default: 30
+      enum:
+        - 7
+        - 30
+        - 90
+        - 365
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - cidr
+    - zone_count
+    - egress
+    - private_endpoints
+    - flow_log_retention_days
+    - "*"
+  zone_count:
+    ui:widget: updown
+  private_endpoints:
+    ui:widget: checkboxes

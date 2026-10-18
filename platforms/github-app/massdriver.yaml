@@ -1,0 +1,53 @@
+name: github-app
+version: 0.0.0
+label: GitHub App
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Create the GitHub App
+      path: ./instructions/Create the GitHub App.md
+
+schema:
+  title: GitHub App
+  description: A GitHub App installed on your organization. Bundles use it to create repositories, deploy keys, workflows and runners.
+  type: object
+  additionalProperties: false
+  required:
+    - owner
+    - app_id
+    - installation_id
+    - private_key
+  properties:
+    owner:
+      title: Organization
+      description: The GitHub organization the app is installed on, as it appears in the URL.
+      type: string
+      pattern: ^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$
+      message:
+        pattern: "Must be a GitHub organization login, for example acme-co."
+      examples:
+        - acme-co
+    app_id:
+      title: App ID
+      description: Shown on the app's General settings page under "About".
+      type: string
+      pattern: ^[0-9]+$
+      message:
+        pattern: "Digits only."
+    installation_id:
+      title: Installation ID
+      description: The number at the end of the installation's URL, github.com/organizations/<org>/settings/installations/<id>.
+      type: string
+      pattern: ^[0-9]+$
+      message:
+        pattern: "Digits only."
+    private_key:
+      title: Private Key
+      description: The full contents of the .pem file GitHub downloaded when you generated the key.
+      type: string
+      pattern: ^-----BEGIN (RSA )?PRIVATE KEY-----
+      message:
+        pattern: "Paste the whole .pem file, starting with -----BEGIN RSA PRIVATE KEY-----."
+      $md.sensitive: true

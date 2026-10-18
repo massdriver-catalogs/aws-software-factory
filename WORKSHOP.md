@@ -27,7 +27,7 @@ New-account AWS credits cover the Bedrock path. Forgetting a GPU is the main ris
 
 ## Steps
 
-Costs are approximate, per month, us-east-1.
+Costs are approximate, per month, us-east-1. Every pick is the cheapest option that doesn't hurt the experience.
 
 ### 1. Connect AWS
 
@@ -44,7 +44,7 @@ Create project **Networking** (`networking`) with environment **Dev** (`dev`). A
 | Availability zones | 2 | — |
 | Internet egress for private subnets | NAT instance | ~$7 |
 | Interface endpoints | none | $0 (each adds ~$7 per zone) |
-| Flow log retention | 30 days | <$1 at workshop traffic |
+| Flow log retention | 7 days | <$1 at workshop traffic |
 
 Always on: flow log encryption key ~$1. **Shared VPC total: ~$8–9/month.**
 

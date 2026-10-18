@@ -1,0 +1,82 @@
+#!/bin/bash
+set -euo pipefail
+
+dnf install -y docker
+systemctl enable --now docker
+
+mkdir -p /etc/litellm /opt/litellm
+chmod 700 /etc/litellm
+
+cat > /opt/litellm/custom_auth.py <<'PY'
+${custom_auth}
+PY
+
+cat > /opt/litellm/sync.sh <<'SH'
+#!/bin/bash
+set -euo pipefail
+dir=/etc/litellm
+
+aws ssm get-parameters-by-path --region ${region} --path ${key_prefix} --recursive --with-decryption --output json \
+  | python3 -c 'import json, sys; ps = json.load(sys.stdin)["Parameters"]; print(json.dumps({p["Value"]: p["Name"].rsplit("/", 1)[-1] for p in ps}))' \
+  > $dir/keys.json.tmp
+mv $dir/keys.json.tmp $dir/keys.json
+
+aws secretsmanager get-secret-value --region ${region} --secret-id ${master_key_arn} --query SecretString --output text > $dir/master_key.tmp
+mv $dir/master_key.tmp $dir/master_key
+
+aws ssm get-parameter --region ${region} --name ${config_param} --with-decryption --query Parameter.Value --output text > $dir/config.yaml.tmp
+if ! cmp -s $dir/config.yaml.tmp $dir/config.yaml; then
+  mv $dir/config.yaml.tmp $dir/config.yaml
+  systemctl restart litellm || true
+else
+  rm -f $dir/config.yaml.tmp
+fi
+SH
+chmod 700 /opt/litellm/sync.sh
+
+cat > /etc/systemd/system/litellm.service <<'UNIT'
+[Unit]
+Description=LiteLLM gateway
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStartPre=-/usr/bin/docker rm -f litellm
+ExecStart=/usr/bin/docker run --name litellm --network host \
+  --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} \
+  -v /etc/litellm:/etc/litellm:ro \
+  -v /opt/litellm/custom_auth.py:/app/custom_auth.py:ro \
+  ghcr.io/berriai/litellm:main-stable \
+  --config /etc/litellm/config.yaml --port ${port} --host 0.0.0.0
+ExecStop=/usr/bin/docker stop litellm
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+cat > /etc/systemd/system/litellm-sync.service <<'UNIT'
+[Unit]
+Description=Sync LiteLLM keys and config from AWS
+
+[Service]
+Type=oneshot
+ExecStart=/opt/litellm/sync.sh
+UNIT
+
+cat > /etc/systemd/system/litellm-sync.timer <<'UNIT'
+[Unit]
+Description=Sync LiteLLM keys and config every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+/opt/litellm/sync.sh
+systemctl enable --now litellm litellm-sync.timer

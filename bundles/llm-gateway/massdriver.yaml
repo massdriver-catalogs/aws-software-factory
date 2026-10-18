@@ -1,0 +1,82 @@
+name: llm-gateway
+description: >-
+  The single front door to every model on the AI Platform. Sandboxes, runners and apps call one
+  OpenAI-compatible URL with their own key; the gateway routes to Bedrock or to a self-hosted
+  model server, and is the only thing allowed to reach either.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/llm-gateway
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Workshop
+      bedrock_models:
+        - gpt-oss-20b
+      log_retention_days: 1
+    - __name: Team
+      bedrock_models:
+        - gpt-oss-20b
+        - gpt-oss-120b
+        - qwen3-coder-30b
+      log_retention_days: 30
+  required:
+    - bedrock_models
+    - log_retention_days
+  properties:
+    bedrock_models:
+      title: Bedrock models
+      description: >-
+        Open-weight models served by Bedrock, billed per token. A connected model server is added
+        alongside these. ***Bigger models cost more per token.***
+      type: array
+      uniqueItems: true
+      default:
+        - gpt-oss-20b
+      items:
+        type: string
+        oneOf:
+          - const: gpt-oss-20b
+            title: gpt-oss-20b — OpenAI open-weight, fast, good tool use
+          - const: gpt-oss-120b
+            title: gpt-oss-120b — OpenAI open-weight, stronger, ~2× the price
+          - const: qwen3-coder-30b
+            title: Qwen3 Coder 30B — coding-tuned, fast
+          - const: qwen3-coder-480b
+            title: Qwen3 Coder 480B — coding-tuned, strongest, priciest
+    log_retention_days:
+      title: Log retention (days)
+      description: Request logs from the gateway. ***CloudWatch bills per GB stored.***
+      type: integer
+      default: 1
+      enum:
+        - 1
+        - 7
+        - 30
+        - 90
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: true
+  model_server:
+    resource_type: model-server@0.0.0
+    required: false
+
+resources:
+  endpoint:
+    resource_type: llm-endpoint@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - bedrock_models
+    - log_retention_days
+    - "*"
+  bedrock_models:
+    ui:widget: checkboxes

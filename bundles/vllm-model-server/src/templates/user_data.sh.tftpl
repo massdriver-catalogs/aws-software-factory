@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+systemctl enable --now docker
+mkdir -p /opt/vllm /opt/hf
+
+cat > /opt/vllm/start.sh <<'SH'
+#!/bin/bash
+set -euo pipefail
+KEY=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${secret_arn} --query SecretString --output text)
+umask 077
+echo "VLLM_API_KEY=$KEY" > /opt/vllm/env
+SH
+chmod 700 /opt/vllm/start.sh
+
+cat > /etc/systemd/system/vllm.service <<'UNIT'
+[Unit]
+Description=vLLM OpenAI-compatible server
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=0
+ExecStartPre=/opt/vllm/start.sh
+ExecStartPre=-/usr/bin/docker rm -f vllm
+ExecStart=/usr/bin/docker run --name vllm --gpus all --ipc=host -p ${port}:${port} \
+  --env-file /opt/vllm/env \
+  --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} \
+  -v /opt/hf:/root/.cache/huggingface \
+  vllm/vllm-openai:latest \
+  --model ${repo} --served-model-name ${served_name} --port ${port} \
+  --max-model-len ${max_model_len} --enable-auto-tool-choice --tool-call-parser ${tool_parser}
+ExecStop=/usr/bin/docker stop vllm
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now vllm

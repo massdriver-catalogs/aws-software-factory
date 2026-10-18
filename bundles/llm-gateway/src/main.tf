@@ -7,11 +7,21 @@ locals {
   config_param = "/${local.name}/config"
 
   bedrock_ids = {
-    "gpt-oss-20b"      = "openai.gpt-oss-20b-1:0"
+    "kimi-k3"          = "us.moonshotai.kimi-k3"
+    "kimi-k2-5"        = "moonshotai.kimi-k2.5"
+    "qwen3-coder-next" = "qwen.qwen3-coder-next"
     "gpt-oss-120b"     = "openai.gpt-oss-120b-1:0"
-    "qwen3-coder-30b"  = "qwen.qwen3-coder-30b-a3b-v1:0"
-    "qwen3-coder-480b" = "qwen.qwen3-coder-480b-a35b-v1:0"
+    "gpt-oss-20b"      = "openai.gpt-oss-20b-1:0"
   }
+
+  # Cross-region profiles (us.*) need the profile and the model in every
+  # region the profile can route to.
+  bedrock_arns = flatten([for m in var.bedrock_models : startswith(local.bedrock_ids[m], "us.") ? [
+    "arn:aws:bedrock:${local.region}:${data.aws_caller_identity.current.account_id}:inference-profile/${local.bedrock_ids[m]}",
+    "arn:aws:bedrock:*::foundation-model/${trimprefix(local.bedrock_ids[m], "us.")}",
+    ] : [
+    "arn:aws:bedrock:${local.region}::foundation-model/${local.bedrock_ids[m]}",
+  ]])
 
   has_model_server  = var.model_server != null
   self_hosted_model = local.has_model_server ? "self-hosted-${var.model_server.model}" : null
@@ -29,7 +39,7 @@ locals {
     }
   }] : []
 
-  models        = concat(local.has_model_server ? [local.self_hosted_model] : [], var.bedrock_models)
+  models        = concat(var.bedrock_models, local.has_model_server ? [local.self_hosted_model] : [])
   default_model = local.models[0]
 
   private_subnets = [for s in var.network.subnets : s if s.tier == "private"]

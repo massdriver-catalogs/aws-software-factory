@@ -16,7 +16,7 @@ An admin key lives in Secrets Manager at `<gateway>/master-key`.
 
 ## Models
 
-Bedrock models are billed per token. A connected model server shows up as `self-hosted-<model>` and becomes the default model.
+Bedrock models are billed per token. A connected model server shows up as `self-hosted-<model>`. The first Bedrock model is the default; with no Bedrock models, the model server is.
 
 ## Instance
 

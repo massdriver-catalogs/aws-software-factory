@@ -63,7 +63,7 @@ resource "aws_iam_role_policy" "gateway" {
         Sid      = "InvokeBedrockModels"
         Effect   = "Allow"
         Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
-        Resource = length(var.bedrock_models) > 0 ? [for m in var.bedrock_models : "arn:aws:bedrock:${local.region}::foundation-model/${local.bedrock_ids[m]}"] : ["arn:aws:bedrock:${local.region}::foundation-model/none"]
+        Resource = length(local.bedrock_arns) > 0 ? local.bedrock_arns : ["arn:aws:bedrock:${local.region}::foundation-model/none"]
       },
       {
         Sid      = "ReadConsumerKeysAndConfig"

@@ -1,0 +1,135 @@
+name: vllm-model-server
+description: >-
+  Runs an open-weight model on your own GPU with vLLM. It accepts connections only from the LLM
+  gateway, and stops itself overnight and when idle.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/vllm-model-server
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Workshop
+      instance_type: g6.xlarge
+      model: gpt-oss-20b
+      idle_stop_minutes: 60
+      nightly_stop: "20:00"
+      timezone: America/Los_Angeles
+      log_retention_days: 1
+    - __name: Team, coding model
+      instance_type: g6e.xlarge
+      model: qwen3-coder-30b
+      idle_stop_minutes: 120
+      nightly_stop: "22:00"
+      timezone: America/New_York
+      log_retention_days: 30
+  required:
+    - instance_type
+    - model
+    - idle_stop_minutes
+    - nightly_stop
+    - timezone
+    - log_retention_days
+  properties:
+    instance_type:
+      title: GPU
+      description: >-
+        Needs "Running On-Demand G and VT instances" quota of at least 4 vCPUs in this region; new
+        accounts often start at 0. ***Billed every hour it runs.***
+      type: string
+      default: g6.xlarge
+      oneOf:
+        - const: g6.xlarge
+          title: g6.xlarge — NVIDIA L4, 24 GB, ~$0.80/hour
+        - const: g5.xlarge
+          title: g5.xlarge — NVIDIA A10G, 24 GB, ~$1.01/hour
+        - const: g6e.xlarge
+          title: g6e.xlarge — NVIDIA L40S, 48 GB, ~$1.86/hour
+    model:
+      title: Model
+      description: Downloaded from Hugging Face on first boot, which takes a few minutes.
+      type: string
+      default: gpt-oss-20b
+      oneOf:
+        - const: gpt-oss-20b
+          title: gpt-oss-20b — OpenAI open-weight, strong tool use, fits 24 GB
+        - const: qwen3-coder-30b
+          title: Qwen3 Coder 30B (FP8) — coding-tuned, needs the 48 GB GPU
+    idle_stop_minutes:
+      title: Stop when idle for
+      description: >-
+        Stops the server when it has served nothing for this long. Start it again from the EC2
+        console or the runbook. ***A GPU left running costs ~$580/month.***
+      type: integer
+      default: 60
+      oneOf:
+        - const: 30
+          title: 30 minutes
+        - const: 60
+          title: 1 hour
+        - const: 120
+          title: 2 hours
+        - const: 0
+          title: Never
+    nightly_stop:
+      title: Stop every night at
+      description: A backstop for idle stop. ***Turning it off risks a full night of GPU billing.***
+      type: string
+      default: "20:00"
+      oneOf:
+        - const: "18:00"
+          title: "6 pm"
+        - const: "20:00"
+          title: "8 pm"
+        - const: "22:00"
+          title: "10 pm"
+        - const: never
+          title: Never
+    timezone:
+      title: Time zone for the nightly stop
+      type: string
+      default: America/Los_Angeles
+      enum:
+        - America/Los_Angeles
+        - America/Denver
+        - America/Chicago
+        - America/New_York
+        - Europe/London
+        - Europe/Berlin
+        - Asia/Tokyo
+        - UTC
+    log_retention_days:
+      title: Log retention (days)
+      description: Server logs. ***CloudWatch bills per GB stored.***
+      type: integer
+      default: 1
+      enum:
+        - 1
+        - 7
+        - 30
+        - 90
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: true
+
+resources:
+  model_server:
+    resource_type: model-server@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - instance_type
+    - model
+    - idle_stop_minutes
+    - nightly_stop
+    - timezone
+    - log_retention_days
+    - "*"

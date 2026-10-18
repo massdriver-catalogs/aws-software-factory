@@ -48,6 +48,31 @@ Create project **Networking** (`networking`) with environment **Dev** (`dev`). A
 
 Always on: flow log encryption key ~$1. **Shared VPC total: ~$8–9/month.**
 
+### 3. AI Platform
+
+Create project **AI Platform** (`aiplatform`) with environment **Dev** (`dev`). Set the Shared VPC as the environment's network default.
+
+Add **LLM Gateway**:
+
+| Field | Pick | Cost |
+|---|---|---|
+| Bedrock models | Kimi K3 | ~$3.30 in / $16.50 out per M tokens; a heavy agent session is roughly $3–12 depending on cache hits |
+| Log retention | 1 day | <$1 |
+
+Always on: t4g.small gateway, disk, and the admin key secret. **Gateway total: ~$14/month plus tokens.** Kimi K2.5 is the budget pick at ~$0.60 / $3 per M tokens.
+
+Optional, for "your own GPU" (needs G/VT quota): add **vLLM Model Server** and connect it to the gateway.
+
+| Field | Pick | Cost |
+|---|---|---|
+| GPU | g6.xlarge | ~$0.80 per hour running |
+| Model | gpt-oss-20b | — |
+| Stop when idle for | 1 hour | — |
+| Stop every night at | 8 pm, your time zone | — |
+| Log retention | 1 day | <$1 |
+
+Stopped, it costs its disk and key (~$10/month). **A 3-hour workshop: ~$3.**
+
 ## Messaging
 
 - A 20B model on one L4 is a working coding agent, not a frontier model. Show the one-setting switch to a bigger Bedrock model.

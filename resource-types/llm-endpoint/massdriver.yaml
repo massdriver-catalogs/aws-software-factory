@@ -1,0 +1,47 @@
+name: llm-endpoint
+version: 0.0.0
+label: LLM Endpoint
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: models
+
+schema:
+  title: LLM Endpoint
+  description: >-
+    An OpenAI-compatible gateway in front of the AI Platform's models. Each consumer writes its
+    own key under key_parameter_prefix; the gateway accepts every key it finds there.
+  type: object
+  additionalProperties: false
+  required:
+    - base_url
+    - region
+    - key_parameter_prefix
+    - default_model
+    - models
+  properties:
+    base_url:
+      title: Base URL
+      description: OpenAI-compatible base URL, reachable from the VPC's subnets (e.g. http://10.0.4.12:4000/v1).
+      type: string
+    region:
+      title: Region
+      type: string
+    key_parameter_prefix:
+      title: Key Parameter Prefix
+      description: >-
+        SSM Parameter Store path consumers write their key under, as a SecureString named
+        <prefix>/<consumer-name>.
+      type: string
+      pattern: ^/[A-Za-z0-9_./-]+$
+    default_model:
+      title: Default Model
+      description: The model name consumers should use unless they pick another.
+      type: string
+    models:
+      title: Models
+      description: Model names the gateway serves.
+      type: array
+      minItems: 1
+      items:
+        type: string

@@ -25,7 +25,7 @@ bundles/          OpenTofu bundles
 
 ## Getting started
 
-1. Add a `MASSDRIVER_API_KEY` secret (a service account key) and a `MASSDRIVER_ORG_ID` variable to the repository. Every push to `main` publishes what changed; **Actions → Publish → Run workflow** with *all* publishes everything.
+1. Add a `MASSDRIVER_API_KEY` secret (a service account key) and `MASSDRIVER_ORG_ID` (a variable or a secret) to the repository. Every push to `main` publishes what changed; **Actions → Publish → Run workflow** with *all* publishes everything.
 2. In Massdriver, add your AWS account under **Credentials** using the AWS IAM Role instructions.
 
 ## Versioning

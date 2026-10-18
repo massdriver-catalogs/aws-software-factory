@@ -73,6 +73,28 @@ Optional, for "your own GPU" (needs G/VT quota): add **vLLM Model Server** and c
 
 Stopped, it costs its disk and key (~$10/month). **A 3-hour workshop: ~$3.**
 
+### 4. Developer Sandboxes
+
+Create project **Developer Sandboxes** (`devsandboxes`) with one environment per person, named after them (e.g. `cory`). Set the Shared VPC as the network default and the AI Platform's LLM endpoint as the model default.
+
+Add **Developer Sandbox**:
+
+| Field | Pick | Cost |
+|---|---|---|
+| Size | Light | ~$0.03 per hour running |
+| Chip | ARM | — |
+| Workspace disk | 20 GB | ~$1.60 |
+| Network | Public IP, no inbound | ~$0.005 per hour running; no NAT needed |
+| Stop when idle for | 30 minutes | — |
+| Stop every night at | 8 pm, your time zone | — |
+| Coding agents | opencode | — |
+| How much do agents do on their own? | Run freely inside the sandbox | — |
+| Languages | Python, Node.js | — |
+
+Always on: the 16 GB system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox total: ~$3/month stopped, ~$10/month on workday hours, ~$31 if never stopped. A 3-hour workshop: ~$0.15.**
+
+Connect: EC2 → the instance → **Connect** → **Session Manager**, then `sudo -iu dev` and `opencode`.
+
 ## Messaging
 
 - A 20B model on one L4 is a working coding agent, not a frontier model. Show the one-setting switch to a bigger Bedrock model.

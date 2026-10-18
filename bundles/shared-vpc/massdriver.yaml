@@ -66,7 +66,7 @@ params:
       title: Availability zones
       description: >-
         Load balancers need at least two. Adding a zone later is safe; removing one fails while
-        anything runs in it. With per-zone NAT gateways, ***each zone adds a NAT gateway (~$33/month)***.
+        anything runs in it. With per-zone NAT gateways, ***each zone adds a NAT gateway, which costs extra***.
       type: integer
       default: 2
       minimum: 2
@@ -75,23 +75,23 @@ params:
       title: Internet egress for private subnets
       description: >-
         How private subnets reach the internet. Public subnets always use the internet gateway.
+        ***NAT gateways cost more than the NAT instance and charge for every GB they carry.***
       type: string
       default: nat_instance
       oneOf:
         - const: none
           title: None — private subnets have no route to the internet
         - const: nat_instance
-          title: NAT instance — ~$7/month, one instance, egress pauses while it recovers
+          title: NAT instance — lowest cost, egress pauses while it recovers
         - const: nat_gateway
-          title: NAT gateway — ~$33/month + $0.045/GB, one zone
+          title: NAT gateway — managed, one zone
         - const: nat_gateway_per_zone
-          title: NAT gateway per zone — ~$33/month each + $0.045/GB, survives a zone outage
+          title: NAT gateway per zone — managed, survives a zone outage
     private_endpoints:
       title: Interface endpoints
       description: >-
         Lets private subnets reach these AWS APIs without going through egress. S3 and DynamoDB
-        gateway endpoints are always on and free. ***Each endpoint costs ~$7/month per zone***, so
-        on two zones SSM alone (three endpoints) is ~$44/month.
+        gateway endpoints are always on and free. ***Each endpoint is billed hourly in every zone.***
       type: array
       uniqueItems: true
       default: []
@@ -113,8 +113,8 @@ params:
     flow_log_retention_days:
       title: Flow log retention (days)
       description: >-
-        Flow logs are always on. ***CloudWatch charges ~$0.50/GB ingested and ~$0.03/GB-month
-        stored***, so busy VPCs with long retention add up.
+        Flow logs are always on. ***CloudWatch bills for every GB ingested and stored***, so busy
+        VPCs with long retention add up.
       type: integer
       default: 30
       enum:

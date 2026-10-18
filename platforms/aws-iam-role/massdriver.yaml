@@ -1,0 +1,39 @@
+name: aws-iam-role
+version: 0.0.0
+label: AWS IAM Role
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: AWS CLI
+      path: ./instructions/AWS CLI.md
+    - label: AWS Console
+      path: ./instructions/AWS Console.md
+
+schema:
+  title: AWS IAM Role
+  description: A role in your AWS account that Massdriver assumes to build and run what you deploy.
+  type: object
+  additionalProperties: false
+  required:
+    - arn
+    - external_id
+  properties:
+    arn:
+      title: Role ARN
+      description: The ARN of the role, shown at the top of the role's page in the IAM console.
+      type: string
+      pattern: ^arn:aws(-[a-z]+)*:iam::[0-9]{12}:role/[a-zA-Z0-9+=,.@_/-]+$
+      message:
+        pattern: "Must be an IAM role ARN, for example arn:aws:iam::123456789012:role/massdriver."
+      examples:
+        - arn:aws:iam::123456789012:role/massdriver
+    external_id:
+      title: External ID
+      description: >-
+        The value the role's trust policy requires before it can be assumed. Use the one shown in
+        these instructions so the role only trusts this organization.
+      type: string
+      minLength: 2
+      $md.sensitive: true

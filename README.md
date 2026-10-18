@@ -25,9 +25,8 @@ bundles/          OpenTofu bundles
 
 ## Getting started
 
-1. Publish the credential types: `make publish-platforms`
+1. Add a `MASSDRIVER_API_KEY` secret (a service account key) and a `MASSDRIVER_ORG_ID` variable to the repository. Every push to `main` publishes what changed; **Actions → Publish → Run workflow** with *all* publishes everything.
 2. In Massdriver, add your AWS account under **Credentials** using the AWS IAM Role instructions.
-3. Publish contracts and bundles: `make publish-resource-types publish-bundles`
 
 ## Versioning
 

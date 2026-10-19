@@ -1,0 +1,84 @@
+name: aws-dynamodb-table
+version: 0.0.0
+label: AWS DynamoDB Table
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: AWS DynamoDB Table
+  description: >-
+    A DynamoDB table and the IAM policies that grant access to it. Consumers attach one policy to
+    their own role rather than writing their own.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - arn
+    - region
+    - partition_key
+    - policies
+  properties:
+    name:
+      title: Table Name
+      type: string
+      minLength: 1
+    arn:
+      title: Table ARN
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      type: string
+      minLength: 1
+    partition_key:
+      title: Partition Key
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - S
+            - N
+            - B
+    sort_key:
+      title: Sort Key
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - S
+            - N
+            - B
+    policies:
+      title: Access Policies
+      description: IAM managed policies a consumer attaches to its role.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - arn
+        properties:
+          name:
+            title: Name
+            description: What the policy allows, e.g. read or read-write.
+            type: string
+          arn:
+            title: Policy ARN
+            type: string

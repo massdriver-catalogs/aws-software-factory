@@ -1,0 +1,38 @@
+name: aws-http-api
+version: 0.0.0
+label: AWS HTTP API
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: AWS HTTP API
+  description: >-
+    An API Gateway HTTP API with an auto-deployed default stage. Functions attach their own routes
+    and integrations to it.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - region
+    - endpoint
+    - execution_arn
+  properties:
+    id:
+      title: API ID
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      type: string
+      minLength: 1
+    endpoint:
+      title: Endpoint
+      description: Base URL of the default stage, e.g. https://abc123.execute-api.us-east-1.amazonaws.com.
+      type: string
+      pattern: ^https://
+    execution_arn:
+      title: Execution ARN
+      description: Used to scope Lambda invoke permissions to this API.
+      type: string
+      minLength: 1

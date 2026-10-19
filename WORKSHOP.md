@@ -56,10 +56,10 @@ Add **LLM Gateway**:
 
 | Field | Pick | Cost |
 |---|---|---|
-| Bedrock models | Kimi K3 | ~$3.30 in / $16.50 out per M tokens; a heavy agent session is roughly $3–12 depending on cache hits |
+| Bedrock models | Kimi K2.5 | ~$0.60 in / $3 out per M tokens; a heavy agent session is roughly $1–2 |
 | Log retention | 1 day | <$1 |
 
-Always on: t4g.small gateway, disk, and the admin key secret. **Gateway total: ~$14/month plus tokens.** Kimi K2.5 is the budget pick at ~$0.60 / $3 per M tokens.
+Always on: t4g.small gateway, disk, and the admin key secret. **Gateway total: ~$14/month plus tokens.** Kimi K3 is stronger at ~$3.30 / $16.50 per M tokens, but its multi-turn calls through Bedrock's Converse API can fail with reasoning content, which is how opencode talks.
 
 Optional, for "your own GPU" (needs G/VT quota): add **vLLM Model Server** and connect it to the gateway.
 

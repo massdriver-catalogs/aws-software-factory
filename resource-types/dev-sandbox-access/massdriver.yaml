@@ -1,0 +1,40 @@
+name: dev-sandbox-access
+version: 0.0.0
+label: Dev Sandbox Access
+
+ui:
+  connectionOrientation: link
+
+exports:
+  - downloadButtonText: Connect script
+    fileFormat: sh
+    templatePath: ./exports/connect.sh.liquid
+    templateLang: liquid
+
+schema:
+  title: Dev Sandbox Access
+  description: >-
+    A key that can only start, and open a session on, one developer sandbox. The connect script
+    turns it into an AWS profile and an `ssh <name>` entry.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - region
+    - access_key_id
+    - secret_access_key
+  properties:
+    name:
+      title: Name
+      description: The sandbox's Name tag, also used as the SSH host and AWS profile name.
+      type: string
+    region:
+      title: Region
+      type: string
+    access_key_id:
+      title: Access Key ID
+      type: string
+    secret_access_key:
+      title: Secret Access Key
+      type: string
+      $md.sensitive: true

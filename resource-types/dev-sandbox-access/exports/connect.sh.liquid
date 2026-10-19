@@ -1,0 +1,65 @@
+#!/bin/sh
+set -eu
+
+NAME="{{ artifact.payload.name }}"
+REGION="{{ artifact.payload.region }}"
+
+for tool in aws session-manager-plugin ssh ssh-keygen; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "Missing $tool. On a Mac: brew install awscli && brew install --cask session-manager-plugin" >&2
+    exit 1
+  fi
+done
+
+aws configure set aws_access_key_id "{{ artifact.payload.access_key_id }}" --profile "$NAME"
+aws configure set aws_secret_access_key "{{ artifact.payload.secret_access_key }}" --profile "$NAME"
+aws configure set region "$REGION" --profile "$NAME"
+
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+KEY="$HOME/.ssh/$NAME"
+[ -f "$KEY" ] || ssh-keygen -q -t ed25519 -N "" -C "$NAME" -f "$KEY"
+
+PROXY="$HOME/.ssh/$NAME-proxy"
+cat > "$PROXY" <<EOF
+#!/bin/sh
+set -eu
+export AWS_PROFILE="$NAME" AWS_REGION="$REGION"
+ID=\$(aws ec2 describe-instances \\
+  --filters "Name=tag:Name,Values=$NAME" "Name=instance-state-name,Values=pending,running,stopping,stopped" \\
+  --query 'Reservations[0].Instances[0].InstanceId' --output text)
+STATE=\$(aws ec2 describe-instances --instance-ids "\$ID" --query 'Reservations[0].Instances[0].State.Name' --output text)
+if [ "\$STATE" != "running" ]; then
+  echo "Starting $NAME..." >&2
+  [ "\$STATE" = "stopping" ] && aws ec2 wait instance-stopped --instance-ids "\$ID"
+  aws ec2 start-instances --instance-ids "\$ID" >/dev/null
+  aws ec2 wait instance-running --instance-ids "\$ID"
+fi
+for _ in \$(seq 1 60); do
+  [ "\$(aws ssm describe-instance-information --filters "Key=InstanceIds,Values=\$ID" --query 'InstanceInformationList[0].PingStatus' --output text)" = "Online" ] && break
+  sleep 3
+done
+aws ec2-instance-connect send-ssh-public-key --instance-id "\$ID" --instance-os-user dev \\
+  --ssh-public-key "file://$KEY.pub" >/dev/null
+exec aws ssm start-session --target "\$ID" --document-name AWS-StartSSHSession --parameters "portNumber=\$1"
+EOF
+chmod 700 "$PROXY"
+
+CONFIG="$HOME/.ssh/config"
+touch "$CONFIG"
+if ! grep -q "^Host $NAME\$" "$CONFIG"; then
+  cat >> "$CONFIG" <<EOF
+
+Host $NAME
+  User dev
+  IdentityFile $KEY
+  IdentitiesOnly yes
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+  LogLevel ERROR
+  ProxyCommand $PROXY %p
+EOF
+fi
+
+echo "Ready. Connect with:  ssh $NAME"
+echo "VS Code / Cursor:     Remote-SSH: Connect to Host... -> $NAME"

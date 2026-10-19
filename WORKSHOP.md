@@ -93,7 +93,11 @@ Add **Developer Sandbox**:
 
 Always on: the 16 GB system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox total: ~$3/month stopped, ~$10/month on workday hours, ~$31 if never stopped. A 3-hour workshop: ~$0.15.**
 
-Connect: EC2 → the instance → **Connect** → **Session Manager**, then `sudo -iu dev` and `opencode`.
+Connect from your own terminal (no AWS login):
+
+1. `brew install awscli && brew install --cask session-manager-plugin`
+2. In Massdriver, open the sandbox's **Connect to …** resource → **Connect script**, then `sh ~/Downloads/<file>`
+3. `ssh devsandboxes-<you>-sandbox`, then `opencode`
 
 ## Messaging
 

@@ -102,7 +102,8 @@ resource "aws_instance" "nat" {
     auto_recovery = "default"
   }
 
-  user_data = <<-EOF
+  user_data_replace_on_change = true
+  user_data                   = <<-EOF
     #!/bin/bash
     set -euo pipefail
     for _ in $(seq 1 30); do dnf install -y iptables-services && break; sleep 10; done

@@ -1,7 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-dnf install -y docker
+# Egress can lag the first boot by a minute; retry rather than abort setup.
+for _ in $(seq 1 30); do dnf install -y docker && break; sleep 10; done
+rpm -q docker
 systemctl enable --now docker
 
 mkdir -p /etc/litellm /opt/litellm

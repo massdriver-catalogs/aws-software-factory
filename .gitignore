@@ -16,3 +16,4 @@ crash.log
 bundles/*/src/*.zip
 
 .claude/
+TODO.md

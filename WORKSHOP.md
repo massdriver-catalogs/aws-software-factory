@@ -99,6 +99,23 @@ Connect from your own terminal (no AWS login):
 2. In Massdriver, open the sandbox's **Connect to …** resource → **Connect script**, then `sh ~/Downloads/<file>`
 3. `ssh devsandboxes-<you>-sandbox`, then `opencode`
 
+### 5. Your app
+
+Create a project named after the app (e.g. **Todo App**, `todoapp`) with environment **Dev** (`dev`). Add **HTTP API**, **DynamoDB Table** and **Lambda Function**; connect the API and the table to the function.
+
+| Bundle | Field | Pick | Cost |
+|---|---|---|---|
+| HTTP API | Steady / burst requests | 50 / 100 | ~$1 per million requests |
+| HTTP API | Access log retention | 1 day | <$0.10 |
+| DynamoDB Table | Keys | `pk` / `sk`, String | — |
+| DynamoDB Table | Point-in-time recovery | off | $0 |
+| DynamoDB Table | Table class | Standard | ~$1.25 per million writes, $0.25 per million reads, $0.25/GB-month |
+| Lambda Function | Container image | empty (placeholder) | — |
+| Lambda Function | Memory | 256 MB | ~$0.000004 per 1-second request |
+| Lambda Function | Log retention | 1 day | <$0.10 |
+
+**App total at workshop traffic: effectively $0** (Lambda, API Gateway and DynamoDB free tiers cover it). Open the HTTP API's endpoint in a browser: the placeholder answers with the request and the table's status.
+
 ## Messaging
 
 - A 20B model on one L4 is a working coding agent, not a frontier model. Show the one-setting switch to a bigger Bedrock model.

@@ -25,16 +25,16 @@ You don't need an AWS login. Each sandbox comes with its own key, which can only
 
    On Linux or Windows, install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html).
 
-2. **Download the connect script.** Open this sandbox's **Connect to …** resource in Massdriver and click **Connect script** (it downloads with a `.yaml` name; it's a shell script either way), or from a terminal:
+2. **Download the connect script.** Open this sandbox's **Connect to …** resource in Massdriver and click **Connect script**, or from a terminal:
 
    ```bash
-   mass resource download <project>-<environment>-sandbox.access --format yaml > sandbox.sh
+   mass resource download <project>-<environment>-sandbox.access --format sh > sandbox.sh
    ```
 
 3. **Run it.**
 
    ```bash
-   sh sandbox.sh    # or: sh ~/Downloads/<downloaded file>
+   sh sandbox.sh
    ```
 
    It adds an AWS profile and an SSH host, both named after the sandbox, and makes an SSH key just for it. Nothing else on your machine changes.

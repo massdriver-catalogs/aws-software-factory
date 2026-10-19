@@ -7,7 +7,7 @@ ui:
 
 exports:
   - downloadButtonText: Connect script
-    fileFormat: yaml
+    fileFormat: sh
     templatePath: ./exports/connect.sh.liquid
     templateLang: liquid
 

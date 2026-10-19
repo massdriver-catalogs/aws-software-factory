@@ -17,7 +17,7 @@ On Linux or Windows, install the [AWS CLI](https://docs.aws.amazon.com/cli/lates
 **Set up this sandbox.** Download and run its connect script, either from the **Connect to {{id}}** resource's **Connect script** button or from a terminal:
 
 ```bash
-mass resource download {{id}}.access --format yaml > {{id}}.sh
+mass resource download {{id}}.access --format sh > {{id}}.sh
 sh {{id}}.sh
 ```
 

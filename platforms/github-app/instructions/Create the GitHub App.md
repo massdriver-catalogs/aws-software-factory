@@ -14,15 +14,15 @@ Go to **github.com/organizations/&lt;your-org&gt;/settings/apps/new**.
 
 | Permission | Access |
 |---|---|
+| Actions | Read and write |
 | Administration | Read and write |
 | Contents | Read and write |
-| Workflows | Read and write |
-| Actions | Read and write |
+| Issues | Read and write |
+| Metadata | Read-only |
+| Pull requests | Read and write |
 | Secrets | Read and write |
 | Variables | Read and write |
-| Issues | Read and write |
-| Pull requests | Read and write |
-| Metadata | Read-only |
+| Workflows | Read and write |
 
 **Organization permissions**
 

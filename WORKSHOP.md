@@ -123,6 +123,20 @@ Create a project named after the app (e.g. **Todo App**, `todoapp`) with environ
 
 **App total at workshop traffic: effectively $0** (Lambda, API Gateway and DynamoDB free tiers cover it). Open the HTTP API's endpoint in a browser: the placeholder answers with the request and the table's status.
 
+### 6. Tear it down
+
+> [!WARNING]
+> **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway and NAT instance never stop on their own (~$21/month together). Decommissioning deletes everything, disks included.
+
+Decommission each environment in this order; the shared pieces go last because everything else runs on them:
+
+1. **Your app** (`todoapp` / `dev`)
+2. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
+3. **AI Platform** (`dev`)
+4. **Networking** (`dev`)
+
+Then delete the IAM role you created in step 1 if you won't use Massdriver with this account again.
+
 ## Messaging
 
 - A 20B model on one L4 is a working coding agent, not a frontier model. Show the one-setting switch to a bigger Bedrock model.

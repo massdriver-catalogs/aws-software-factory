@@ -59,13 +59,23 @@ resource "aws_iam_instance_profile" "server" {
   role = aws_iam_role.server.name
 }
 
+# Lives outside the instance so the server keeps its address when the
+# instance is replaced; the gateway has that address in its config.
+resource "aws_network_interface" "server" {
+  subnet_id       = local.private_subnets[0].id
+  security_groups = [aws_security_group.server.id]
+  tags            = { Name = "${local.name}-vllm" }
+}
+
 resource "aws_instance" "server" {
-  ami                    = data.aws_ssm_parameter.gpu_ami.value
-  instance_type          = var.instance_type
-  subnet_id              = local.private_subnets[0].id
-  vpc_security_group_ids = [aws_security_group.server.id]
-  iam_instance_profile   = aws_iam_instance_profile.server.name
-  ebs_optimized          = true
+  ami                  = data.aws_ssm_parameter.gpu_ami.value
+  instance_type        = var.instance_type
+  iam_instance_profile = aws_iam_instance_profile.server.name
+  ebs_optimized        = true
+
+  primary_network_interface {
+    network_interface_id = aws_network_interface.server.id
+  }
 
   metadata_options {
     http_tokens                 = "required"
@@ -87,6 +97,7 @@ resource "aws_instance" "server" {
     served_name   = var.model
     max_model_len = local.model.max_model_len
     tool_parser   = local.model.tool_parser
+    image         = "vllm/vllm-openai:v0.32.0"
   })
   user_data_replace_on_change = true
 

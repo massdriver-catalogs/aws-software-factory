@@ -1,9 +1,44 @@
 # Developer Sandbox
 
-Find the instance first:
+## Connect
+
+No AWS login needed. The sandbox's own key can only wake it and open a session on it.
+
+**One-time setup on your machine.** On a Mac:
 
 ```bash
-aws ec2 describe-instances --region {{dependencies.network.region}} \
+brew install awscli
+brew install --cask session-manager-plugin
+```
+
+On Linux or Windows, install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html).
+
+{{#resources.access}}
+**Set up this sandbox.** Download and run its connect script, either from the **Connect to {{id}}** resource's **Connect script** button or from a terminal:
+
+```bash
+mass resource download {{id}}.access --format yaml > {{id}}.sh
+sh {{id}}.sh
+```
+
+It adds an AWS profile and an SSH host, both named `{{id}}`, plus an SSH key just for this sandbox. Run it again only if the sandbox is decommissioned and recreated.
+{{/resources.access}}
+{{^resources.access}}
+The connect script appears once the sandbox has deployed.
+{{/resources.access}}
+
+**Connect:**
+
+```bash
+ssh {{id}}
+```
+
+If it's stopped, this starts it first; allow about a minute. In VS Code or Cursor: **Remote-SSH: Connect to Host…** → `{{id}}`. Work lives in `/workspace`; run `opencode`, or `herdr` for several agents side by side.
+
+To look up the instance:
+
+```bash
+aws ec2 describe-instances --profile {{id}} --region {{dependencies.network.region}} \
   --filters Name=tag:Name,Values={{id}} \
   --query 'Reservations[].Instances[].[InstanceId,State.Name]' --output text
 ```

@@ -2,7 +2,7 @@ resource "massdriver_resource" "endpoint" {
   field = "endpoint"
   name  = "LLM gateway (${join(", ", local.models)})"
   resource = jsonencode({
-    base_url             = "http://${aws_instance.gateway.private_ip}:${local.port}/v1"
+    base_url             = "http://${aws_network_interface.gateway.private_ip}:${local.port}/v1"
     region               = local.region
     key_parameter_prefix = local.key_prefix
     default_model        = local.default_model

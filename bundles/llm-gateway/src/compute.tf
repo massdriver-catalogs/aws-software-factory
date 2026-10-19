@@ -101,13 +101,23 @@ resource "aws_iam_instance_profile" "gateway" {
   role = aws_iam_role.gateway.name
 }
 
+# Lives outside the instance so the gateway keeps its address when the
+# instance is replaced; every consumer has that address in its config.
+resource "aws_network_interface" "gateway" {
+  subnet_id       = local.private_subnets[0].id
+  security_groups = [aws_security_group.gateway.id]
+  tags            = { Name = "${local.name}-gateway" }
+}
+
 resource "aws_instance" "gateway" {
-  ami                    = data.aws_ssm_parameter.al2023_arm64.value
-  instance_type          = "t4g.small"
-  subnet_id              = local.private_subnets[0].id
-  vpc_security_group_ids = [aws_security_group.gateway.id]
-  iam_instance_profile   = aws_iam_instance_profile.gateway.name
-  ebs_optimized          = true
+  ami                  = data.aws_ssm_parameter.al2023_arm64.value
+  instance_type        = "t4g.small"
+  iam_instance_profile = aws_iam_instance_profile.gateway.name
+  ebs_optimized        = true
+
+  primary_network_interface {
+    network_interface_id = aws_network_interface.gateway.id
+  }
 
   metadata_options {
     http_tokens                 = "required"

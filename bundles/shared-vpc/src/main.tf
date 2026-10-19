@@ -41,11 +41,12 @@ resource "aws_internet_gateway" "main" {
 }
 
 resource "aws_subnet" "public" {
-  count                               = var.zone_count
-  vpc_id                              = aws_vpc.main.id
-  cidr_block                          = local.blocks[local.tier_offset.public + count.index]
-  availability_zone_id                = local.zone_ids[count.index]
-  private_dns_hostname_type_on_launch = "resource-name"
+  count                                       = var.zone_count
+  vpc_id                                      = aws_vpc.main.id
+  cidr_block                                  = local.blocks[local.tier_offset.public + count.index]
+  availability_zone_id                        = local.zone_ids[count.index]
+  private_dns_hostname_type_on_launch         = "resource-name"
+  enable_resource_name_dns_a_record_on_launch = true
   tags = {
     Name = "${local.name}-public-${local.zone_ids[count.index]}"
     Tier = "public"
@@ -53,11 +54,12 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count                               = var.zone_count
-  vpc_id                              = aws_vpc.main.id
-  cidr_block                          = local.blocks[local.tier_offset.private + count.index]
-  availability_zone_id                = local.zone_ids[count.index]
-  private_dns_hostname_type_on_launch = "resource-name"
+  count                                       = var.zone_count
+  vpc_id                                      = aws_vpc.main.id
+  cidr_block                                  = local.blocks[local.tier_offset.private + count.index]
+  availability_zone_id                        = local.zone_ids[count.index]
+  private_dns_hostname_type_on_launch         = "resource-name"
+  enable_resource_name_dns_a_record_on_launch = true
   tags = {
     Name = "${local.name}-private-${local.zone_ids[count.index]}"
     Tier = "private"
@@ -65,11 +67,12 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_subnet" "internal" {
-  count                               = var.zone_count
-  vpc_id                              = aws_vpc.main.id
-  cidr_block                          = local.blocks[local.tier_offset.internal + count.index]
-  availability_zone_id                = local.zone_ids[count.index]
-  private_dns_hostname_type_on_launch = "resource-name"
+  count                                       = var.zone_count
+  vpc_id                                      = aws_vpc.main.id
+  cidr_block                                  = local.blocks[local.tier_offset.internal + count.index]
+  availability_zone_id                        = local.zone_ids[count.index]
+  private_dns_hostname_type_on_launch         = "resource-name"
+  enable_resource_name_dns_a_record_on_launch = true
   tags = {
     Name = "${local.name}-internal-${local.zone_ids[count.index]}"
     Tier = "internal"

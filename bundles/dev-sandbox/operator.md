@@ -10,16 +10,22 @@ aws ec2 describe-instances --region {{dependencies.network.region}} \
 
 ## Can't connect
 
-1. **Stopped?** Start it: `aws ec2 start-instances --region {{dependencies.network.region}} --instance-ids <id>`. Give it a minute.
-2. **Not in Session Manager?**
+`ssh {{id}}` is set up by the connect script on this sandbox's **Connect to {{id}}** resource. Run `ssh -v {{id}}` and match the last lines:
 
-   ```bash
-   aws ssm describe-instance-information --region {{dependencies.network.region}} \
-     --filters Key=InstanceIds,Values=<id> --query 'InstanceInformationList[].PingStatus'
-   ```
+- **`Starting {{id}}...` then nothing:** the VM is booting. The first connection after a stop takes about a minute.
+- **`Permission denied (publickey…)` right after a rebuild:** setup hasn't created the `dev` user yet. It takes a few minutes after a rebuild; try again. If it persists, see **Setup didn't finish**.
+- **`TargetNotConnected` or the wait for Online times out:** the SSM agent can't reach AWS.
 
-   Nothing back means the SSM agent can't reach AWS. In private network mode, check the shared VPC's egress is up (its runbook: "Private subnets lost internet access").
-3. **Your own permissions:** you need `ssm:StartSession` on the instance and, for the CLI shortcut, on the `{{id}}-shell` document.
+  ```bash
+  aws ssm describe-instance-information --profile {{id}} --region {{dependencies.network.region}} \
+    --filters Key=InstanceIds,Values=<id> --query 'InstanceInformationList[].PingStatus'
+  ```
+
+  Nothing back means no route out. In private network mode, check the shared VPC's egress (its runbook: "Private subnets lost internet access").
+- **`AccessDenied` or `InvalidClientTokenId`:** the sandbox was decommissioned and recreated since you ran the connect script, so it has a new key. Download the connect script again and re-run it.
+- **`SessionManagerPlugin is not found`:** `brew install --cask session-manager-plugin`, or the installer for your OS.
+
+Without the script, the AWS console works too: EC2 → the instance → **Connect** → **Session Manager**, then `sudo -iu dev`.
 
 ## An agent can't reach the model
 
@@ -31,6 +37,7 @@ curl -s -H "Authorization: Bearer $AIPLATFORM_API_KEY" "$AIPLATFORM_BASE_URL/mod
 ```
 
 - **`llm.env` is empty:** the environment had no LLM Endpoint when the sandbox was built. Set one as the environment default and redeploy.
+- **Connection refused:** the gateway machine is up but its service isn't. Check the AI Platform gateway's runbook.
 - **Timeout:** the gateway is down or its security group doesn't admit the VPC. Check the AI Platform's gateway.
 - **401:** the gateway hasn't picked up this sandbox's key yet (it checks periodically), or the key parameter was deleted. Redeploying the sandbox writes a new one.
 

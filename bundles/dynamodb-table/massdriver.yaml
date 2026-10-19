@@ -1,0 +1,161 @@
+name: dynamodb-table
+description: >-
+  A DynamoDB table for one app, with on-demand capacity and ready-made read and read/write IAM
+  policies that functions attach instead of writing their own.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/dynamodb-table
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Lowest cost
+      region: us-east-1
+      partition_key: { name: pk, type: S }
+      sort_key: { name: sk, type: S }
+      ttl_attribute: ""
+      point_in_time_recovery: false
+      deletion_protection: false
+      table_class: STANDARD
+    - __name: Production
+      region: us-east-1
+      partition_key: { name: pk, type: S }
+      sort_key: { name: sk, type: S }
+      ttl_attribute: ""
+      point_in_time_recovery: true
+      deletion_protection: true
+      table_class: STANDARD
+  required:
+    - region
+    - partition_key
+    - point_in_time_recovery
+    - deletion_protection
+    - table_class
+  properties:
+    region:
+      title: Region
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 (N. Virginia)
+        - const: us-east-2
+          title: us-east-2 (Ohio)
+        - const: us-west-2
+          title: us-west-2 (Oregon)
+        - const: eu-west-1
+          title: eu-west-1 (Ireland)
+        - const: eu-central-1
+          title: eu-central-1 (Frankfurt)
+        - const: ap-northeast-1
+          title: ap-northeast-1 (Tokyo)
+    partition_key:
+      title: Partition key
+      description: >-
+        Every item needs one. Generic names like `pk` keep the table open to single-table design.
+        Changing it means a new table.
+      type: object
+      $md.immutable: true
+      required:
+        - name
+        - type
+      properties:
+        name:
+          title: Attribute name
+          type: string
+          default: pk
+          pattern: ^[A-Za-z0-9_.-]{1,255}$
+          message:
+            pattern: "Letters, digits, underscore, dot and hyphen only."
+        type:
+          title: Type
+          type: string
+          default: S
+          oneOf:
+            - const: S
+              title: String
+            - const: "N"
+              title: Number
+            - const: B
+              title: Binary
+    sort_key:
+      title: Sort key
+      description: >-
+        Optional. Lets one partition hold many items queried by range. Leave the name empty for none.
+        Changing it means a new table.
+      type: object
+      $md.immutable: true
+      properties:
+        name:
+          title: Attribute name
+          type: string
+          default: sk
+          pattern: ^([A-Za-z0-9_.-]{1,255})?$
+          message:
+            pattern: "Letters, digits, underscore, dot and hyphen only, or empty for no sort key."
+        type:
+          title: Type
+          type: string
+          default: S
+          oneOf:
+            - const: S
+              title: String
+            - const: "N"
+              title: Number
+            - const: B
+              title: Binary
+    ttl_attribute:
+      title: Expire items by attribute
+      description: >-
+        Name of a Number attribute holding a Unix timestamp; DynamoDB deletes items after it passes,
+        at no charge. Leave empty to keep items until deleted.
+      type: string
+      default: ""
+      pattern: ^([A-Za-z0-9_.-]{1,255})?$
+    point_in_time_recovery:
+      title: Point-in-time recovery
+      description: >-
+        Restore the table to any second in the last 35 days. ***~$0.20/GB-month of table data.***
+      type: boolean
+      default: false
+    deletion_protection:
+      title: Deletion protection
+      description: Blocks deleting the table, including by decommissioning this bundle, until turned off.
+      type: boolean
+      default: false
+    table_class:
+      title: Table class
+      description: >-
+        ***Affects cost.*** Infrequent Access cuts storage ~60% but raises read and write prices ~25%;
+        it pays off only for large tables that are rarely read.
+      type: string
+      default: STANDARD
+      oneOf:
+        - const: STANDARD
+          title: Standard
+        - const: STANDARD_INFREQUENT_ACCESS
+          title: Infrequent Access
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  table:
+    resource_type: aws-dynamodb-table@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - partition_key
+    - sort_key
+    - ttl_attribute
+    - point_in_time_recovery
+    - deletion_protection
+    - table_class
+    - "*"

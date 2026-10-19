@@ -11,3 +11,6 @@ crash.log
 !*.tfvars.example
 
 .DS_Store
+
+# Built during plan
+bundles/*/src/*.zip

@@ -1,0 +1,113 @@
+name: http-api
+description: >-
+  An API Gateway HTTP API with one auto-deployed stage. Functions attach their own routes to it, so
+  one API can front many functions.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/http-api
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Lowest cost
+      region: us-east-1
+      cors_allowed_origins: []
+      throttle_rate: 50
+      throttle_burst: 100
+      access_log_retention_days: 1
+    - __name: Production
+      region: us-east-1
+      cors_allowed_origins: []
+      throttle_rate: 1000
+      throttle_burst: 2000
+      access_log_retention_days: 30
+  required:
+    - region
+    - cors_allowed_origins
+    - throttle_rate
+    - throttle_burst
+    - access_log_retention_days
+  properties:
+    region:
+      title: Region
+      description: Functions attached to this API must be in the same region.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 (N. Virginia)
+        - const: us-east-2
+          title: us-east-2 (Ohio)
+        - const: us-west-2
+          title: us-west-2 (Oregon)
+        - const: eu-west-1
+          title: eu-west-1 (Ireland)
+        - const: eu-central-1
+          title: eu-central-1 (Frankfurt)
+        - const: ap-northeast-1
+          title: ap-northeast-1 (Tokyo)
+    cors_allowed_origins:
+      title: Browser origins allowed to call it (CORS)
+      description: >-
+        Needed only when a web page on another origin calls this API from the browser, e.g.
+        `https://app.example.com`. Leave empty for server-to-server use. `*` allows any site.
+      type: array
+      default: []
+      uniqueItems: true
+      items:
+        type: string
+        pattern: ^(\*|https?://[^\s/]+)$
+        message:
+          pattern: "An origin like https://app.example.com (no path), or *."
+    throttle_rate:
+      title: Steady requests per second
+      description: >-
+        Requests beyond this are rejected with 429. ***Every request is billed (~$1 per million)***,
+        so this also caps what a runaway client can spend.
+      type: integer
+      default: 50
+      minimum: 1
+      maximum: 10000
+    throttle_burst:
+      title: Burst requests
+      description: Short spikes allowed above the steady rate.
+      type: integer
+      default: 100
+      minimum: 1
+      maximum: 5000
+    access_log_retention_days:
+      title: Access log retention (days)
+      description: One line per request in CloudWatch Logs. ***Billed per GB ingested and stored.***
+      type: integer
+      default: 1
+      enum:
+        - 1
+        - 7
+        - 30
+        - 90
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  api:
+    resource_type: aws-http-api@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - cors_allowed_origins
+    - throttle_rate
+    - throttle_burst
+    - access_log_retention_days
+    - "*"
+  throttle_rate:
+    ui:widget: updown
+  throttle_burst:
+    ui:widget: updown

@@ -1,6 +1,19 @@
 # vLLM Model Server
 
-An open-weight model on a GPU you own, served by vLLM with an OpenAI-compatible API. Connect it to the LLM gateway; nothing else should talk to it directly.
+An open-weight model on a GPU you own, served by vLLM with an OpenAI-compatible API. It's optional: the LLM Gateway works with Bedrock alone, and this adds one more model to it.
+
+```mermaid
+flowchart LR
+  S[Sandbox] --> G[LLM Gateway]
+  G --> B[Bedrock models]
+  G -->|self-hosted model| V[This server]
+```
+
+Connect it to the gateway on the canvas. Nothing else talks to it directly, and nothing uses it until someone picks `self-hosted-<model>`.
+
+## When to run one
+
+Bedrock is usually cheaper and its models are stronger than anything that fits on one GPU. Run your own when you need the weights and inference on machines you control, a model Bedrock doesn't offer, or steady all-day use where an hourly GPU beats per-token pricing.
 
 ## Access
 

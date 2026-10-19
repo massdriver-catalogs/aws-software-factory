@@ -55,7 +55,15 @@ Once in, start `herdr` to run several agents side by side, or `opencode` for one
 
 ## AI Platform
 
-When the environment has an LLM Endpoint, the sandbox writes its own key where the gateway picks it up and points each agent at the gateway. Nothing is copied by hand. Without one, the agents are installed but have no model configured.
+```mermaid
+flowchart LR
+  A[opencode / Claude Code<br/>in this sandbox] -->|gateway URL + this sandbox's key| G[LLM Gateway]
+  G --> M[Bedrock or self-hosted models]
+```
+
+When the environment has an LLM Endpoint, the sandbox writes its own key where the gateway picks it up, and points each agent at the gateway with every model it serves. Nothing is copied by hand. Without one, the agents are installed but have no model configured.
+
+Agents start on the gateway's default model. To use another, run `/models` inside opencode, or start it with `opencode -m aiplatform/<model>`. Models added to the gateway later show up after the sandbox is redeployed.
 
 ## Stopping
 

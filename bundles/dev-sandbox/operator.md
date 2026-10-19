@@ -11,7 +11,9 @@ No AWS login needed. The sandbox's own key can only wake it and open a session o
 
 ```bash
 brew install awscli
-brew install --cask session-manager-plugin
+curl -fsSLo /tmp/smp.zip "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/$([ "$(uname -m)" = arm64 ] && echo mac_arm64 || echo mac)/sessionmanager-bundle.zip"
+unzip -qo /tmp/smp.zip -d /tmp
+sudo /tmp/sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin
 ```
 
 On Linux or Windows, install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html).
@@ -61,7 +63,7 @@ aws ec2 describe-instances --profile {{id}} --region {{dependencies.network.regi
 
   Nothing back means no route out. In private network mode, check the shared VPC's egress (its runbook: "Private subnets lost internet access").
 - **`AccessDenied` or `InvalidClientTokenId`:** the sandbox was decommissioned and recreated since you ran the connect script, so it has a new key. Download the connect script again and re-run it.
-- **`SessionManagerPlugin is not found`:** `brew install --cask session-manager-plugin`, or the installer for your OS.
+- **`SessionManagerPlugin is not found`:** install the plugin as in **Connect** above. Homebrew's cask is disabled, so it comes from AWS's download.
 
 Without the script, the AWS console works too: EC2 → the instance → **Connect** → **Session Manager**, then `sudo -iu dev`.
 

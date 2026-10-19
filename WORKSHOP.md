@@ -95,7 +95,14 @@ Always on: the 16 GB system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox
 
 Connect from your own terminal (no AWS login):
 
-1. `brew install awscli && brew install --cask session-manager-plugin`
+1. Install the AWS CLI and the Session Manager plugin (Homebrew's cask for the plugin is disabled):
+
+   ```bash
+   brew install awscli
+   curl -fsSLo /tmp/smp.zip "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/$([ "$(uname -m)" = arm64 ] && echo mac_arm64 || echo mac)/sessionmanager-bundle.zip"
+   unzip -qo /tmp/smp.zip -d /tmp
+   sudo /tmp/sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin
+   ```
 2. In Massdriver, open the sandbox's **Connect to …** resource → **Connect script**, then `sh ~/Downloads/<file>`
 3. `ssh devsandboxes-<you>-sandbox`, then `opencode`
 

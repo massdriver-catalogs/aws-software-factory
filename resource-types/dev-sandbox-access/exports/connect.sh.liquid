@@ -6,7 +6,7 @@ REGION="{{ artifact.payload.region }}"
 
 for tool in aws session-manager-plugin ssh ssh-keygen; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "Missing $tool. On a Mac: brew install awscli && brew install --cask session-manager-plugin" >&2
+    echo "Missing $tool. Install the AWS CLI and the Session Manager plugin: https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-macos-overview.html" >&2
     exit 1
   fi
 done

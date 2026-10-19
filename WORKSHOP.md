@@ -11,9 +11,39 @@ Free workshop paired with the Product Hunt launch of the Massdriver Architect / 
 
 ## Attendee prerequisites (registration email, not day-of)
 
-- AWS account. Request "Running On-Demand G and VT instances" quota of 4+ vCPUs about a week ahead; new accounts often start at 0. No quota → Bedrock path.
-- Massdriver account with the AWS role connected.
-- GitHub account.
+- **AWS account.** For the self-hosted GPU, request "Running On-Demand G and VT instances" quota of 4+ vCPUs about a week ahead; new accounts often start at 0. No quota → Bedrock only.
+- **Massdriver account.**
+- **GitHub organization.** A free one is fine. GitHub Apps can't create repositories under a personal account.
+
+Then, before the workshop, connect both to Massdriver:
+
+### Connect AWS (~5 minutes)
+
+Massdriver deploys into your account by assuming a role you create. The role trusts Massdriver's AWS account only when your organization's external ID is presented.
+
+1. In Massdriver: **Credentials → Add → AWS IAM Role**. Keep this tab open; the instructions on it show your **External ID**.
+2. In the AWS Console: **IAM → Roles → Create role**.
+3. Choose **AWS account → Another AWS account** and enter `308878630280`.
+4. Tick **Require external ID** and paste the External ID from step 1. **Next**.
+5. Search for and tick **AdministratorAccess**. The catalog creates networks, IAM roles, GPU instances and model endpoints. **Next**.
+6. Name the role `massdriver` and **Create role**.
+7. Open the role, copy its **ARN** from the top of the page, and paste it and the External ID into the Massdriver form. **Save**.
+
+For Kimi and other Bedrock models, nothing else is needed: Bedrock's open-weight models are enabled by default.
+
+### Connect GitHub (~10 minutes)
+
+Massdriver creates repositories, workflows and runners through a GitHub App on your organization. The app's tokens expire within an hour, and it acts as a bot, not as you.
+
+1. Go to **github.com/organizations/<your-org>/settings/apps/new**.
+2. **GitHub App name:** `<your-org>-massdriver`. **Homepage URL:** your organization's GitHub URL. Under **Webhook**, untick **Active**.
+3. **Repository permissions**, all **Read and write**: Administration, Contents, Workflows, Actions, Secrets, Variables, Issues, Pull requests. (Metadata becomes Read-only on its own.)
+4. **Organization permissions:** Self-hosted runners → **Read and write**.
+5. **Where can this GitHub App be installed?** → **Only on this account**. **Create GitHub App**.
+6. On the app's page, copy the **App ID**.
+7. Under **Private keys**, **Generate a private key**. A `.pem` file downloads.
+8. **Install App** in the sidebar → your organization → **All repositories** → **Install**. The URL ends in `/installations/<number>`: that number is the **Installation ID**.
+9. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and the whole contents of the `.pem` file. **Save**.
 
 ## Cost talking points (us-east-1, on-demand, approximate)
 
@@ -29,9 +59,9 @@ New-account AWS credits cover the Bedrock path. Forgetting a GPU is the main ris
 
 Costs are approximate, per month, us-east-1. Every pick is the cheapest option that doesn't hurt the experience.
 
-### 1. Connect AWS
+### 1. Check your credentials
 
-Credentials → AWS IAM Role, follow the AWS Console instructions. — $0
+Both credentials from the prerequisites show under **Credentials**: an AWS IAM Role and a GitHub App. — $0
 
 ### 2. Networking
 

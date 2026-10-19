@@ -31,7 +31,7 @@ def _master_key():
 
 
 async def user_api_key_auth(request: Request, api_key: str) -> UserAPIKeyAuth:
-    key = api_key.removeprefix("Bearer ").strip()
+    key = (api_key or "").removeprefix("Bearer ").strip()
     if key and key == _master_key():
         return UserAPIKeyAuth(api_key=key, user_id="admin")
     consumer = _keys().get(key)

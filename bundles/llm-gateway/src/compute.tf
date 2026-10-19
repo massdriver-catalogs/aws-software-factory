@@ -132,6 +132,7 @@ resource "aws_instance" "gateway" {
     master_key_arn = aws_secretsmanager_secret.master_key.arn
     log_group      = aws_cloudwatch_log_group.gateway.name
     custom_auth    = file("${path.module}/templates/custom_auth.py")
+    image          = local.image
   })
   user_data_replace_on_change = true
 

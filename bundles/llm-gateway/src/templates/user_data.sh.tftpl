@@ -23,6 +23,9 @@ mv $dir/keys.json.tmp $dir/keys.json
 
 aws secretsmanager get-secret-value --region ${region} --secret-id ${master_key_arn} --query SecretString --output text > $dir/master_key.tmp
 mv $dir/master_key.tmp $dir/master_key
+printf 'LITELLM_MASTER_KEY=%s\n' "$(cat $dir/master_key)" > $dir/env.tmp
+chmod 600 $dir/env.tmp
+mv $dir/env.tmp $dir/env
 
 aws ssm get-parameter --region ${region} --name ${config_param} --with-decryption --query Parameter.Value --output text > $dir/config.yaml.tmp
 if ! cmp -s $dir/config.yaml.tmp $dir/config.yaml; then
@@ -45,10 +48,11 @@ Restart=always
 RestartSec=5
 ExecStartPre=-/usr/bin/docker rm -f litellm
 ExecStart=/usr/bin/docker run --name litellm --network host \
+  --env-file /etc/litellm/env \
   --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} \
   -v /etc/litellm:/etc/litellm:ro \
   -v /opt/litellm/custom_auth.py:/app/custom_auth.py:ro \
-  ghcr.io/berriai/litellm:main-stable \
+  ${image} \
   --config /etc/litellm/config.yaml --port ${port} --host 0.0.0.0
 ExecStop=/usr/bin/docker stop litellm
 
@@ -78,5 +82,7 @@ WantedBy=timers.target
 UNIT
 
 systemctl daemon-reload
-/opt/litellm/sync.sh
+# The timer retries every minute, so a slow first sync (egress still coming
+# up) shouldn't stop the services from being enabled.
+/opt/litellm/sync.sh || true
 systemctl enable --now litellm litellm-sync.timer

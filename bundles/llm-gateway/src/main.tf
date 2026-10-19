@@ -3,6 +3,10 @@ locals {
   region = var.network.region
   port   = 4000
 
+  # LiteLLM 1.106.0. Pinned by digest: floating tags have changed startup
+  # requirements underneath running gateways.
+  image = "ghcr.io/berriai/litellm@sha256:2e4c0371f3a8c28e4da131d77abaa8341cd3b0c2fcc4d34d7c5900431af7b9d0"
+
   key_prefix   = "/${local.name}/keys"
   config_param = "/${local.name}/config"
 

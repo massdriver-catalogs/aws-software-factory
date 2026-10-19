@@ -71,7 +71,7 @@ Optional, for "your own GPU" (needs G/VT quota): add **vLLM Model Server** and c
 | Stop every night at | 8 pm, your time zone | — |
 | Log retention | 1 day | <$1 |
 
-Stopped, it costs its disk and key (~$10/month). **A 3-hour workshop: ~$3.**
+Stopped, it costs its disk and key (~$10/month). **A 3-hour workshop: ~$3.** It answers about 10 minutes after the deploy finishes (image and model download), so start it before the sandbox step.
 
 ### 4. Developer Sandboxes
 

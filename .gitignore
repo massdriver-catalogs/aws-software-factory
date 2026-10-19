@@ -14,3 +14,5 @@ crash.log
 
 # Built during plan
 bundles/*/src/*.zip
+
+.claude/

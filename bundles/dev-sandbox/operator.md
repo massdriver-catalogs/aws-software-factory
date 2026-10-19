@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # Developer Sandbox
 
 ## Connect

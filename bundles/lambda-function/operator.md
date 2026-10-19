@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # Lambda Function
 
 ## Read the logs

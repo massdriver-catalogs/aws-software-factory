@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # HTTP API
 
 {{#resources.api}}

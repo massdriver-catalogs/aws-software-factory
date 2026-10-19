@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # DynamoDB Table
 
 {{#resources.table}}

@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # LLM Gateway
 
 Connect to the gateway host:

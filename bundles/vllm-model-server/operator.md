@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # vLLM Model Server
 
 Find the instance:

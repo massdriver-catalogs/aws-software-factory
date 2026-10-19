@@ -1,3 +1,6 @@
+---
+templating: mustache
+---
 # Shared VPC
 
 ## Private subnets lost internet access

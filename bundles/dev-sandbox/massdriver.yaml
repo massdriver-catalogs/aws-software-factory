@@ -200,7 +200,10 @@ dependencies:
     resource_type: llm-endpoint@0.0.0
     required: false
 
-resources: {}
+resources:
+  access:
+    resource_type: dev-sandbox-access@0.0.0
+    required: true
 
 steps:
   - path: src

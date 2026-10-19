@@ -12,14 +12,44 @@ A cloud VM for one developer, where coding agents can work with broad permission
 
 Work goes in `/workspace`. It's a separate disk that survives the VM being rebuilt; docker images and build cache live there too. Everything else is rebuilt from scratch on each new release of this bundle.
 
-## Connecting
+## Connecting for the first time
 
-There are no inbound ports and no SSH keys. Connect through Session Manager:
+You don't need an AWS login. Each sandbox comes with its own key, which can only wake this sandbox and open a session on it.
 
-- **AWS Console:** EC2 → the instance → **Connect** → **Session Manager**, then run `sudo -iu dev`.
-- **AWS CLI:** `aws ssm start-session --target <instance-id> --document-name <instance-name>-shell` drops you straight into the `dev` user.
+1. **Install the tools once.** On a Mac:
 
-Start `herdr` to run several agents side by side, or `opencode` for one.
+   ```bash
+   brew install awscli
+   brew install --cask session-manager-plugin
+   ```
+
+   On Linux or Windows, install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html).
+
+2. **Download the connect script.** Open this sandbox's **Connect to …** resource in Massdriver and click **Connect script**, or from a terminal:
+
+   ```bash
+   mass resource download <project>-<environment>-sandbox.access --format sh > sandbox.sh
+   ```
+
+3. **Run it.**
+
+   ```bash
+   sh sandbox.sh
+   ```
+
+   It adds an AWS profile and an SSH host, both named after the sandbox, and makes an SSH key just for it. Nothing else on your machine changes.
+
+4. **Connect.**
+
+   ```bash
+   ssh <sandbox-name>
+   ```
+
+   If the sandbox is stopped, this starts it first; the first connection after a stop takes about a minute. In VS Code or Cursor, use **Remote-SSH: Connect to Host…** and pick the same name.
+
+Run the script again only if the sandbox is decommissioned and recreated. Rebuilds and stops don't change anything on your side.
+
+Once in, start `herdr` to run several agents side by side, or `opencode` for one.
 
 ## AI Platform
 
@@ -27,7 +57,7 @@ When the environment has an LLM Endpoint, the sandbox writes its own key where t
 
 ## Stopping
 
-The VM stops itself after the chosen idle time (CPU near zero) and at the nightly stop time. Start it again from the EC2 console or `aws ec2 start-instances`. A stopped sandbox costs only its disks.
+The VM stops itself after the chosen idle time (CPU near zero) and at the nightly stop time. `ssh` starts it again. A stopped sandbox costs only its disks.
 
 ## Not included yet
 

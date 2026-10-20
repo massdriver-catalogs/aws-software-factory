@@ -1,0 +1,90 @@
+#!/bin/bash
+set -euxo pipefail
+exec > >(tee -a /var/log/factory-runner-setup.log) 2>&1
+
+# Egress can lag the first boot by a minute; retry rather than abort setup.
+for _ in $(seq 1 30); do dnf install -y docker git jq tar gzip unzip libicu iptables-nft gcc gcc-c++ make && break; sleep 10; done
+rpm -q docker
+systemctl enable --now docker
+
+id runner >/dev/null 2>&1 || useradd -m -s /bin/bash runner
+usermod -aG docker runner
+
+# Jobs run as `runner`. Keep them off the instance metadata service so they
+# can't borrow the VM's role to read the registration token.
+cat > /etc/systemd/system/factory-imds-guard.service <<'UNIT'
+[Unit]
+Description=Block job access to instance metadata
+Before=factory-runner.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/sbin/iptables -I OUTPUT -m owner --uid-owner runner -d 169.254.169.254 -j REJECT
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now factory-imds-guard
+
+mkdir -p /opt/actions-runner
+cd /opt/actions-runner
+curl -fsSL "https://github.com/actions/runner/releases/download/v${runner_version}/actions-runner-linux-arm64-${runner_version}.tar.gz" | tar -xz
+./bin/installdependencies.sh
+chown -R runner:runner /opt/actions-runner
+
+cat > /opt/actions-runner/.env <<'ENV'
+${job_env}
+ENV
+chown runner:runner /opt/actions-runner/.env
+chmod 600 /opt/actions-runner/.env
+
+# Tools jobs expect without installing them every run.
+runuser -l runner -c 'curl -fsSL https://mise.run | sh'
+runuser -l runner -c '~/.local/bin/mise use -g python@3.13 node@22'
+runuser -l runner -c 'curl -fsSL https://opencode.ai/install | bash'
+cat >> /home/runner/.bashrc <<'RC'
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+eval "$(~/.local/bin/mise activate bash)"
+RC
+printf 'PATH=/home/runner/.local/share/mise/shims:/home/runner/.local/bin:/home/runner/.opencode/bin:/usr/local/bin:/usr/bin:/bin\n' >> /opt/actions-runner/.env
+
+IMDS_TOKEN=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
+INSTANCE_ID=$(curl -fsS -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+
+cat > /opt/actions-runner/factory-loop.sh <<LOOP
+#!/bin/bash
+set -uo pipefail
+cd /opt/actions-runner
+while true; do
+  rm -rf _work .runner .credentials .credentials_rsaparams
+  TOKEN=\$(aws ssm get-parameter --region ${region} --name ${token_parameter} --with-decryption --query Parameter.Value --output text) || { sleep 15; continue; }
+  runuser -u runner -- ./config.sh --unattended --ephemeral --replace --disableupdate \
+    --url https://github.com/${organization} --token "\$TOKEN" \
+    --name ${name_prefix}-$INSTANCE_ID --labels ${labels} --runnergroup Default --work _work \
+    || { sleep 15; continue; }
+  runuser -u runner -- ./run.sh
+done
+LOOP
+chmod 700 /opt/actions-runner/factory-loop.sh
+
+cat > /etc/systemd/system/factory-runner.service <<'UNIT'
+[Unit]
+Description=GitHub Actions runner, one job per registration
+After=network-online.target docker.service factory-imds-guard.service
+Wants=network-online.target
+Requires=docker.service factory-imds-guard.service
+
+[Service]
+ExecStart=/opt/actions-runner/factory-loop.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now factory-runner
+
+touch /var/lib/factory-runner-ready

@@ -1,0 +1,100 @@
+name: github-runners
+description: >-
+  Self-hosted GitHub Actions runners for a whole GitHub organization, inside your VPC. Jobs on
+  them can reach private services like the AI Platform, and nothing on the runners can read the
+  GitHub App's key.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/github-runners
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Lowest cost
+      runner_count: 1
+      size: medium
+      disk_gb: 30
+      extra_labels: []
+    - __name: Busy team
+      runner_count: 3
+      size: large
+      disk_gb: 60
+      extra_labels: []
+  required:
+    - runner_count
+    - size
+    - disk_gb
+    - extra_labels
+  properties:
+    runner_count:
+      title: Runners
+      description: >-
+        Each runner takes one job at a time; more runners means less queueing.
+        ***Each runner is a VM billed every hour it runs.***
+      type: integer
+      default: 1
+      minimum: 1
+      maximum: 4
+    size:
+      title: Size
+      description: Docker image builds need at least Medium.
+      type: string
+      default: medium
+      oneOf:
+        - const: small
+          title: Small — 2 vCPU, 2 GB (~$12/month each)
+        - const: medium
+          title: Medium — 2 vCPU, 4 GB (~$25/month each)
+        - const: large
+          title: Large — 2 vCPU, 8 GB (~$49/month each)
+    disk_gb:
+      title: Disk (GB)
+      description: Holds docker images and build caches between jobs. ***~$0.08/GB-month per runner.***
+      type: integer
+      default: 30
+      minimum: 20
+      maximum: 200
+    extra_labels:
+      title: Extra labels
+      description: >-
+        Added to every runner on top of `self-hosted`, `linux`, `arm64` and `factory`, for
+        workflows that need to target these runners specifically.
+      type: array
+      default: []
+      uniqueItems: true
+      items:
+        type: string
+        pattern: ^[A-Za-z0-9._-]+$
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: true
+  github:
+    resource_type: github-app@0.0.0
+    required: true
+  llm:
+    resource_type: llm-endpoint@0.0.0
+    required: false
+
+resources:
+  runners:
+    resource_type: github-runners@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - runner_count
+    - size
+    - disk_gb
+    - extra_labels
+    - "*"
+  runner_count:
+    ui:widget: updown
+  disk_gb:
+    ui:widget: updown

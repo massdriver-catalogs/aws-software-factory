@@ -3,7 +3,7 @@ set -euxo pipefail
 exec > >(tee -a /var/log/factory-runner-setup.log) 2>&1
 
 # Egress can lag the first boot by a minute; retry rather than abort setup.
-for _ in $(seq 1 30); do dnf install -y docker git jq tar gzip unzip libicu iptables-nft gcc gcc-c++ make && break; sleep 10; done
+for _ in $(seq 1 30); do dnf install -y docker git jq tar gzip unzip libicu krb5-libs openssl-libs zlib iptables-nft gcc gcc-c++ make && break; sleep 10; done
 rpm -q docker
 systemctl enable --now docker
 
@@ -31,7 +31,6 @@ systemctl enable --now factory-imds-guard
 mkdir -p /opt/actions-runner
 cd /opt/actions-runner
 curl -fsSL "https://github.com/actions/runner/releases/download/v${runner_version}/actions-runner-linux-arm64-${runner_version}.tar.gz" | tar -xz
-./bin/installdependencies.sh
 chown -R runner:runner /opt/actions-runner
 
 cat > /opt/actions-runner/.env <<'ENV'
@@ -40,10 +39,11 @@ ENV
 chown runner:runner /opt/actions-runner/.env
 chmod 600 /opt/actions-runner/.env
 
-# Tools jobs expect without installing them every run.
-runuser -l runner -c 'curl -fsSL https://mise.run | sh'
-runuser -l runner -c '~/.local/bin/mise use -g python@3.13 node@22'
-runuser -l runner -c 'curl -fsSL https://opencode.ai/install | bash'
+# Tools jobs expect without installing them every run. A failed download here
+# shouldn't keep the runner from coming up.
+runuser -l runner -c 'curl -fsSL https://mise.run | sh' || true
+runuser -l runner -c '~/.local/bin/mise use -g python@3.13 node@22' || true
+runuser -l runner -c 'curl -fsSL https://opencode.ai/install | bash' || true
 cat >> /home/runner/.bashrc <<'RC'
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 eval "$(~/.local/bin/mise activate bash)"

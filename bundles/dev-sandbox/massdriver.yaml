@@ -60,8 +60,6 @@ params:
     - agents
     - autonomy
     - languages
-    - browser_access
-    - preview_port
   properties:
     size:
       title: Size

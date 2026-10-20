@@ -81,6 +81,8 @@ Create project **Networking** (`networking`) with environment **Dev** (`dev`). A
 
 Always on: flow log encryption key ~$1. **Shared VPC total: ~$8–9/month.**
 
+Also add **Budget Guard** to Networking: **Monthly limit** $25, alerts at 50/80/100% and on forecast, your email under **Email alerts to**. — $0 (the first two budgets in an account are free)
+
 ### 3. AI Platform
 
 Create project **AI Platform** (`aiplatform`) with environment **Dev** (`dev`). Set the Shared VPC as the environment's network default.

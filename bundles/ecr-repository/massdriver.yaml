@@ -1,0 +1,124 @@
+name: ecr-repository
+description: >-
+  One container image repository for one app, with ready-made push and pull IAM policies that
+  pipelines and functions attach instead of writing their own.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/ecr-repository
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Lowest cost
+      region: us-east-1
+      tag_mutability: IMMUTABLE
+      scan_on_push: true
+      keep_images: 10
+      untagged_expiry_days: 1
+      encryption: AES256
+    - __name: Production
+      region: us-east-1
+      tag_mutability: IMMUTABLE
+      scan_on_push: true
+      keep_images: 100
+      untagged_expiry_days: 7
+      encryption: KMS
+  required:
+    - region
+    - tag_mutability
+    - scan_on_push
+    - keep_images
+    - untagged_expiry_days
+    - encryption
+  properties:
+    region:
+      title: Region
+      description: Functions pulling from this repository must be in the same region.
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 (N. Virginia)
+        - const: us-east-2
+          title: us-east-2 (Ohio)
+        - const: us-west-2
+          title: us-west-2 (Oregon)
+        - const: eu-west-1
+          title: eu-west-1 (Ireland)
+        - const: eu-central-1
+          title: eu-central-1 (Frankfurt)
+        - const: ap-northeast-1
+          title: ap-northeast-1 (Tokyo)
+    tag_mutability:
+      title: Tags
+      description: >-
+        Immutable tags can't be overwritten, so an image that's deployed under a tag never changes
+        underneath it. Pipelines push a new tag per commit.
+      type: string
+      default: IMMUTABLE
+      oneOf:
+        - const: IMMUTABLE
+          title: Immutable — a tag always means the same image
+        - const: MUTABLE
+          title: Mutable — tags like latest can be moved
+    scan_on_push:
+      title: Scan images on push
+      description: Basic vulnerability scanning of OS packages, at no charge. Findings show in the ECR console.
+      type: boolean
+      default: true
+    keep_images:
+      title: Keep the newest images
+      description: >-
+        Older tagged images are deleted. Rolling back needs the old image, so keep enough for your
+        release history. ***Storage is ~$0.10/GB-month.***
+      type: integer
+      default: 30
+      enum:
+        - 10
+        - 30
+        - 100
+    untagged_expiry_days:
+      title: Delete untagged images after (days)
+      description: Untagged images are left behind by failed or replaced pushes and are rarely needed.
+      type: integer
+      default: 1
+      minimum: 1
+      maximum: 90
+    encryption:
+      title: Encryption
+      description: >-
+        Images are always encrypted. A customer-managed KMS key adds key-level audit and revocation.
+        ***A KMS key is ~$1/month plus request charges.***
+      type: string
+      default: AES256
+      $md.immutable: true
+      oneOf:
+        - const: AES256
+          title: AWS-managed (AES-256)
+        - const: KMS
+          title: Customer-managed KMS key
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  repository:
+    resource_type: aws-ecr-repository@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - tag_mutability
+    - scan_on_push
+    - keep_images
+    - untagged_expiry_days
+    - encryption
+    - "*"
+  untagged_expiry_days:
+    ui:widget: updown

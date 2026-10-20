@@ -166,7 +166,22 @@ Create a project named after the app (e.g. **Todo App**, `todoapp`) with environ
 
 Add **User Pool** (**Users**) and connect it to the **API**: **Anyone can sign up** on, **Multi-factor sign-in** off, **Where to return after sign-in** = the static site's URL. — $0 (free for the first 10,000 monthly users). The function's routes now need a signed-in user.
 
-### 6. Tear it down
+### 6. The factory
+
+In **CI Platform**, create environment **Factory** (`factory`) and add **GitHub Actions Runners**. Its environment needs the VPC, the GitHub App and the AI Platform's LLM Endpoint as defaults.
+
+| Field | Pick | Cost |
+|---|---|---|
+| Runners | 1 | ~$25/month each |
+| Size | Medium | (in the line above) |
+| Disk | 30 GB | ~$2.40/month |
+| Extra labels | none | — |
+
+Plus the token minter's Lambda, schedule and secret: under $1/month. **Factory runners total: ~$28/month, ~$0.12 for a 3-hour workshop.**
+
+Jobs that say `runs-on: [self-hosted, factory]` now run inside the VPC with the AI Platform in their environment. Turn on AI review by copying `bundles/github-actions-runners/workflows/ai-review.yml` into the app repository's `.github/workflows/`, then open a pull request: a review from the AI Platform's default model appears on it within a minute or two.
+
+### 7. Tear it down
 
 > [!WARNING]
 > **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway and NAT instance never stop on their own (~$21/month together). Decommissioning deletes everything, disks included.
@@ -174,9 +189,10 @@ Add **User Pool** (**Users**) and connect it to the **API**: **Anyone can sign u
 Decommission each environment in this order; the shared pieces go last because everything else runs on them:
 
 1. **Your app** (`todoapp` / `dev`)
-2. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
-3. **AI Platform** (`dev`)
-4. **Networking** (`dev`)
+2. **CI Platform**: the **Factory** environment, then the app's environment. The repository is archived, not deleted.
+3. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
+4. **AI Platform** (`dev`)
+5. **Networking** (`dev`)
 
 Then delete the IAM role you created in step 1 if you won't use Massdriver with this account again.
 

@@ -1,0 +1,37 @@
+name: github-runners
+version: 0.0.0
+label: GitHub Runners
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: runners
+
+schema:
+  title: GitHub Runners
+  description: >-
+    Self-hosted GitHub Actions runners registered to an organization. Workflows target them with
+    `runs-on` and the labels below.
+  type: object
+  additionalProperties: false
+  required:
+    - organization
+    - labels
+    - runner_group
+  properties:
+    organization:
+      title: Organization
+      type: string
+    labels:
+      title: Labels
+      description: Every runner carries all of these; `runs-on` any subset to target them.
+      type: array
+      minItems: 1
+      items:
+        type: string
+    runner_group:
+      title: Runner Group
+      type: string
+    has_ai_platform:
+      title: AI Platform Access
+      description: When true, jobs see OPENAI_BASE_URL, OPENAI_API_KEY and OPENAI_MODEL.
+      type: boolean

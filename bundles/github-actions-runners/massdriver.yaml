@@ -1,9 +1,9 @@
-name: github-runners
+name: github-actions-runners
 description: >-
   Self-hosted GitHub Actions runners for a whole GitHub organization, inside your VPC. Jobs on
   them can reach private services like the AI Platform, and nothing on the runners can read the
   GitHub App's key.
-source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/github-runners
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/github-actions-runners
 version: 0.0.0
 
 params:

@@ -6,8 +6,11 @@ Free workshop paired with the Product Hunt launch of the Massdriver Architect / 
 
 ## Scope
 
-- Live: catalog phases 1–4 (foundation, model, sandbox, browser access) plus one app from phase 5.
-- Finale or take-home: phase 6–7 (factory runners, issue → PR, alarm → issue).
+Everything runs live; nothing is take-home. The factory is the point of the workshop.
+
+1. **Foundation:** network, AI Platform, a developer sandbox.
+2. **An app:** repository, image repository, API, function, table.
+3. **The factory:** runners in the account, an issue that an agent turns into a pull request, AI review on that pull request, a merge that deploys to dev, and a production alarm that opens the next issue.
 
 ## Attendee prerequisites (registration email, not day-of)
 

@@ -1,0 +1,49 @@
+name: source-repository
+version: 0.0.0
+label: Source Repository
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: Source Repository
+  description: A git repository and, when it builds images into ECR, the role its workflow assumes.
+  type: object
+  additionalProperties: false
+  required:
+    - full_name
+    - url
+    - clone_url
+    - ssh_url
+    - default_branch
+    - visibility
+  properties:
+    full_name:
+      title: Repository
+      description: owner/name.
+      type: string
+      minLength: 1
+    url:
+      title: URL
+      type: string
+      pattern: ^https://
+    clone_url:
+      title: HTTPS Clone URL
+      type: string
+    ssh_url:
+      title: SSH Clone URL
+      type: string
+    default_branch:
+      title: Default Branch
+      type: string
+      minLength: 1
+    visibility:
+      title: Visibility
+      type: string
+      enum:
+        - private
+        - public
+    push_role_arn:
+      title: Push Role ARN
+      description: The IAM role the build workflow assumes to push images.
+      type: string

@@ -1,0 +1,27 @@
+name: aws-github-oidc
+version: 0.0.0
+label: GitHub Actions OIDC
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+
+schema:
+  title: GitHub Actions OIDC
+  description: >-
+    The AWS account's trust in GitHub Actions' identity tokens. Roles that trust this provider let
+    a workflow get short-lived AWS credentials with no stored keys.
+  type: object
+  additionalProperties: false
+  required:
+    - provider_arn
+    - url
+  properties:
+    provider_arn:
+      title: Provider ARN
+      type: string
+      minLength: 1
+    url:
+      title: Issuer URL
+      type: string
+      pattern: ^https://

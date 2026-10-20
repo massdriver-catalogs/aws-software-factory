@@ -32,8 +32,8 @@ schema:
     external_id:
       title: External ID
       description: >-
-        The value the role's trust policy requires before it can be assumed. Use the one shown in
-        these instructions so the role only trusts this organization.
+        The secret value you chose and put in the role's trust policy. Massdriver presents it when
+        assuming the role; it must match exactly.
       type: string
       minLength: 2
       $md.sensitive: true

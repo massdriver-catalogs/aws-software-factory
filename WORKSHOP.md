@@ -89,13 +89,13 @@ Costs are per month unless noted. Every pick is the cheapest option that doesn't
 
 Massdriver deploys into your account by assuming a role you create. The role trusts Massdriver's AWS account only when your organization's external ID is presented.
 
-1. In Massdriver: **Credentials → Add → AWS IAM Role**. Keep this tab open; the instructions on it show your **External ID**.
+1. Make up an **External ID**: any long, hard-to-guess value (`uuidgen`, or a password generator). Massdriver doesn't generate one; you paste the same value in two places.
 2. In the AWS Console: **IAM → Roles → Create role**.
 3. Choose **AWS account → Another AWS account** and enter `308878630280`.
-4. Tick **Require external ID** and paste the External ID from step 1. **Next**.
+4. Tick **Require external ID** and paste your External ID. **Next**.
 5. Search for and tick **AdministratorAccess**. The catalog creates networks, IAM roles, GPU instances and model endpoints. **Next**.
 6. Name the role `massdriver` and **Create role**.
-7. Open the role, copy its **ARN** from the top of the page, and paste it and the External ID into the Massdriver form. **Save**.
+7. Open the role and copy its **ARN** from the top of the page. In Massdriver, **Credentials → Add → AWS IAM Role**, paste the ARN and your External ID. **Save**.
 8. Open the new credential and **Share** it with all environments, so every project can use it as a default.
 
 Bedrock's open-weight models, Kimi included, are enabled by default. Nothing else to turn on.

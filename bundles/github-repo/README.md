@@ -17,7 +17,7 @@ With **Add a starter app** on, the repository starts with a small Python Lambda 
 
 The workflow reads three repository variables, which this bundle sets when a container repository is connected: `AWS_REGION`, `AWS_ROLE_ARN` and `ECR_REPOSITORY_URL`. Without them, it builds and stops. Connecting a container repository later turns pushing on without touching the workflow.
 
-After the first commit, the files belong to the repository: redeploying this bundle never overwrites them.
+The starter files are written once, when the repository is created, and then belong to the team. Redeploying this bundle never overwrites them, and never replaces a file that already exists.
 
 ## AWS access without keys
 

@@ -53,11 +53,11 @@ resource "github_repository_file" "starter" {
   file                = each.key
   content             = each.value
   commit_message      = "Add ${each.key}"
-  overwrite_on_create = true
+  overwrite_on_create = false
 
-  # The repository owns these files after the first commit.
+  # Written once; after the first commit the team owns these files.
   lifecycle {
-    ignore_changes = [content, commit_message]
+    ignore_changes = [content, commit_message, commit_author, commit_email]
   }
 
   # The variables must exist before the first commit, or its build won't push.

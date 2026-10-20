@@ -8,19 +8,88 @@ Free workshop paired with the Product Hunt launch of the Massdriver Architect / 
 
 Everything runs live; nothing is take-home. The factory is the point of the workshop.
 
-1. **Foundation:** network, AI Platform, a developer sandbox.
-2. **An app:** repository, image repository, API, function, table.
-3. **The factory:** runners in the account, an issue that an agent turns into a pull request, AI review on that pull request, a merge that deploys to dev, and a production alarm that opens the next issue.
+1. **Foundation:** network, AI Platform, a developer sandbox, CI runners.
+2. **An app:** its codebase (repository and image repository), API, function, table, website and sign-in.
+3. **The factory:** an issue that an agent turns into a pull request, CI and AI review on that pull request, a merge that ships a new image, and an alarm that opens the next issue.
+
+Everything up to step 7 happens in the browser: GitHub, the AWS Console and Massdriver. The terminal only comes out to work inside the sandbox.
+
+## How it fits together
+
+```mermaid
+flowchart TB
+  subgraph NET[Networking]
+    VPC[Shared VPC]
+    BG[Budget Guard]
+  end
+  subgraph AI[AI Platform]
+    GW[LLM Gateway]
+    GPU[vLLM Model Server<br/>optional]
+  end
+  subgraph DS[Developer Sandboxes]
+    SB[Your sandbox<br/>opencode]
+  end
+  subgraph CI[CI Platform]
+    OIDC[GitHub Actions OIDC]
+    RUN[Factory runners<br/>AI review · issue agent]
+  end
+  subgraph CB[Codebases]
+    REPO[GitHub repo] --> ECR[ECR repository]
+  end
+  subgraph APP[Your app]
+    API[HTTP API] --> FN[Lambda function]
+    FN --> TBL[DynamoDB table]
+    WEB[Static site]
+    USR[User pool] --> API
+    A2I[Alarm → Issue]
+  end
+
+  VPC --> GW & SB & RUN & FN
+  GPU -.-> GW
+  GW --> SB & RUN & FN
+  OIDC --> REPO
+  ECR -->|image| FN
+  FN -->|alarm| A2I -->|issue| REPO
+  REPO -->|labeled agent| RUN -->|pull request| REPO
+```
+
+Each project has a job: **Networking** is the shared VPC; the **AI Platform** serves models; **Developer Sandboxes** has one environment per person; the **CI Platform** builds, reviews and runs agents, with one environment per GitHub organization; **Codebases** holds each app's repository and images, with one environment per app; and each **app** has its own project.
 
 ## Attendee prerequisites (registration email, not day-of)
 
-- **AWS account.** For the self-hosted GPU, request "Running On-Demand G and VT instances" quota of 4+ vCPUs about a week ahead; new accounts often start at 0. No quota → Bedrock only.
+- **AWS account.** For the optional self-hosted GPU, request "Running On-Demand G and VT instances" quota of 4+ vCPUs about a week ahead; new accounts often start at 0. Without it, the workshop runs on Bedrock only, which is the default anyway.
 - **Massdriver account.**
 - **GitHub organization.** A free one is fine. GitHub Apps can't create repositories under a personal account.
 
-Then, before the workshop, connect both to Massdriver:
+## Cost talking points (us-east-1, on-demand, approximate)
 
-### Connect AWS (~5 minutes)
+| Scenario | Bedrock (default) | Plus your own GPU |
+|---|---|---|
+| The workshop (~3 hours, then teardown) | ~$2–3 | ~$5–6 |
+| A month of solo development, everything auto-stopping | ~$80–100 | ~$220–240 |
+| A month left running 24×7 | ~$110–130 | ~$700+ |
+
+Where the money goes in a month: the platform pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$28), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens (a few cents per agent run on Kimi K2.5; the gateway caps each consumer at $20 a month by default). New-account AWS credits cover the workshop. Forgetting a GPU is the main risk; idle stop, nightly stop and the budget alert exist for it.
+
+## Steps
+
+Costs are per month unless noted. Every pick is the cheapest option that doesn't hurt the experience.
+
+### 1. Get the catalog into your GitHub organization
+
+1. Open `github.com/massdriver-catalogs/aws-software-factory` and **Fork** it into your organization (or **Use this template → Create a new repository**).
+2. Forks start with Actions turned off. Open the fork's **Actions** tab and click **I understand my workflows, go ahead and enable them**.
+
+### 2. Let GitHub publish the catalog to Massdriver
+
+1. In Massdriver: **Settings → Service Accounts → Create**. Name it `github-publisher` and copy its key; it's shown once.
+2. Put it in a group that can publish to the catalog: a group whose policy allows `repo:create`, `repo:push`, `repo:pull`, `repo:update` and `repo:view`. **Organization Admin** also works but grants far more.
+3. In the fork on GitHub: **Settings → Secrets and variables → Actions**.
+   - **Secrets → New repository secret:** `MASSDRIVER_API_KEY` = the key.
+   - **Variables → New repository variable:** `MASSDRIVER_ORG_ID` = your Massdriver organization's ID. A secret with that name works too.
+4. **Actions → Publish → Run workflow**, tick **all**, **Run workflow**. In a few minutes every credential type, resource type and bundle is in your Massdriver catalog. From now on, every push to `main` publishes what changed.
+
+### 3. Connect AWS (~5 minutes)
 
 Massdriver deploys into your account by assuming a role you create. The role trusts Massdriver's AWS account only when your organization's external ID is presented.
 
@@ -31,44 +100,37 @@ Massdriver deploys into your account by assuming a role you create. The role tru
 5. Search for and tick **AdministratorAccess**. The catalog creates networks, IAM roles, GPU instances and model endpoints. **Next**.
 6. Name the role `massdriver` and **Create role**.
 7. Open the role, copy its **ARN** from the top of the page, and paste it and the External ID into the Massdriver form. **Save**.
+8. Open the new credential and **Share** it with all environments, so every project can use it as a default.
 
-For Kimi and other Bedrock models, nothing else is needed: Bedrock's open-weight models are enabled by default.
+Bedrock's open-weight models, Kimi included, are enabled by default. Nothing else to turn on.
 
-### Connect GitHub (~10 minutes)
+### 4. Connect GitHub (~10 minutes)
 
 Massdriver creates repositories, workflows and runners through a GitHub App on your organization. The app's tokens expire within an hour, and it acts as a bot, not as you.
 
 1. Go to **github.com/organizations/<your-org>/settings/apps/new**.
 2. **GitHub App name:** `<your-org>-massdriver`. **Homepage URL:** your organization's GitHub URL. Under **Webhook**, untick **Active**.
-3. **Repository permissions**, all **Read and write**: Administration, Contents, Workflows, Actions, Secrets, Variables, Issues, Pull requests. (Metadata becomes Read-only on its own.)
+3. **Repository permissions**, all **Read and write**: Actions, Administration, Contents, Issues, Pull requests, Secrets, Variables, Workflows. Metadata becomes Read-only on its own.
 4. **Organization permissions:** Self-hosted runners → **Read and write**.
 5. **Where can this GitHub App be installed?** → **Only on this account**. **Create GitHub App**.
 6. On the app's page, copy the **App ID**.
 7. Under **Private keys**, **Generate a private key**. A `.pem` file downloads.
 8. **Install App** in the sidebar → your organization → **All repositories** → **Install**. The URL ends in `/installations/<number>`: that number is the **Installation ID**.
-9. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and the whole contents of the `.pem` file. **Save**.
+9. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and the whole contents of the `.pem` file. **Save**, then **Share** it with all environments.
 
-## Cost talking points (us-east-1, on-demand, approximate)
+If the **Private Key** box won't take the multi-line key, create the credential from a terminal instead:
 
-| Scenario | Bedrock | Self-hosted GPU |
-|---|---|---|
-| Workshop (~3h, then teardown) | ~$0.50 | ~$3 |
-| Solo dev month, auto-stop on | ~$30–60 | ~$165 |
-| Left on 24×7 | ~$120 | ~$650+ |
+```bash
+jq -n --rawfile key ~/Downloads/<app>.private-key.pem \
+  '{owner: "<your-org>", app_id: "<app-id>", installation_id: "<installation-id>", private_key: $key}' > /tmp/github-app.json \
+  && mass resource create -n github-app -t github-app -f /tmp/github-app.json; rm -f /tmp/github-app.json
+```
 
-New-account AWS credits cover the Bedrock path. Forgetting a GPU is the main risk; auto-stop and the budget alarm exist for it.
+### 5. Networking
 
-## Steps
+Create project **Networking** (`networking`) with environment **Dev** (`dev`). Set the AWS IAM Role as the environment's credential default.
 
-Costs are approximate, per month, us-east-1. Every pick is the cheapest option that doesn't hurt the experience.
-
-### 1. Check your credentials
-
-Both credentials from the prerequisites show under **Credentials**: an AWS IAM Role and a GitHub App. — $0
-
-### 2. Networking
-
-Create project **Networking** (`networking`) with environment **Dev** (`dev`). Add **Shared VPC**.
+Add **Shared VPC**:
 
 | Field | Pick | Cost |
 |---|---|---|
@@ -77,62 +139,164 @@ Create project **Networking** (`networking`) with environment **Dev** (`dev`). A
 | Availability zones | 2 | — |
 | Internet egress for private subnets | NAT instance | ~$7 |
 | Interface endpoints | none | $0 (each adds ~$7 per zone) |
-| Flow log retention | 7 days | <$1 at workshop traffic |
+| Flow log retention (days) | 7 | <$1 at workshop traffic |
 
-Always on: flow log encryption key ~$1. **Shared VPC total: ~$8–9/month.**
+Plus the flow-log encryption key, ~$1. **Shared VPC: ~$8–9.** When it's deployed, **Share** its **network** resource with all environments; every other project runs inside it.
 
-Also add **GitHub Actions OIDC** to Networking (no fields; once per AWS account), so repositories push images with no stored keys. — $0
+Add **Budget Guard**:
 
-Also add **Budget Guard** to Networking: **Monthly limit** $25, alerts at 50/80/100% and on forecast, your email under **Email alerts to**. — $0 (the first two budgets in an account are free)
+| Field | Pick | Cost |
+|---|---|---|
+| Monthly limit (USD) | 25 | — |
+| Alert at (% of limit, actual spend) | 50, 80, 100 | — |
+| Alert when the month is forecast to go over | on | — |
+| Email alerts to | your email | — |
 
-### 3. AI Platform
+**Budget Guard: $0** (the first two budgets in an account are free). Confirm the subscription email AWS sends, or alerts won't arrive.
 
-Create project **AI Platform** (`aiplatform`) with environment **Dev** (`dev`). Set the Shared VPC as the environment's network default.
+### 6. AI Platform
+
+Create project **AI Platform** (`aiplatform`) with environment **Dev** (`dev`). Set the AWS IAM Role and the Shared VPC as the environment's defaults.
 
 Add **LLM Gateway**:
 
 | Field | Pick | Cost |
 |---|---|---|
-| Bedrock models | Kimi K2.5 | ~$0.60 in / $3 out per M tokens; a heavy agent session is roughly $1–2 |
-| Log retention | 1 day | <$1 |
+| Bedrock models | Kimi K2.5 | ~$0.60 in / $3 out per million tokens |
+| Log retention (days) | 1 | <$1 |
+| Monthly budget per consumer (USD) | 20 | caps each sandbox, runner and function |
 
-Always on: t4g.small gateway, disk, and the admin key secret. **Gateway total: ~$14/month plus tokens.** Kimi K3 is stronger at ~$3.30 / $16.50 per M tokens, but its multi-turn calls through Bedrock's Converse API can fail with reasoning content, which is how opencode talks.
+The gateway is a small t4g.small proxy, not a model: it forwards each request to Bedrock or to your own GPU. **Gateway: ~$14 plus tokens.** When it's deployed, **Share** its **endpoint** resource with all environments.
 
-Optional, for "your own GPU" (needs G/VT quota): add **vLLM Model Server** and connect it to the gateway.
+Kimi K3 is stronger, at ~$3.30 / $16.50 per million tokens, but its multi-turn calls through Bedrock can fail on reasoning content, which is how opencode talks. Leave it for later.
+
+Optional, the "your own model" moment (needs G/VT quota): add **vLLM Model Server** and connect it to the gateway on the canvas.
 
 | Field | Pick | Cost |
 |---|---|---|
-| GPU | g6.xlarge | ~$0.80 per hour running |
+| GPU | g6.xlarge — NVIDIA L4, 24 GB | ~$0.80 per hour running |
 | Model | gpt-oss-20b | — |
 | Stop when idle for | 1 hour | — |
-| Stop every night at | 8 pm, your time zone | — |
-| Log retention | 1 day | <$1 |
+| Stop every night at | 8 pm | — |
+| Time zone for the nightly stop | yours | — |
+| Log retention (days) | 1 | <$1 |
 
-Stopped, it costs its disk and key (~$10/month). **A 3-hour workshop: ~$3.** It answers about 10 minutes after the deploy finishes (image and model download), so start it before the sandbox step.
+Stopped, it costs its disk and key, ~$10. **A 3-hour workshop: ~$3.** It answers about 10 minutes after its deploy finishes, so deploy it before the sandbox. Once connected, the gateway also serves `self-hosted-gpt-oss-20b`.
 
-### 4. Developer Sandboxes
+### 7. CI Platform
 
-Create project **Developer Sandboxes** (`devsandboxes`) with one environment per person, named after them (e.g. `cory`). Set the Shared VPC as the network default and the AI Platform's LLM endpoint as the model default.
+Create project **CI Platform** (`ciplatform`) with one environment per GitHub organization, e.g. **Citizen Devs** (`citizendevs`). Set the AWS IAM Role, the Shared VPC, the GitHub App and the LLM Gateway's endpoint as the environment's defaults.
 
-Add **Developer Sandbox**:
+Add **GitHub Actions OIDC**. It has no fields and exists once per AWS account; it lets GitHub Actions push images with no stored AWS keys. **$0.** **Share** its resource with all environments.
+
+Add **GitHub Actions Runners**:
 
 | Field | Pick | Cost |
 |---|---|---|
-| Size | Light | ~$0.03 per hour running |
-| Chip | ARM | — |
-| Workspace disk | 20 GB | ~$1.60 |
-| Network | Public IP, no inbound | ~$0.005 per hour running; no NAT needed |
+| Runners | 1 | ~$25 each |
+| Size | Medium — 2 vCPU, 4 GB | (in the line above) |
+| Disk (GB) | 30 | ~$2.40 |
+| Extra labels | none | — |
+
+Plus the token function, schedule and secret: under $1. **Runners: ~$28; ~$0.12 for the workshop.** They sit in the VPC's private subnets, take one job each, and can reach the AI Platform. Jobs never get the VM's AWS role.
+
+### 8. Codebases
+
+Create project **Codebases** (`codebases`) with one environment per app, e.g. **Todo App** (`todoapp`). Set the AWS IAM Role, the GitHub App and the GitHub Actions OIDC resource as the environment's defaults.
+
+Add **ECR Repository** and **GitHub Repository**, and connect the ECR Repository to the GitHub Repository.
+
+| Bundle | Field | Pick | Cost |
+|---|---|---|---|
+| ECR Repository | Tags | Immutable | — |
+| ECR Repository | Scan images on push | on | $0 |
+| ECR Repository | Keep the newest images | 10 | pennies for a few images |
+| ECR Repository | Delete untagged images after (days) | 1 | — |
+| ECR Repository | Encryption | AWS-managed (AES-256) | $0 |
+| GitHub Repository | Repository name | `todoapp` | — |
+| GitHub Repository | Visibility | Private | $0 |
+| GitHub Repository | Add a starter app | on | — |
+
+The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
+
+Watch the first build under the repository's **Actions** tab. When it's green, the image URI is in ECR: `<account>.dkr.ecr.us-east-1.amazonaws.com/codebases-todoapp-ecr:<commit>`.
+
+### 9. Your app
+
+Create a project named after the app, e.g. **Todo App** (`todoapp`), with environment **Dev** (`dev`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
+
+Add **Static Site**, **HTTP API**, **DynamoDB Table** and **Lambda Function**. Connect the API and the table to the function.
+
+| Bundle | Field | Pick | Cost |
+|---|---|---|---|
+| Static Site | Single-page app | on | — |
+| Static Site | Where it's served from | North America and Europe — cheapest | $0 in CloudFront's free tier |
+| HTTP API | Steady requests per second / Burst requests | 50 / 100 | ~$1 per million requests |
+| HTTP API | Access log retention (days) | 1 | <$0.10 |
+| DynamoDB Table | Partition key / Sort key | `pk` / `sk`, String | — |
+| DynamoDB Table | Point-in-time recovery | off | $0 |
+| DynamoDB Table | Table class | Standard | ~$1.25 per million writes, $0.25 per million reads |
+| Lambda Function | Container image | the image URI from step 8 | — |
+| Lambda Function | Require sign-in | off, for now | — |
+| Lambda Function | Memory (MB) | 256 | a fraction of a cent per thousand requests |
+| Lambda Function | Log retention (days) | 1 | <$0.10 |
+
+With the environment's LLM endpoint default set, the function also runs inside the VPC with its own AI Platform key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. **App: effectively $0** at workshop traffic; the free tiers cover it.
+
+Open the HTTP API's endpoint in a browser: the app answers.
+
+Now add sign-in. Add **User Pool** (**Users**) and connect it to the **HTTP API**:
+
+| Field | Pick | Cost |
+|---|---|---|
+| Anyone can sign up | on | — |
+| Multi-factor sign-in | Off | — |
+| Where to return after sign-in | the Static Site's URL, with its trailing slash | — |
+| Deletion protection | off | — |
+
+**$0** (free for the first 10,000 monthly users). Redeploy the HTTP API, then set the function's **Require sign-in** on and redeploy it. The endpoint now answers `401` without a signed-in user's token.
+
+Add **Alarm to Issue**. Point its **repository** at the Codebases repository with a remote reference.
+
+| Field | Pick | Cost |
+|---|---|---|
+| Hand alarms to the agent | off, for now | — |
+| Massdriver organization ID | yours | — |
+| Send a test alarm on this deploy | on for the first deploy, then off | — |
+
+**$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and to the component in Massdriver.
+
+### 10. Your sandbox
+
+Create project **Developer Sandboxes** (`devsandboxes`) with an environment named after you, e.g. `cory`. Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
+
+Add **Developer Sandbox** with the **In the browser** preset:
+
+| Field | Pick | Cost |
+|---|---|---|
+| Size | Light — 2 vCPU, 4 GB | ~$0.03 per hour running |
+| Chip | ARM (Graviton) | — |
+| Workspace disk (GB) | 20 | ~$1.60 |
+| Network | Private | $0; goes out through the VPC's NAT instance |
+| Browser access | on | $0 in CloudFront's free tier |
 | Stop when idle for | 30 minutes | — |
-| Stop every night at | 8 pm, your time zone | — |
+| Stop every night at | 8 pm | — |
+| Timezone | yours | — |
 | Coding agents | opencode | — |
 | How much do agents do on their own? | Run freely inside the sandbox | — |
-| Languages | Python, Node.js | — |
+| Languages to install | Python, Node.js | — |
+| Your name for commits / Your email for commits | yours | — |
 
-Always on: the 16 GB system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox total: ~$3/month stopped, ~$10/month on workday hours, ~$31 if never stopped. A 3-hour workshop: ~$0.15.**
+Plus the system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox: ~$3 stopped, ~$10 on workday hours. A 3-hour workshop: ~$0.15.** The first deploy with browser access takes about 15 minutes while CloudFront connects to the VM.
 
-Connect from your own terminal (no AWS login):
+Private mode means no public address (saving ~$4 a month) and nothing on the internet can reach the VM; CloudFront reaches it privately. The sandbox can clone and push your organization's repositories through the GitHub App, with no personal token.
 
-1. Install the AWS CLI and the Session Manager plugin (Homebrew's cask for the plugin is disabled):
+### 11. Shell in
+
+This is the first time you need a terminal.
+
+1. In Massdriver, open the sandbox's **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
+2. Install the AWS CLI and the Session Manager plugin. Homebrew's cask for the plugin is disabled, so it comes from AWS:
 
    ```bash
    brew install awscli
@@ -140,70 +304,47 @@ Connect from your own terminal (no AWS login):
    unzip -qo /tmp/smp.zip -d /tmp
    sudo /tmp/sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin
    ```
-2. In Massdriver, open the sandbox's **Connect to …** resource → **Connect script**, then `sh ~/Downloads/<file>`
-3. `ssh devsandboxes-<you>-sandbox`, then `opencode`
 
-Or in the browser: set **Network** to **Private** and turn on **Browser access**. The connect script then prints an opencode URL and an app preview URL with a username and password. — ~$0 (CloudFront's free tier; private mode also drops the ~$4/month public address). The first deploy with browser access takes about 15 minutes while CloudFront connects to the VM.
+3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile and an SSH host for this sandbox only, and prints the browser URLs with their username and password.
+4. Either open the **opencode** URL in the browser, or `ssh devsandboxes-<you>-sandbox` and run `opencode`. If the sandbox has stopped itself, `ssh` starts it; give it a minute.
 
-### 5. Your app
+Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5; `/models` switches to Kimi K3 or, if you added the GPU, `self-hosted-gpt-oss-20b`.
 
-Create a project named after the app (e.g. **Todo App**, `todoapp`) with environment **Dev** (`dev`). Add **HTTP API**, **DynamoDB Table** and **Lambda Function**; connect the API and the table to the function.
+### 12. The factory, live
 
-| Bundle | Field | Pick | Cost |
-|---|---|---|---|
-| HTTP API | Steady / burst requests | 50 / 100 | ~$1 per million requests |
-| HTTP API | Access log retention | 1 day | <$0.10 |
-| DynamoDB Table | Keys | `pk` / `sk`, String | — |
-| DynamoDB Table | Point-in-time recovery | off | $0 |
-| DynamoDB Table | Table class | Standard | ~$1.25 per million writes, $0.25 per million reads, $0.25/GB-month |
-| Lambda Function | Container image | empty (placeholder) | — |
-| Lambda Function | Memory | 256 MB | ~$0.000004 per 1-second request |
-| Lambda Function | Log retention | 1 day | <$0.10 |
-| ECR Repository (in **CI Platform**, environment named after the app) | Keep the newest images | 10 | ~$0.10/GB-month, pennies for a few images |
-| GitHub Repository (same **CI Platform** environment, connected to the ECR Repository) | Visibility / starter app | Private / on | $0; a private build uses ~2 Actions minutes of the free plan's 2,000 |
+All in the browser again.
 
-**App total at workshop traffic: effectively $0** (Lambda, API Gateway and DynamoDB free tiers cover it). Open the HTTP API's endpoint in a browser: the placeholder answers with the request and the table's status.
+1. **Turn on the agents.** In the `todoapp` repository on GitHub, **Add file → Create new file** twice, pasting each workflow from the catalog fork:
+   - `.github/workflows/ai-review.yml` ← `bundles/github-actions-runners/workflows/ai-review.yml`
+   - `.github/workflows/agent.yml` ← `bundles/github-actions-runners/workflows/agent.yml`
 
-Add **User Pool** (**Users**) and connect it to the **API**: **Anyone can sign up** on, **Multi-factor sign-in** off, **Where to return after sign-in** = the static site's URL. — $0 (free for the first 10,000 monthly users). The function's routes now need a signed-in user.
+   Then **Issues → Labels → New label** `agent`.
+2. **Issue → pull request.** Open an issue, e.g. "Add a `/health` route that returns `{"ok": true}`, with a test", and label it `agent`. Within a few minutes the agent comments, then opens a pull request from `agent/issue-N`.
+3. **CI and review run on it.** The tests, secret scan, build and image scan run, and the AI Platform posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
+4. **Merge it.** The push to `main` builds a new image and pushes it to ECR, tagged with the commit.
+5. **Ship it.** On the app's **Lambda Function**, set **Container image** to the new tag and deploy. Release to dev isn't automated yet; for now this one field is the release.
+6. **Close the loop.** On **Alarm to Issue**, turn **Hand alarms to the agent** on and deploy. From now on, when one of the app's alarms fires, an issue opens with the `agent` label, the agent proposes a fix, CI and review run, and a person decides whether to merge.
 
-### 6. The factory
+Each agent run costs a few cents in tokens on Kimi K2.5.
 
-In **CI Platform**, create environment **Factory** (`factory`) and add **GitHub Actions Runners**. Its environment needs the VPC, the GitHub App and the AI Platform's LLM Endpoint as defaults.
-
-| Field | Pick | Cost |
-|---|---|---|
-| Runners | 1 | ~$25/month each |
-| Size | Medium | (in the line above) |
-| Disk | 30 GB | ~$2.40/month |
-| Extra labels | none | — |
-
-Plus the token minter's Lambda, schedule and secret: under $1/month. **Factory runners total: ~$28/month, ~$0.12 for a 3-hour workshop.**
-
-Jobs that say `runs-on: [self-hosted, factory]` now run inside the VPC with the AI Platform in their environment. Turn on AI review by copying `bundles/github-actions-runners/workflows/ai-review.yml` into the app repository's `.github/workflows/`, then open a pull request: a review from the AI Platform's default model appears on it within a minute or two.
-
-**Issue → pull request.** Copy `bundles/github-actions-runners/workflows/agent.yml` into the same folder and create a label named `agent`. Open an issue (e.g. "Add a `/health` route that returns `{"ok": true}`, with a test") and label it `agent`. Within a few minutes the agent comments, opens a pull request from `agent/issue-N`, CI runs on it, and AI review comments on it. Comment `/agent` with the review's point and the agent updates the same pull request. — $0 beyond tokens (a run is typically a few cents on Kimi K2.5)
-
-**Alarm → issue.** In the app's project add **Alarm to Issue**, set the GitHub App as the environment default, and point its **repository** at the CI Platform's repository (remote reference). Picks: **Hand alarms to the agent** off, **Massdriver organization ID** your org, **Send a test alarm on this deploy** on for the first deploy, then off. The test opens an `Alarm: …` issue with links to the alarm and to the component in Massdriver. — $0 (EventBridge is free for AWS events; the function runs only on alarm changes)
-
-Turn **Hand alarms to the agent** on to close the loop: a production alarm opens an issue, the agent opens a fix, review and CI run, and a person merges.
-
-### 7. Tear it down
+### 13. Tear it down
 
 > [!WARNING]
-> **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway and NAT instance never stop on their own (~$21/month together). Decommissioning deletes everything, disks included.
+> **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$50/month together). Decommissioning deletes everything, disks included.
 
 Decommission each environment in this order; the shared pieces go last because everything else runs on them:
 
 1. **Your app** (`todoapp` / `dev`)
-2. **CI Platform**: the **Factory** environment, then the app's environment. The repository is archived, not deleted.
-3. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
-4. **AI Platform** (`dev`)
-5. **Networking** (`dev`)
+2. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
+3. **Codebases** (`todoapp`). The GitHub repository is archived, not deleted; its images are deleted.
+4. **CI Platform** (your organization's environment)
+5. **AI Platform** (`dev`)
+6. **Networking** (`dev`)
 
-Then delete the IAM role you created in step 1 if you won't use Massdriver with this account again.
+Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again.
 
 ## Messaging
 
-- A 20B model on one L4 is a working coding agent, not a frontier model. Show the one-setting switch to a bigger Bedrock model.
-- The agent never holds cloud credentials; infra changes go through Massdriver.
-- "Production alarm → issue → agent PR → approved deploy" is the closing demo.
+- The default model, Kimi K2.5 on Bedrock, is a strong coding agent at pennies a run. Your own GPU with gpt-oss-20b is the "your model, your hardware" option: it works, it's private, and it's weaker than Kimi. Switching is one setting, and the sandbox never changes.
+- The agent never holds cloud credentials. Infrastructure changes go through Massdriver, and code changes go through pull requests a person merges.
+- "Production alarm → issue → agent PR → review → merge → deploy" is the closing demo.

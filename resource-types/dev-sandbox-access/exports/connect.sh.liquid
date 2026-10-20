@@ -63,3 +63,10 @@ fi
 
 echo "Ready. Connect with:  ssh $NAME"
 echo "VS Code / Cursor:     Remote-SSH: Connect to Host... -> $NAME"
+{% if artifact.payload.browser_url %}
+echo
+echo "In the browser:       {{ artifact.payload.browser_url }}"
+echo "App preview:          {{ artifact.payload.preview_url }}"
+echo "Sign in as:           {{ artifact.payload.browser_username }} / {{ artifact.payload.browser_password }}"
+echo "If the page doesn't load, the sandbox is stopped; ssh $NAME wakes it."
+{% endif %}

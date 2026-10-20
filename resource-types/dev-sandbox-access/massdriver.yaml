@@ -38,3 +38,19 @@ schema:
       title: Secret Access Key
       type: string
       $md.sensitive: true
+    browser_url:
+      title: Browser URL
+      description: opencode in the browser. Present when browser access is on.
+      type: string
+    preview_url:
+      title: Preview URL
+      description: The sandbox's dev server on its preview port. Present when browser access is on.
+      type: string
+    browser_username:
+      title: Browser Username
+      type: string
+    browser_password:
+      title: Browser Password
+      description: Signs in to both the browser and preview URLs.
+      type: string
+      $md.sensitive: true

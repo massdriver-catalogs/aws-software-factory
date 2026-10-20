@@ -155,6 +155,7 @@ Create a project named after the app (e.g. **Todo App**, `todoapp`) with environ
 | Lambda Function | Container image | empty (placeholder) | — |
 | Lambda Function | Memory | 256 MB | ~$0.000004 per 1-second request |
 | Lambda Function | Log retention | 1 day | <$0.10 |
+| ECR Repository (in **CI Platform**, environment named after the app) | Keep the newest images | 10 | ~$0.10/GB-month, pennies for a few images |
 
 **App total at workshop traffic: effectively $0** (Lambda, API Gateway and DynamoDB free tiers cover it). Open the HTTP API's endpoint in a browser: the placeholder answers with the request and the table's status.
 

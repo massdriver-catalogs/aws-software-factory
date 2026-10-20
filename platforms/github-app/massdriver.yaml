@@ -13,7 +13,7 @@ ui:
     private_key:
       ui:widget: textarea
       ui:options:
-        rows: 10
+        rows: 12
 
 schema:
   title: GitHub App

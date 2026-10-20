@@ -1,0 +1,47 @@
+name: build
+
+on:
+  push:
+    branches: [${branch}]
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PUSH: $${{ github.event_name == 'push' && vars.ECR_REPOSITORY_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Get AWS credentials
+        if: env.PUSH == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: $${{ vars.AWS_ROLE_ARN }}
+          aws-region: $${{ vars.AWS_REGION }}
+
+      - name: Log in to ECR
+        if: env.PUSH == 'true'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Lambda needs a single-platform image, so no provenance index.
+      - name: Build for arm64
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          provenance: false
+          push: $${{ env.PUSH == 'true' }}
+          tags: $${{ vars.ECR_REPOSITORY_URL || 'app' }}:$${{ github.sha }}
+
+      - name: Image
+        if: env.PUSH == 'true'
+        run: echo "Pushed $${{ vars.ECR_REPOSITORY_URL }}:$${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

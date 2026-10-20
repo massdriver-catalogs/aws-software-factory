@@ -1,0 +1,27 @@
+name: github-actions-oidc
+description: >-
+  Lets GitHub Actions workflows in this AWS account get short-lived credentials instead of stored
+  access keys. Deploy once per account; every repository's push role trusts it.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/github-actions-oidc
+version: 0.0.0
+
+params:
+  properties: {}
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  oidc:
+    resource_type: aws-github-oidc@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - "*"

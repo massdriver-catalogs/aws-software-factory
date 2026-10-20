@@ -1,0 +1,101 @@
+name: github-repo
+description: >-
+  A GitHub repository with a working build pipeline. Every push to the default branch builds an
+  arm64 container image, and pushes it to ECR when a container repository is connected.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/github-repo
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Private app
+      repository_name: todoapp
+      description: ""
+      visibility: private
+      seed_starter_files: true
+      default_branch: main
+    - __name: Public app
+      repository_name: todoapp
+      description: ""
+      visibility: public
+      seed_starter_files: true
+      default_branch: main
+  required:
+    - repository_name
+    - visibility
+    - seed_starter_files
+    - default_branch
+  properties:
+    repository_name:
+      title: Repository name
+      description: >-
+        Becomes github.com/<organization>/<name>. Changing it means a new repository.
+      type: string
+      minLength: 1
+      maxLength: 100
+      pattern: ^[A-Za-z0-9._-]+$
+      message:
+        pattern: "Letters, digits, dot, underscore and hyphen only."
+      $md.immutable: true
+    description:
+      title: Description
+      description: Shown on the repository page.
+      type: string
+      default: ""
+    visibility:
+      title: Visibility
+      description: "***Private repositories use GitHub Actions minutes, billed beyond the plan's free allowance; public ones build free.*** Anything pushed to a public repository is public for good."
+      type: string
+      default: private
+      oneOf:
+        - const: private
+          title: Private — only members of the organization
+        - const: public
+          title: Public — anyone on the internet
+    seed_starter_files:
+      title: Add a starter app
+      description: >-
+        Commits a small Lambda container app, its Dockerfile and the build workflow, so the first
+        push proves the pipeline. Turn off to import an existing project; then add the workflow
+        yourself.
+      type: boolean
+      default: true
+      $md.immutable: true
+    default_branch:
+      title: Default branch
+      description: The branch that builds and pushes images.
+      type: string
+      default: main
+      pattern: ^[A-Za-z0-9._/-]+$
+      $md.immutable: true
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  github:
+    resource_type: github-app@0.0.0
+    required: true
+  github_oidc:
+    resource_type: aws-github-oidc@0.0.0
+    required: false
+  registry:
+    resource_type: aws-ecr-repository@0.0.0
+    required: false
+
+resources:
+  repository:
+    resource_type: source-repository@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - repository_name
+    - description
+    - visibility
+    - seed_starter_files
+    - default_branch
+    - "*"

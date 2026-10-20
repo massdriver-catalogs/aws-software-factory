@@ -128,6 +128,22 @@ sandbox-massdriver-login
   `Unable to find image` means setup couldn't pull it, usually egress; `docker pull` it. `401` or `unauthorized` means the key is wrong or its service account was deleted; replace the secret's value.
 - **`mass` says it isn't authenticated:** run `mass whoami` in a new shell. Shells opened before the login don't have the key.
 
+## GitHub access fails
+
+From the sandbox, as `dev`:
+
+```bash
+sandbox-github-token token >/dev/null && echo "token ok"
+git config --global --get-regexp '^credential'
+```
+
+- **`ResourceNotFoundException` / `AccessDenied` from Secrets Manager:** the environment had no GitHub App connection when the sandbox was built. Set the GitHub App as the environment default and redeploy.
+- **`401` from api.github.com:** the App's key in the GitHub App credential was rotated or revoked. Update the credential in Massdriver and redeploy the sandbox.
+- **`404` from api.github.com:** the App was uninstalled from the organization, or the installation ID changed. Reinstall it and update the credential.
+- **Clone asks for a username:** the URL isn't `https://github.com/{{#dependencies.github}}{{dependencies.github.owner}}{{/dependencies.github}}/…`. SSH URLs and other organizations aren't covered by the App.
+- **Push rejected with "refusing to allow a GitHub App to create or update workflow":** the App lacks the Workflows permission. Grant it in the App's settings and accept the new permissions on the installation.
+- **A stale token after the App's permissions changed:** `rm ~/.cache/sandbox/github-token.json` and retry.
+
 ## Setup didn't finish
 
 ```bash

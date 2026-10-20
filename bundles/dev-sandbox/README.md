@@ -4,7 +4,7 @@ A cloud VM for one developer, where coding agents can work with broad permission
 
 ## What's on it
 
-- `dev` user with passwordless sudo, docker, git, tmux and herdr
+- `dev` user with passwordless sudo, docker, git, the GitHub CLI (`gh`), tmux and herdr
 - mise with the chosen languages
 - The chosen coding agents, already configured for the AI Platform when it's connected
 - Massdriver tooling: the `mass` CLI, the Massdriver MCP server for agents, and the Massdriver plugin for Claude Code when it's selected
@@ -78,10 +78,26 @@ aws secretsmanager create-secret --region <region> --name <sandbox-name>/massdri
 
 Then, in the sandbox, run `sandbox-massdriver-login` and open a new shell. It puts the key in the environment and the `mass` profile, and switches the MCP server on for opencode. Delete the secret and run it again to switch everything off.
 
+## GitHub
+
+```mermaid
+flowchart LR
+  G[git / gh in the sandbox] -->|needs a token| H[sandbox-github-token]
+  H -->|App key, read into memory| S[Secrets Manager]
+  H -->|signed request| A[GitHub: installation token, 1 hour]
+  A --> G
+```
+
+When the environment has a **GitHub App** connection, `git clone`, `git push` and `gh` work against the App's organization with no personal token. The sandbox keeps its own copy of the App's key in Secrets Manager, readable only by its role. When git or `gh` needs access, it mints an installation token that lasts an hour, caches it, and mints a new one shortly before it expires. The key itself is never written to disk.
+
+Use HTTPS URLs (`https://github.com/<org>/<repo>`). Repositories outside the App's organization get no token and ask for credentials as usual.
+
+Commits are authored as **Your name for commits** and **Your email for commits**. Use an address on your GitHub account and commits link to your profile; pushes always show the App as the pusher.
+
 ## Stopping
 
 The VM stops itself after the chosen idle time (CPU near zero) and at the nightly stop time. `ssh` starts it again. A stopped sandbox costs only its disks.
 
 ## Not included yet
 
-Browser access (opencode web) and GitHub credentials.
+Browser access (opencode web).

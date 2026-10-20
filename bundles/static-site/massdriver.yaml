@@ -1,0 +1,75 @@
+name: static-site
+description: >-
+  A website served from a private S3 bucket through CloudFront over HTTPS. Upload the built files
+  and invalidate the cache; nothing runs on a server.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/static-site
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Single-page app
+      single_page_app: true
+      price_class: PriceClass_100
+      default_cache_seconds: 300
+    - __name: Plain website
+      single_page_app: false
+      price_class: PriceClass_100
+      default_cache_seconds: 3600
+  required:
+    - single_page_app
+    - price_class
+    - default_cache_seconds
+  properties:
+    single_page_app:
+      title: Single-page app
+      description: >-
+        Serve `index.html` for any path that isn't a file, so client-side routes like
+        `/todos/42` load the app instead of a 404. Turn off for plain multi-page sites.
+      type: boolean
+      default: true
+    price_class:
+      title: Where it's served from
+      description: >-
+        ***Affects cost.*** CloudFront edge locations used. Visitors elsewhere still get the site,
+        just from a farther location.
+      type: string
+      default: PriceClass_100
+      oneOf:
+        - const: PriceClass_100
+          title: North America and Europe — cheapest
+        - const: PriceClass_200
+          title: Adds Asia, Middle East and Africa
+        - const: PriceClass_All
+          title: Every edge location
+    default_cache_seconds:
+      title: Cache files for (seconds)
+      description: >-
+        How long CloudFront keeps a file before checking for a new one. Publishing invalidates the
+        cache anyway, so this mostly matters for files changed by hand.
+      type: integer
+      default: 300
+      minimum: 0
+      maximum: 86400
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  site:
+    resource_type: aws-static-site@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - single_page_app
+    - price_class
+    - default_cache_seconds
+    - "*"
+  default_cache_seconds:
+    ui:widget: updown

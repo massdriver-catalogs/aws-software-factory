@@ -1,7 +1,8 @@
 name: lambda-function
 description: >-
-  A Lambda function behind an HTTP API, optionally with a DynamoDB table. Runs a built-in
-  placeholder until it's given a container image, so the routes answer from the first deploy.
+  A Lambda function behind an HTTP API, optionally with a DynamoDB table and the AI Platform.
+  Runs a built-in placeholder until it's given a container image, so the routes answer from the
+  first deploy.
 source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/lambda-function
 version: 0.0.0
 
@@ -131,6 +132,12 @@ dependencies:
     required: true
   storage:
     resource_type: aws-dynamodb-table@0.0.0
+    required: false
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: false
+  llm:
+    resource_type: llm-endpoint@0.0.0
     required: false
 
 resources: {}

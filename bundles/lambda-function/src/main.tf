@@ -5,13 +5,59 @@ locals {
 
   table_policy_arn = local.has_storage ? coalesce(try(var.table_access, null), var.storage.policies[0].arn) : null
 
+  # The gateway only listens inside the VPC, so a function that uses it has to
+  # run there; one that doesn't stays out and keeps its cold starts short.
+  has_llm         = var.llm != null
+  in_vpc          = local.has_llm && var.network != null
+  private_subnets = local.in_vpc ? [for s in var.network.subnets : s.id if s.tier == "private"] : []
+
   environment = merge(
     { for e in var.environment : e.name => e.value },
     local.has_storage ? {
       TABLE_NAME          = var.storage.name
       TABLE_PARTITION_KEY = var.storage.partition_key.name
     } : {},
+    local.has_llm ? {
+      OPENAI_BASE_URL = var.llm.base_url
+      OPENAI_API_KEY  = random_password.llm_key[0].result
+      OPENAI_MODEL    = var.llm.default_model
+    } : {},
   )
+}
+
+resource "random_password" "llm_key" {
+  count   = local.has_llm ? 1 : 0
+  length  = 48
+  special = false
+}
+
+resource "aws_ssm_parameter" "llm_key" {
+  count       = local.has_llm ? 1 : 0
+  name        = "${var.llm.key_parameter_prefix}/${local.name}"
+  description = "AI Platform key for ${local.name}"
+  type        = "SecureString"
+  value       = random_password.llm_key[0].result
+}
+
+resource "aws_security_group" "function" {
+  count       = local.in_vpc ? 1 : 0
+  name        = local.name
+  description = "Lambda function: outbound only"
+  vpc_id      = var.network.id
+
+  egress {
+    description = "AI Platform gateway, AWS APIs and the internet via the VPC egress"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "vpc" {
+  count      = local.in_vpc ? 1 : 0
+  role       = aws_iam_role.function.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
 data "archive_file" "placeholder" {
@@ -83,6 +129,14 @@ resource "aws_lambda_function" "main" {
     mode = "Active"
   }
 
+  dynamic "vpc_config" {
+    for_each = local.in_vpc ? [1] : []
+    content {
+      subnet_ids         = local.private_subnets
+      security_group_ids = [aws_security_group.function[0].id]
+    }
+  }
+
   dynamic "environment" {
     for_each = length(local.environment) > 0 ? [1] : []
     content {
@@ -90,7 +144,18 @@ resource "aws_lambda_function" "main" {
     }
   }
 
-  depends_on = [aws_iam_role_policy.logs]
+  lifecycle {
+    precondition {
+      condition     = !local.has_llm || var.network != null
+      error_message = "Using the AI Platform needs the VPC connected too: the gateway only accepts traffic from inside it."
+    }
+    precondition {
+      condition     = !local.has_llm || try(var.network.internet_egress, false)
+      error_message = "The VPC has no internet egress, so a function inside it can't reach AWS APIs. Turn egress on in the shared VPC."
+    }
+  }
+
+  depends_on = [aws_iam_role_policy.logs, aws_iam_role_policy_attachment.vpc]
 }
 
 resource "aws_iam_role_policy_attachment" "xray" {

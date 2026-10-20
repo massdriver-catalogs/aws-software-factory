@@ -36,3 +36,14 @@ aws lambda invoke --region {{dependencies.api.region}} --function-name {{id}} \
   --payload '{"version":"2.0","routeKey":"GET /","rawPath":"/","requestContext":{"http":{"method":"GET","path":"/"}}}' \
   --cli-binary-format raw-in-base64-out /dev/stdout
 ```
+
+## Calls to the AI Platform fail
+
+{{#dependencies.llm}}
+- **Timeout:** the function isn't in the VPC, or the gateway is down. Check the function's VPC config, then the gateway's runbook.
+- **401:** the gateway hasn't picked up this function's key yet (it checks every minute), or the parameter `{{dependencies.llm.key_parameter_prefix}}/{{id}}` was deleted. Redeploying writes a new key.
+- **Model not found:** `OPENAI_MODEL` names a model the gateway no longer serves. Redeploy to pick up its current default.
+{{/dependencies.llm}}
+{{^dependencies.llm}}
+No LLM Endpoint is connected. Connect the AI Platform's LLM Endpoint and the VPC, then redeploy.
+{{/dependencies.llm}}

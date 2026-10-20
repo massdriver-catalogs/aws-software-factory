@@ -1,6 +1,6 @@
 # Lambda Function
 
-A function on arm64 that answers routes on a connected HTTP API, with an optional DynamoDB table.
+A function on arm64 that answers routes on a connected HTTP API, with an optional DynamoDB table and optional access to the AI Platform's models.
 
 ## Code
 
@@ -17,3 +17,20 @@ The function receives API Gateway's version 2.0 event and returns `statusCode`, 
 ## Table
 
 With a DynamoDB table connected, the function gets the table's read-write policy, or read with **Table access**, plus `TABLE_NAME` and `TABLE_PARTITION_KEY` environment variables.
+
+## AI Platform
+
+```mermaid
+flowchart LR
+  A[HTTP API] --> F[This function<br/>in the VPC's private subnets]
+  F -->|OPENAI_BASE_URL + its own key| G[LLM Gateway]
+  F --> T[DynamoDB, through the VPC's endpoint]
+```
+
+Connect an **LLM Endpoint** and the **VPC**, and the function:
+
+- moves into the VPC's private subnets, because the gateway only accepts traffic from inside the VPC;
+- writes its own key where the gateway picks it up, like a sandbox does;
+- gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`, so any OpenAI SDK works unchanged.
+
+Without an LLM Endpoint the function stays outside the VPC and starts faster. Inside the VPC it reaches the internet through the VPC's egress, which has to be on.

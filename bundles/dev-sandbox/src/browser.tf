@@ -26,20 +26,6 @@ resource "aws_secretsmanager_secret_version" "browser" {
   secret_string = random_password.browser[0].result
 }
 
-data "aws_ec2_managed_prefix_list" "cloudfront" {
-  count = var.browser_access ? 1 : 0
-  name  = "com.amazonaws.global.cloudfront.origin-facing"
-}
-
-resource "aws_vpc_security_group_ingress_rule" "browser" {
-  for_each          = local.browser_targets
-  security_group_id = aws_security_group.sandbox.id
-  prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront[0].id
-  ip_protocol       = "tcp"
-  from_port         = each.value
-  to_port           = each.value
-  description       = "CloudFront to ${each.key}"
-}
 
 resource "aws_cloudfront_vpc_origin" "browser" {
   for_each = local.browser_targets
@@ -63,6 +49,34 @@ resource "aws_cloudfront_vpc_origin" "browser" {
     create_before_destroy = true
     replace_triggered_by  = [aws_instance.sandbox.id]
   }
+}
+
+# CloudFront creates this group in the VPC with the first VPC origin. Allowing
+# it, rather than CloudFront's address list, admits only VPC-origin traffic and
+# stays within the security group rule limit.
+data "aws_security_group" "cloudfront_vpc_origins" {
+  count = var.browser_access ? 1 : 0
+
+  filter {
+    name   = "vpc-id"
+    values = [var.network.id]
+  }
+  filter {
+    name   = "group-name"
+    values = ["CloudFront-VPCOrigins-Service-SG*"]
+  }
+
+  depends_on = [aws_cloudfront_vpc_origin.browser]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "browser" {
+  for_each                     = local.browser_targets
+  security_group_id            = aws_security_group.sandbox.id
+  referenced_security_group_id = data.aws_security_group.cloudfront_vpc_origins[0].id
+  ip_protocol                  = "tcp"
+  from_port                    = each.value
+  to_port                      = each.value
+  description                  = "CloudFront to ${each.key}"
 }
 
 data "aws_cloudfront_cache_policy" "disabled" {

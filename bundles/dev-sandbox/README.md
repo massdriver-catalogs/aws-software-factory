@@ -112,7 +112,7 @@ flowchart LR
   end
 ```
 
-CloudFront reaches the sandbox over a private connection into the VPC, so nothing on the sandbox is open to the internet, and only CloudFront's addresses are allowed in on those two ports. That connection only works into a private subnet, so browser access needs **Private** network mode.
+CloudFront reaches the sandbox over a private connection into the VPC, so nothing on the sandbox is open to the internet, and only that CloudFront connection is allowed in on those two ports. That connection only works into a private subnet, so browser access needs **Private** network mode.
 
 The URLs and password are on this sandbox's **Connect to …** resource, and the connect script prints them. Dev servers must listen on all interfaces to be previewed: `npm run dev -- --host`, `python -m http.server 5173 --bind 0.0.0.0`.
 

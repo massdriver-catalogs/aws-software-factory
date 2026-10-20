@@ -15,6 +15,10 @@ resource "aws_ecr_repository" "main" {
   name                 = local.name
   image_tag_mutability = var.tag_mutability
 
+  # Images are rebuilt from the source repository, so decommissioning deletes
+  # them rather than failing on a non-empty repository.
+  force_delete = true
+
   image_scanning_configuration {
     scan_on_push = var.scan_on_push
   }

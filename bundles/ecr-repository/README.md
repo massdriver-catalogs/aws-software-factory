@@ -18,3 +18,7 @@ Two lifecycle rules run daily:
 
 - Untagged images, left behind by failed or replaced pushes, are deleted after **Delete untagged images after**.
 - Beyond the newest **Keep the newest images**, older images are deleted. Rolling back to a deleted image means rebuilding it.
+
+## Decommissioning
+
+Decommissioning deletes the repository and every image in it. Rebuild images from the source repository if you need them again.

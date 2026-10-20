@@ -188,6 +188,22 @@ params:
       pattern: ^(|https://[^\s]+)$
       message:
         pattern: "Must be an https:// git URL, or empty."
+    git_name:
+      title: Your name for commits
+      description: Shown as the author of commits made in the sandbox. Defaults to the sandbox's name.
+      type: string
+      default: ""
+      maxLength: 100
+    git_email:
+      title: Your email for commits
+      description: >-
+        Links commits to your GitHub account when it matches an address on that account. Defaults
+        to an address that links to no one.
+      type: string
+      default: ""
+      pattern: ^(|[^@\s]+@[^@\s]+)$
+      message:
+        pattern: "An email address, or empty."
 
 dependencies:
   aws_authentication:
@@ -198,6 +214,9 @@ dependencies:
     required: true
   llm:
     resource_type: llm-endpoint@0.0.0
+    required: false
+  github:
+    resource_type: github-app@0.0.0
     required: false
 
 resources:
@@ -222,6 +241,8 @@ ui:
     - autonomy
     - languages
     - dotfiles_repo
+    - git_name
+    - git_email
     - "*"
   workspace_gb:
     ui:widget: updown

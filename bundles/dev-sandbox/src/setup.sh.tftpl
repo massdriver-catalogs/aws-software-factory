@@ -84,7 +84,78 @@ echo "Massdriver tools are on for $ORG. Open a new shell, then restart opencode 
 SH
 chmod 0755 /usr/local/bin/sandbox-massdriver-login
 
+GH_VERSION="${gh_cli_version}"
+mkdir -p /tmp/gh /usr/local/lib/gh
+curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_$${GH_VERSION}_linux_$MASS_ARCH.tar.gz" | tar -xz -C /tmp/gh
+install -m 0755 "$(find /tmp/gh -type f -path '*/bin/gh' | head -n 1)" /usr/local/lib/gh/gh
+
+# Mints GitHub App installation tokens on demand. The App key is read from
+# Secrets Manager into memory for each mint and never written to disk; only the
+# short-lived token is cached.
+cat > /usr/local/bin/sandbox-github-token <<'SH'
+#!/bin/bash
+set -euo pipefail
+SECRET_ID="${github_secret}"
+ORG="${github_owner}"
+CACHE="$HOME/.cache/sandbox/github-token.json"
+
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+mint() {
+  local app now header payload sig jwt
+  app=$(aws secretsmanager get-secret-value --region ${region} --secret-id "$SECRET_ID" --query SecretString --output text)
+  now=$(date +%s)
+  header=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
+  payload=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$(jq -r .app_id <<<"$app")" | b64url)
+  sig=$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign <(jq -r .private_key <<<"$app") | b64url)
+  jwt="$header.$payload.$sig"
+  mkdir -p "$(dirname "$CACHE")"
+  umask 077
+  curl -fsS -X POST -H "Authorization: Bearer $jwt" -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/app/installations/$(jq -r .installation_id <<<"$app")/access_tokens" > "$CACHE.tmp"
+  mv "$CACHE.tmp" "$CACHE"
+}
+
+token() {
+  if [ ! -s "$CACHE" ] || [ $(( $(date -d "$(jq -r .expires_at "$CACHE")" +%s) - $(date +%s) )) -lt 300 ]; then
+    mint
+  fi
+  jq -r .token "$CACHE"
+}
+
+case "$${1:-token}" in
+  token) token ;;
+  git-credential)
+    [ "$${2:-}" = "get" ] || exit 0
+    declare -A req
+    while IFS='=' read -r k v && [ -n "$k" ]; do req[$k]=$v; done
+    [ "$${req[host]:-}" = "github.com" ] || exit 0
+    case "$${req[path]:-}" in "$ORG"/*) ;; *) exit 0 ;; esac
+    printf 'username=x-access-token\npassword=%s\n' "$(token)"
+    ;;
+  *) echo "usage: sandbox-github-token [token|git-credential get]" >&2; exit 2 ;;
+esac
+SH
+chmod 0755 /usr/local/bin/sandbox-github-token
+
+cat > /usr/local/bin/gh <<'SH'
+#!/bin/bash
+if [ -z "$${GH_TOKEN:-}" ] && [ -n "${github_secret}" ]; then
+  GH_TOKEN=$(sandbox-github-token token 2>/dev/null) && export GH_TOKEN
+fi
+exec /usr/local/lib/gh/gh "$@"
+SH
+chmod 0755 /usr/local/bin/gh
+
 install -d -o dev -g dev -m 0700 /home/dev/.config/sandbox /home/dev/.config/opencode /home/dev/.claude
+
+sudo -iu dev git config --global user.name "${git_name}"
+sudo -iu dev git config --global user.email "${git_email}"
+sudo -iu dev git config --global init.defaultBranch main
+if [ -n "${github_secret}" ]; then
+  sudo -iu dev git config --global credential.https://github.com.helper '!sandbox-github-token git-credential'
+  sudo -iu dev git config --global credential.https://github.com.useHttpPath true
+fi
 
 if [ -n "$KEY_PARAMETER" ]; then
   for _ in $(seq 1 30); do

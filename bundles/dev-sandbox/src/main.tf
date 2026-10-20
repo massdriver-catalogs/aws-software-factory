@@ -91,6 +91,11 @@ resource "aws_instance" "sandbox" {
     mcp_image          = local.mcp_image
     massdriver_url     = local.massdriver_url
     massdriver_secret  = local.massdriver_secret
+    github_secret      = local.github_secret
+    github_owner       = local.github_owner
+    gh_cli_version     = local.gh_cli_version
+    git_name           = local.git_name
+    git_email          = local.git_email
   })
 
   # A new AMI would rebuild the VM on the next unrelated deploy. Upgrades
@@ -103,7 +108,7 @@ resource "aws_instance" "sandbox" {
     }
   }
 
-  depends_on = [aws_ssm_parameter.llm_key]
+  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github]
 
   tags = { Name = local.name }
 }

@@ -9,7 +9,7 @@ ui:
     - label: Create the GitHub App
       path: ./instructions/Create the GitHub App.md
   schema:
-    ui:order: [owner, app_id, installation_id, private_key, "*"]
+    ui:order: [app_id, private_key, installation_id, owner, "*"]
     private_key:
       ui:widget: textarea
       ui:options:
@@ -37,7 +37,7 @@ schema:
         - acme-co
     app_id:
       title: App ID
-      description: Shown on the app's General settings page under "About".
+      description: Shown near the top of the app's settings page.
       type: string
       pattern: ^[0-9]+$
       message:

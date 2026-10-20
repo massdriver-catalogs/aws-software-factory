@@ -10,6 +10,8 @@ ui:
       path: ./instructions/AWS CLI.md
     - label: AWS Console
       path: ./instructions/AWS Console.md
+  schema:
+    ui:order: [external_id, arn, "*"]
 
 schema:
   title: AWS IAM Role

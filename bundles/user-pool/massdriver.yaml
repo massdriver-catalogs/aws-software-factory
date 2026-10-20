@@ -1,0 +1,105 @@
+name: user-pool
+description: >-
+  Sign-in for an app: a Cognito user pool with email accounts, a hosted sign-in page, and a
+  browser app client. Connect it to an HTTP API to require signed-in users.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/user-pool
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Open sign-up
+      region: us-east-1
+      allow_self_sign_up: true
+      mfa: "OFF"
+      callback_urls: ["http://localhost:5173/"]
+      deletion_protection: false
+    - __name: Invite only
+      region: us-east-1
+      allow_self_sign_up: false
+      mfa: OPTIONAL
+      callback_urls: ["http://localhost:5173/"]
+      deletion_protection: true
+  required:
+    - region
+    - allow_self_sign_up
+    - mfa
+    - callback_urls
+    - deletion_protection
+  properties:
+    region:
+      title: Region
+      type: string
+      default: us-east-1
+      $md.immutable: true
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 (N. Virginia)
+        - const: us-east-2
+          title: us-east-2 (Ohio)
+        - const: us-west-2
+          title: us-west-2 (Oregon)
+        - const: eu-west-1
+          title: eu-west-1 (Ireland)
+        - const: eu-central-1
+          title: eu-central-1 (Frankfurt)
+        - const: ap-northeast-1
+          title: ap-northeast-1 (Tokyo)
+    allow_self_sign_up:
+      title: Anyone can sign up
+      description: Off means users exist only when an admin creates them.
+      type: boolean
+      default: true
+    mfa:
+      title: Multi-factor sign-in
+      description: Authenticator-app codes. SMS isn't offered; it needs extra AWS setup and costs per message.
+      type: string
+      default: "OFF"
+      oneOf:
+        - const: "OFF"
+          title: "Off"
+        - const: OPTIONAL
+          title: Optional — each user chooses
+        - const: "ON"
+          title: Required for everyone
+    callback_urls:
+      title: Where to return after sign-in
+      description: >-
+        Pages of your web app that receive users back from the sign-in page, e.g. the static
+        site's URL. Must match exactly, including the trailing slash.
+      type: array
+      minItems: 1
+      uniqueItems: true
+      default: ["http://localhost:5173/"]
+      items:
+        type: string
+        pattern: ^(https://|http://localhost)
+        message:
+          pattern: "Must be https://, or http://localhost for local development."
+    deletion_protection:
+      title: Deletion protection
+      description: Blocks deleting the pool, and every account in it, until turned off.
+      type: boolean
+      default: false
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources:
+  user_pool:
+    resource_type: aws-user-pool@0.0.0
+    required: true
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - allow_self_sign_up
+    - mfa
+    - callback_urls
+    - deletion_protection
+    - "*"

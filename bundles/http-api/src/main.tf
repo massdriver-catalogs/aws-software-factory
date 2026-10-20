@@ -46,3 +46,16 @@ resource "aws_apigatewayv2_stage" "default" {
     })
   }
 }
+
+resource "aws_apigatewayv2_authorizer" "sign_in" {
+  count            = var.auth != null ? 1 : 0
+  api_id           = aws_apigatewayv2_api.main.id
+  name             = "sign-in"
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+
+  jwt_configuration {
+    issuer   = var.auth.issuer
+    audience = [var.auth.client_id]
+  }
+}

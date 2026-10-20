@@ -14,6 +14,10 @@ Each entry is `METHOD /path`. `ANY /{proxy+}` plus `ANY /` sends everything to t
 
 The function receives API Gateway's version 2.0 event and returns `statusCode`, `headers` and `body`.
 
+## Sign-in
+
+With **Require sign-in** on, API Gateway rejects requests to this function's routes unless they carry a valid token from the user pool connected to the API. The function receives the user's claims at `requestContext.authorizer.jwt.claims` (`sub`, `email`, …).
+
 ## Table
 
 With a DynamoDB table connected, the function gets the table's read-write policy, or read with **Table access**, plus `TABLE_NAME` and `TABLE_PARTITION_KEY` environment variables.

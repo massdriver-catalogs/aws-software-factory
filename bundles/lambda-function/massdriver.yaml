@@ -13,6 +13,7 @@ params:
       routes:
         - ANY /{proxy+}
         - ANY /
+      require_sign_in: true
       memory_mb: 256
       timeout_seconds: 10
       environment: []
@@ -22,6 +23,7 @@ params:
       routes:
         - ANY /{proxy+}
         - ANY /
+      require_sign_in: true
       memory_mb: 1024
       timeout_seconds: 29
       environment: []
@@ -29,6 +31,7 @@ params:
   required:
     - image_uri
     - routes
+    - require_sign_in
     - memory_mb
     - timeout_seconds
     - environment
@@ -60,6 +63,13 @@ params:
         pattern: ^(ANY|GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /[A-Za-z0-9._~{}+/-]*$
         message:
           pattern: "A method and path, like GET /items/{id} or ANY /{proxy+}."
+    require_sign_in:
+      title: Require sign-in
+      description: >-
+        Only signed-in users can call this function's routes. Needs a user pool connected to the
+        API; turn it off for routes that must stay public.
+      type: boolean
+      default: true
     memory_mb:
       title: Memory (MB)
       description: >-
@@ -150,6 +160,7 @@ ui:
   ui:order:
     - image_uri
     - routes
+    - require_sign_in
     - memory_mb
     - timeout_seconds
     - environment

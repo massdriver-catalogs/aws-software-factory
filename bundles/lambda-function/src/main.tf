@@ -172,10 +172,19 @@ resource "aws_apigatewayv2_integration" "main" {
 }
 
 resource "aws_apigatewayv2_route" "main" {
-  for_each  = toset(var.routes)
-  api_id    = var.api.id
-  route_key = each.value
-  target    = "integrations/${aws_apigatewayv2_integration.main.id}"
+  for_each           = toset(var.routes)
+  api_id             = var.api.id
+  route_key          = each.value
+  target             = "integrations/${aws_apigatewayv2_integration.main.id}"
+  authorization_type = var.require_sign_in ? "JWT" : "NONE"
+  authorizer_id      = var.require_sign_in ? try(var.api.authorizer_id, null) : null
+
+  lifecycle {
+    precondition {
+      condition     = !var.require_sign_in || try(var.api.authorizer_id, null) != null
+      error_message = "Require sign-in is on, but the API has no user pool connected. Connect one to the HTTP API, or turn Require sign-in off for public routes."
+    }
+  }
 }
 
 resource "aws_lambda_permission" "api" {

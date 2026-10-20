@@ -1,0 +1,63 @@
+name: aws-ecr-repository
+version: 0.0.0
+label: AWS ECR Repository
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: AWS ECR Repository
+  description: >-
+    One container image repository, and the IAM policies for pushing to and pulling from it.
+    Consumers attach a policy to their own role rather than writing their own.
+  type: object
+  additionalProperties: false
+  required:
+    - name
+    - arn
+    - url
+    - region
+    - registry_id
+    - policies
+  properties:
+    name:
+      title: Repository Name
+      type: string
+      minLength: 1
+    arn:
+      title: Repository ARN
+      type: string
+      minLength: 1
+    url:
+      title: Repository URL
+      description: Image reference without a tag, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/app.
+      type: string
+      minLength: 1
+    region:
+      title: Region
+      type: string
+      minLength: 1
+    registry_id:
+      title: Registry ID
+      description: The AWS account ID that owns the registry.
+      type: string
+      pattern: ^[0-9]{12}$
+    policies:
+      title: Access Policies
+      description: IAM managed policies a consumer attaches to its role.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - arn
+        properties:
+          name:
+            title: Name
+            description: What the policy allows, e.g. push or pull.
+            type: string
+          arn:
+            title: Policy ARN
+            type: string

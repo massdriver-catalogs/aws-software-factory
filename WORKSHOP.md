@@ -81,6 +81,8 @@ Create project **Networking** (`networking`) with environment **Dev** (`dev`). A
 
 Always on: flow log encryption key ~$1. **Shared VPC total: ~$8–9/month.**
 
+Also add **GitHub Actions OIDC** to Networking (no fields; once per AWS account), so repositories push images with no stored keys. — $0
+
 Also add **Budget Guard** to Networking: **Monthly limit** $25, alerts at 50/80/100% and on forecast, your email under **Email alerts to**. — $0 (the first two budgets in an account are free)
 
 ### 3. AI Platform
@@ -156,6 +158,7 @@ Create a project named after the app (e.g. **Todo App**, `todoapp`) with environ
 | Lambda Function | Memory | 256 MB | ~$0.000004 per 1-second request |
 | Lambda Function | Log retention | 1 day | <$0.10 |
 | ECR Repository (in **CI Platform**, environment named after the app) | Keep the newest images | 10 | ~$0.10/GB-month, pennies for a few images |
+| GitHub Repository (same **CI Platform** environment, connected to the ECR Repository) | Visibility / starter app | Private / on | $0; a private build uses ~2 Actions minutes of the free plan's 2,000 |
 
 **App total at workshop traffic: effectively $0** (Lambda, API Gateway and DynamoDB free tiers cover it). Open the HTTP API's endpoint in a browser: the placeholder answers with the request and the table's status.
 

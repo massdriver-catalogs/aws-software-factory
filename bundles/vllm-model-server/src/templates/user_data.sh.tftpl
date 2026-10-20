@@ -16,8 +16,7 @@ case "$1" in
     if [ ! -d /opt/hf/hub/${hf_dir} ] && cached "$weights"; then
       rm -rf /opt/hf/hub/.restore && mkdir -p /opt/hf/hub/.restore
       if aws s3 cp --region ${region} --only-show-errors "s3://${bucket}/$weights" - | tar -x -C /opt/hf/hub/.restore; then
-        mv /opt/hf/hub/.restore/${hf_dir} /opt/hf/hub/${hf_dir} && touch /opt/vllm/offline \
-          && echo "weights restored from s3://${bucket}/$weights"
+        mv /opt/hf/hub/.restore/${hf_dir} /opt/hf/hub/${hf_dir} && echo "weights restored from s3://${bucket}/$weights"
       fi
       rm -rf /opt/hf/hub/.restore
     fi
@@ -55,9 +54,6 @@ set -euo pipefail
 KEY=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${secret_arn} --query SecretString --output text)
 umask 077
 echo "VLLM_API_KEY=$KEY" > /opt/vllm/env
-# Weights from the cache are complete, so there's nothing to ask Hugging Face.
-[ -f /opt/vllm/offline ] && echo "HF_HUB_OFFLINE=1" >> /opt/vllm/env
-exit 0
 SH
 chmod 700 /opt/vllm/start.sh
 

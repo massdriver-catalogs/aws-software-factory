@@ -12,6 +12,11 @@ params:
       hand_to_agent: false
       massdriver_organization: ""
       send_test_alarm: false
+    - __name: Hand alarms to the agent
+      region: us-east-1
+      hand_to_agent: true
+      massdriver_organization: ""
+      send_test_alarm: false
   required:
     - region
     - hand_to_agent

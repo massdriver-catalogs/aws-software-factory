@@ -7,7 +7,7 @@ version: 0.0.0
 
 params:
   examples:
-    - __name: Lowest cost
+    - __name: Development
       region: us-east-1
       partition_key: { name: pk, type: S }
       sort_key: { name: sk, type: S }

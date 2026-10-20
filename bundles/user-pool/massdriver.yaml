@@ -7,16 +7,22 @@ version: 0.0.0
 
 params:
   examples:
-    - __name: Open sign-up
+    - __name: Free Tier
       region: us-east-1
       allow_self_sign_up: true
       mfa: "OFF"
       callback_urls: ["http://localhost:5173/"]
       deletion_protection: false
+    - __name: Production
+      region: us-east-1
+      allow_self_sign_up: true
+      mfa: OPTIONAL
+      callback_urls: ["http://localhost:5173/"]
+      deletion_protection: true
     - __name: Invite only
       region: us-east-1
       allow_self_sign_up: false
-      mfa: OPTIONAL
+      mfa: "ON"
       callback_urls: ["http://localhost:5173/"]
       deletion_protection: true
   required:

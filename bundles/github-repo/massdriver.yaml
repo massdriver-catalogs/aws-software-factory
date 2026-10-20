@@ -21,6 +21,13 @@ params:
       seed_starter_files: true
       adopt_existing_repository: false
       default_branch: main
+    - __name: Adopt an existing repository
+      repository_name: todoapp
+      description: ""
+      visibility: private
+      seed_starter_files: false
+      adopt_existing_repository: true
+      default_branch: main
   required:
     - repository_name
     - visibility

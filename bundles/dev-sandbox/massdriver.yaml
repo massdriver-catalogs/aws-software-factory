@@ -42,7 +42,7 @@ params:
       network_mode: private
       idle_stop: 1h
       nightly_stop: "22:00"
-      timezone: America/New_York
+      timezone: America/Los_Angeles
       agents: [opencode, claude-code]
       autonomy: free
       languages: [python, node, go]

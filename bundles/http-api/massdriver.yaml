@@ -7,7 +7,7 @@ version: 0.0.0
 
 params:
   examples:
-    - __name: Lowest cost
+    - __name: Development
       region: us-east-1
       cors_allowed_origins: []
       throttle_rate: 50

@@ -8,12 +8,12 @@ version: 0.0.0
 
 params:
   examples:
-    - __name: Lowest cost
+    - __name: Development
       runner_count: 1
       size: medium
       disk_gb: 30
       extra_labels: []
-    - __name: Busy team
+    - __name: Production
       runner_count: 3
       size: large
       disk_gb: 60

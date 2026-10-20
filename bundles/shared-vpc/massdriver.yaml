@@ -7,13 +7,13 @@ version: 0.0.0
 
 params:
   examples:
-    - __name: Lowest cost
+    - __name: Development
       region: us-east-1
       cidr: 10.0.0.0/16
       zone_count: 2
       egress: nat_instance
       private_endpoints: []
-      flow_log_retention_days: 30
+      flow_log_retention_days: 7
     - __name: Production
       region: us-east-1
       cidr: 10.0.0.0/16

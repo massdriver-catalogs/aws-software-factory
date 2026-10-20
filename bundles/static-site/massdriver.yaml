@@ -15,6 +15,10 @@ params:
       single_page_app: false
       price_class: PriceClass_100
       default_cache_seconds: 3600
+    - __name: Worldwide audience
+      single_page_app: true
+      price_class: PriceClass_All
+      default_cache_seconds: 300
   required:
     - single_page_app
     - price_class

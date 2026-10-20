@@ -6,7 +6,21 @@ source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/mai
 version: 0.0.0
 
 params:
-  properties: {}
+  examples:
+    - __name: New account
+      adopt_existing_provider: false
+    - __name: Provider already exists
+      adopt_existing_provider: true
+  properties:
+    adopt_existing_provider:
+      title: Adopt the existing provider
+      description: >-
+        An AWS account holds one GitHub Actions OIDC provider. Turn this on when it already exists,
+        for example created by hand or by another tool, to manage it here instead of failing to
+        create a second. Only the first deploy reads this.
+      type: boolean
+      default: false
+      $md.immutable: true
 
 dependencies:
   aws_authentication:

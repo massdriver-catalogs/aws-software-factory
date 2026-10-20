@@ -43,10 +43,9 @@ resource "github_branch_default" "main" {
 
 resource "github_repository_file" "starter" {
   for_each = var.seed_starter_files ? {
-    "Dockerfile"                  = file("${path.module}/starter/Dockerfile")
-    "app.py"                      = file("${path.module}/starter/app.py")
-    ".dockerignore"               = file("${path.module}/starter/dockerignore")
-    ".github/workflows/build.yml" = templatefile("${path.module}/starter/build.yml.tftpl", { branch = var.default_branch })
+    "Dockerfile"    = file("${path.module}/starter/Dockerfile")
+    "app.py"        = file("${path.module}/starter/app.py")
+    ".dockerignore" = file("${path.module}/starter/dockerignore")
   } : {}
 
   repository          = github_repository.main.name
@@ -61,6 +60,29 @@ resource "github_repository_file" "starter" {
     ignore_changes = [content, commit_message, commit_author, commit_email]
   }
 
-  # The variables must exist before the first commit, or its build won't push.
-  depends_on = [github_branch_default.main, github_actions_variable.push]
+  depends_on = [github_branch_default.main]
+}
+
+# Committed last, so the first build sees the whole app; the variables must
+# already exist or that build won't push.
+resource "github_repository_file" "workflow" {
+  count = var.seed_starter_files ? 1 : 0
+
+  repository          = github_repository.main.name
+  branch              = var.default_branch
+  file                = ".github/workflows/build.yml"
+  content             = templatefile("${path.module}/starter/build.yml.tftpl", { branch = var.default_branch })
+  commit_message      = "Add the build workflow"
+  overwrite_on_create = false
+
+  lifecycle {
+    ignore_changes = [content, commit_message, commit_author, commit_email]
+  }
+
+  depends_on = [github_repository_file.starter, github_actions_variable.push]
+}
+
+moved {
+  from = github_repository_file.starter[".github/workflows/build.yml"]
+  to   = github_repository_file.workflow[0]
 }

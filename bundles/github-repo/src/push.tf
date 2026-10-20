@@ -11,10 +11,18 @@ resource "aws_iam_role" "push" {
       Effect    = "Allow"
       Principal = { Federated = var.github_oidc.provider_arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
+      # Repositories get either the classic subject or GitHub's immutable one,
+      # which pins the repository's numeric ID so a renamed or recreated
+      # repository can't inherit the role.
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${local.full_name}:ref:refs/heads/${var.default_branch}"
+        }
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${local.full_name}:ref:refs/heads/${var.default_branch}",
+            "repo:${var.github.owner}@*/${var.repository_name}@${github_repository.main.repo_id}:ref:refs/heads/${var.default_branch}",
+          ]
         }
       }
     }]

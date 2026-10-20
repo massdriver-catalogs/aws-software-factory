@@ -2,6 +2,7 @@ locals {
   name         = var.md_metadata.name_prefix
   has_registry = var.registry != null
   full_name    = "${var.github.owner}/${var.repository_name}"
+  seed         = var.seed_starter_files && !var.adopt_existing_repository
 }
 
 resource "github_repository" "main" {
@@ -16,6 +17,10 @@ resource "github_repository" "main" {
   archive_on_destroy = true
 
   lifecycle {
+    # auto_init only matters when GitHub creates the repository. An adopted one
+    # reads back without it, and acting on that diff would replace the repository.
+    ignore_changes = [auto_init]
+
     precondition {
       condition     = !local.has_registry || var.github_oidc != null
       error_message = "Pushing to ECR needs GitHub Actions OIDC. Deploy the GitHub Actions OIDC bundle once and set it as this environment's default."
@@ -42,7 +47,7 @@ resource "github_branch_default" "main" {
 }
 
 resource "github_repository_file" "starter" {
-  for_each = var.seed_starter_files ? {
+  for_each = local.seed ? {
     "Dockerfile"    = file("${path.module}/starter/Dockerfile")
     "app.py"        = file("${path.module}/starter/app.py")
     "test_app.py"   = file("${path.module}/starter/test_app.py")
@@ -67,7 +72,7 @@ resource "github_repository_file" "starter" {
 # Committed last, so the first build sees the whole app; the variables must
 # already exist or that build won't push.
 resource "github_repository_file" "workflow" {
-  count = var.seed_starter_files ? 1 : 0
+  count = local.seed ? 1 : 0
 
   repository          = github_repository.main.name
   branch              = var.default_branch

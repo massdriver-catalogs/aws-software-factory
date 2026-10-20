@@ -42,3 +42,9 @@ Branch protection isn't configured. On GitHub's free plan it's only available fo
 ## Decommissioning
 
 The repository is archived, not deleted, so the code survives. The name stays taken until the archived repository is deleted or renamed on GitHub.
+
+## Adopting an existing repository
+
+Turn on **Adopt an existing repository** on the first deploy to manage a repository that already exists in the organization, with **Repository name** set to its name. Massdriver takes it over as it is: no files are written, nothing is overwritten, and an archived repository is unarchived. From then on it behaves like one this bundle created, including being archived, not deleted, on decommission.
+
+If the repository already has Actions variables named `AWS_REGION`, `AWS_ROLE_ARN` or `ECR_REPOSITORY_URL`, delete them first; this bundle creates its own.

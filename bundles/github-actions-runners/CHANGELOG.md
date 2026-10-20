@@ -5,3 +5,4 @@
 - First release.
 - Issue → pull request agent workflow, and a function that mints repository-scoped GitHub tokens for it.
 - The agent and AI review workflows moved to the GitHub Repository bundle, which commits them to new repositories.
+- Small is the default size and the Development preset, after testing agent runs and a Next.js image build on it.

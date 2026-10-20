@@ -73,4 +73,4 @@ New repositories get `agent.yml`, `ai-review.yml` and the `agent` label from the
 
 ## Cost
 
-Each runner is a VM billed while it runs, waiting for jobs or not: about $25 a month for Medium, plus its disk. The token minter's Lambda, schedule and secret, and the agent token function, cost under $1 a month together.
+Each runner is a VM billed while it runs, waiting for jobs or not: about $12 a month for Small, plus its disk. Small handles the agent and AI review jobs and typical image builds; a no-cache Next.js build peaked at about 1 GB of its 1.8 GB. Pick Medium or Large for larger builds; with no swap, a job that runs out of memory is killed. The token minter's Lambda, schedule and secret, and the agent token function, cost under $1 a month together.

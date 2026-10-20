@@ -66,10 +66,10 @@ Each project has a job: **Networking** is the shared VPC; the **AI Platform** se
 | Scenario | Bedrock (default) | Plus your own GPU |
 |---|---|---|
 | The workshop (~3 hours, then teardown) | ~$2–3 | ~$5–6 |
-| A month of solo development, everything auto-stopping | ~$80–100 | ~$220–240 |
-| A month left running 24×7 | ~$110–130 | ~$700+ |
+| A month of solo development, everything auto-stopping | ~$65–85 | ~$205–225 |
+| A month left running 24×7 | ~$95–115 | ~$690+ |
 
-Where the money goes in a month: the platform pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$28), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens (a few cents per agent run on Kimi K2.5; the gateway caps each consumer at $20 a month by default). New-account AWS credits cover the workshop. Forgetting a GPU is the main risk; idle stop, nightly stop and the budget alert exist for it.
+Where the money goes in a month: the platform pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$15), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens (a few cents per agent run on Kimi K2.5; the gateway caps each consumer at $20 a month by default). New-account AWS credits cover the workshop. Forgetting a GPU is the main risk; idle stop, nightly stop and the budget alert exist for it.
 
 ## Steps
 
@@ -154,9 +154,9 @@ Create project **CI Platform** (`ciplatform`) with one environment per GitHub or
 
 Add **GitHub Actions OIDC**. It has no fields and exists once per AWS account; it lets GitHub Actions push images with no stored AWS keys. **$0.** **Share** its resource with all environments.
 
-Add **GitHub Actions Runners** with the **Development** preset: one Medium runner (~$25) with a 30 GB disk (~$2.40).
+Add **GitHub Actions Runners** with the **Development** preset: one Small runner (~$12) with a 30 GB disk (~$2.40).
 
-Plus the token function, schedule and secret: under $1. **Runners: ~$28; ~$0.12 for the workshop.** They sit in the VPC's private subnets, take one job each, and can reach the AI Platform. Jobs never get the VM's AWS role.
+Plus the token function, schedule and secret: under $1. **Runners: ~$15; ~$0.06 for the workshop.** They sit in the VPC's private subnets, take one job each, and can reach the AI Platform. Jobs never get the VM's AWS role.
 
 ### 8. Codebases
 
@@ -234,7 +234,7 @@ Each agent run costs a few cents in tokens on Kimi K2.5.
 ### 13. Tear it down
 
 > [!WARNING]
-> **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$50/month together). Decommissioning deletes everything, disks included.
+> **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$36/month together). Decommissioning deletes everything, disks included.
 
 Decommission each environment in this order; the shared pieces go last because everything else runs on them:
 

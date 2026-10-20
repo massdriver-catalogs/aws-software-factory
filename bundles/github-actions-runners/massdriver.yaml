@@ -10,7 +10,7 @@ params:
   examples:
     - __name: Development
       runner_count: 1
-      size: medium
+      size: small
       disk_gb: 30
       extra_labels: []
     - __name: Production
@@ -35,9 +35,12 @@ params:
       maximum: 4
     size:
       title: Size
-      description: Docker image builds need at least Medium.
+      description: >-
+        Small runs agent jobs and typical docker builds (including a Next.js build) with about
+        900 MB to spare. Go bigger for large monorepos or memory-hungry builds; the runner has no
+        swap, so running out of memory kills the job.
       type: string
-      default: medium
+      default: small
       oneOf:
         - const: small
           title: Small — 2 vCPU, 2 GB (~$12/month each)

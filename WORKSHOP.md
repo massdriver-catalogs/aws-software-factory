@@ -110,7 +110,7 @@ Massdriver creates repositories, workflows and runners through a GitHub App on y
 4. **Organization permissions:** Self-hosted runners → **Read and write**.
 5. **Where can this GitHub App be installed?** → **Only on this account**. **Create GitHub App**.
 6. On the app's page, copy the **App ID**.
-7. Under **Private keys**, **Generate a private key**. A `.pem` file downloads.
+7. In the app's sidebar, **Credentials → Key pairs → New key**. A `.pem` file downloads.
 8. **Install App** in the sidebar → your organization → **All repositories** → **Install**. The URL ends in `/installations/<number>`: that number is the **Installation ID**.
 9. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and the whole contents of the `.pem` file. **Save**, then **Share** it with all environments.
 

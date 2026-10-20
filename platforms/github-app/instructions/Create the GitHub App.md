@@ -34,11 +34,11 @@ Under **Where can this GitHub App be installed?** choose **Only on this account*
 
 ## 2. Copy the App ID
 
-It's on the app's **General** page under **About**. Paste it into **App ID**.
+It's on the app's settings page. Paste it into **App ID**.
 
 ## 3. Generate a private key
 
-On the same page, under **Private keys**, click **Generate a private key**. Open the downloaded `.pem` file and paste all of it into **Private Key**.
+In the app's sidebar, open **Credentials**, then **Key pairs**, and click **New key**. Open the downloaded `.pem` file and paste all of it into **Private Key**.
 
 ## 4. Install it
 

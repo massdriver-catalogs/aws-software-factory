@@ -1,0 +1,131 @@
+name: Agent
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+concurrency:
+  group: agent-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    if: >-
+      (github.event_name == 'issues' && github.event.label.name == 'agent') ||
+      (github.event_name == 'issue_comment' && !github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/agent') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: [self-hosted, factory]
+    timeout-minutes: 20
+    env:
+      REPO: ${{ github.repository }}
+      ISSUE: ${{ github.event.issue.number }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      BRANCH: agent/issue-${{ github.event.issue.number }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Say it's on it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jq -n --arg body "Working on this. Follow along: $RUN_URL" '{body: $body}' |
+            curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/issues/$ISSUE/comments" -d @- >/dev/null
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Let the agent work
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          COMMENT: ${{ github.event.comment.body }}
+        run: |
+          if [ -z "${OPENAI_BASE_URL:-}" ]; then
+            echo "This runner has no AI Platform access. Connect an LLM Endpoint to the runners and redeploy them." >&2
+            exit 1
+          fi
+
+          export OPENCODE_CONFIG="$RUNNER_TEMP/opencode.json"
+          jq -n --arg url "$OPENAI_BASE_URL" --arg model "$OPENAI_MODEL" '{
+            "$schema": "https://opencode.ai/config.json",
+            model: ("aiplatform/" + $model),
+            permission: {edit: "allow", bash: "allow", webfetch: "deny"},
+            provider: {aiplatform: {
+              npm: "@ai-sdk/openai-compatible",
+              name: "AI Platform",
+              options: {baseURL: $url, apiKey: "{env:OPENAI_API_KEY}"},
+              models: {($model): {name: $model}}
+            }}
+          }' > "$OPENCODE_CONFIG"
+
+          extra=""
+          case "$COMMENT" in /agent*) extra="${COMMENT#/agent}";; esac
+          cat > "$RUNNER_TEMP/task.md" <<EOF
+          You are working in a checkout of $REPO to resolve issue #$ISSUE.
+
+          Title: $ISSUE_TITLE
+
+          $ISSUE_BODY
+
+          $extra
+
+          Make the change the issue asks for, add or update tests, and run the tests until they pass.
+          Don't commit, push, or create branches; that happens after you finish.
+          End with a short summary of what you changed and why, for the pull request description.
+          EOF
+
+          # The agent never sees a credential that can push or mint one.
+          env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL -u AGENT_TOKEN_URL \
+            opencode run "$(cat "$RUNNER_TEMP/task.md")" 2>&1 | tee "$RUNNER_TEMP/agent.log"
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          comment() {
+            jq -n --arg body "$1" '{body: $body}' |
+              curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/issues/$ISSUE/comments" -d @- >/dev/null
+          }
+
+          if [ -z "$(git status --porcelain)" ]; then
+            comment "The agent finished without changing anything, so there's no pull request. Its log is in $RUN_URL. Add detail to the issue and comment \`/agent\` to try again."
+            exit 0
+          fi
+
+          oidc=$(curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=massdriver-agent" | jq -r .value)
+          APP_TOKEN=$(curl -fsS -X POST -H "Authorization: Bearer $oidc" "$AGENT_TOKEN_URL" | jq -r .token)
+          echo "::add-mask::$APP_TOKEN"
+
+          git config user.name "massdriver-agent[bot]"
+          git config user.email "agent@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -A
+          git commit -q -m "Resolve #$ISSUE: $(jq -r .issue.title "$GITHUB_EVENT_PATH")"
+          # Only the agent's own branch is ever pushed, never the default branch.
+          git push -f "https://x-access-token:$APP_TOKEN@github.com/$REPO.git" "HEAD:refs/heads/$BRANCH"
+
+          summary=$(tail -n 40 "$RUNNER_TEMP/agent.log" | sed 's/\x1b\[[0-9;]*m//g')
+          body=$(printf 'Closes #%s\n\nOpened by the agent from %s.\n\n### Agent summary\n\n%s\n' "$ISSUE" "$RUN_URL" "$summary")
+          existing=$(curl -fsS -H "Authorization: Bearer $APP_TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls?head=${REPO%%/*}:$BRANCH&state=open" | jq -r '.[0].html_url // empty')
+          if [ -n "$existing" ]; then
+            comment "Updated the pull request: $existing"
+            exit 0
+          fi
+          pr=$(jq -n --arg title "$(jq -r .issue.title "$GITHUB_EVENT_PATH")" --arg head "$BRANCH" --arg base "$DEFAULT_BRANCH" --arg body "$body" \
+            '{title: $title, head: $head, base: $base, body: $body}' |
+            curl -fsS -X POST -H "Authorization: Bearer $APP_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/pulls" -d @- | jq -r .html_url)
+          comment "Opened $pr for review."

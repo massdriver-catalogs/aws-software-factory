@@ -26,11 +26,14 @@ locals {
 
   private_subnets = [for s in var.network.subnets : s.id if s.tier == "private"]
 
-  job_env = local.has_llm ? join("\n", [
-    "OPENAI_BASE_URL=${var.llm.base_url}",
-    "OPENAI_API_KEY=${random_password.llm_key[0].result}",
-    "OPENAI_MODEL=${var.llm.default_model}",
-  ]) : ""
+  job_env = join("\n", concat(
+    ["AGENT_TOKEN_URL=${aws_lambda_function_url.agent_token.function_url}"],
+    local.has_llm ? [
+      "OPENAI_BASE_URL=${var.llm.base_url}",
+      "OPENAI_API_KEY=${random_password.llm_key[0].result}",
+      "OPENAI_MODEL=${var.llm.default_model}",
+    ] : [],
+  ))
 }
 
 resource "random_password" "llm_key" {

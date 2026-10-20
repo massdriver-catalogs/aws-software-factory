@@ -65,3 +65,17 @@ sudo docker system prune -af
 ```
 
 Or raise **Disk (GB)** and redeploy, which rebuilds the VMs.
+
+## The agent didn't open a pull request
+
+Open the run linked in the issue's "Working on this" comment.
+
+- **No run at all:** the issue was labeled something other than `agent`, or a `/agent` comment came from someone who isn't an owner, member or collaborator. Pull request comments don't trigger it.
+- **"invalid OIDC token" or a 403 from the token step:** the workflow file isn't named `agent.yml`, or the run wasn't an issue event. The function only answers `agent.yml` runs for issues in this organization. Its log:
+
+  ```bash
+  aws logs tail /aws/lambda/{{id}}-agent-token --region {{dependencies.network.region}} --since 1h
+  ```
+- **"GitHub refused":** the GitHub App isn't installed on that repository, or lacks contents, pull request or issue write access.
+- **"finished without changing anything":** the issue was too vague for the agent. Add detail and comment `/agent`.
+- **Timed out after 20 minutes:** the task is too big for one run. Split the issue.

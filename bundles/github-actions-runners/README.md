@@ -33,6 +33,7 @@ Each VM registers an **ephemeral** runner, takes one job, deregisters, cleans it
 - Labels `self-hosted`, `linux`, `arm64`, `factory`, the runners' name, and any extra labels.
 - docker, git, Python 3.13, Node 22 and opencode.
 - With an LLM Endpoint connected, `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL` in every job's environment, using the runners' own gateway key.
+- `AGENT_TOKEN_URL`, where the issue agent trades its GitHub OIDC token for a repository-scoped GitHub token.
 - No AWS permissions. Jobs that deploy or push images use their repository's OIDC role, as on GitHub's runners.
 
 ## Trust
@@ -45,6 +46,31 @@ GitHub's default runner group is open only to private repositories. For public r
 
 [`workflows/ai-review.yml`](workflows/ai-review.yml) reviews every pull request with the AI Platform's default model and posts one review comment. Copy it into a repository's `.github/workflows/` to turn it on. It needs runners with an LLM Endpoint connected, and uses only the job's own `GITHUB_TOKEN`.
 
+## Issue → pull request agent
+
+[`workflows/agent.yml`](workflows/agent.yml) turns an issue into a pull request. Label an issue `agent`, or comment `/agent` with any extra instructions, and opencode works on it on these runners with the AI Platform's default model.
+
+```mermaid
+sequenceDiagram
+  participant I as Issue
+  participant J as Agent job (factory runner)
+  participant T as Agent token function
+  participant G as LLM Gateway
+  I->>J: labeled `agent` or `/agent` comment
+  J->>G: opencode edits code and runs tests
+  J->>T: job's GitHub OIDC token
+  T-->>J: GitHub token for this repository only, 1 hour
+  J->>I: push agent/issue-N, open a pull request
+  Note over I: CI and AI review run on the pull request
+```
+
+- The pull request is opened with a GitHub App token, not the job's own token, because GitHub doesn't run workflows on pull requests opened with `GITHUB_TOKEN`. CI and AI review therefore run on it like any other.
+- The App token is minted per run by a small function in this bundle. It hands one out only to `agent.yml`, run for an issue event in a repository of this organization, and scopes it to that one repository with contents, pull request and issue access. The App's private key never leaves AWS.
+- The agent runs without any credential that can push: its checkout has none, and the token is fetched after it finishes. Only the `agent/issue-N` branch is pushed; merging stays with people.
+- If the agent changes nothing, it says so on the issue instead of opening an empty pull request. Runs stop after 20 minutes.
+
+Copy `agent.yml` into a repository's `.github/workflows/` and create an `agent` label to turn it on.
+
 ## Cost
 
-Each runner is a VM billed while it runs, waiting for jobs or not: about $25 a month for Medium, plus its disk. The token minter's Lambda, schedule and secret cost under $1 a month together.
+Each runner is a VM billed while it runs, waiting for jobs or not: about $25 a month for Medium, plus its disk. The token minter's Lambda, schedule and secret, and the agent token function, cost under $1 a month together.

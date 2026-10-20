@@ -7,7 +7,7 @@ A cloud VM for one developer, where coding agents can work with broad permission
 - `dev` user with passwordless sudo, docker, git, tmux and herdr
 - mise with the chosen languages
 - The chosen coding agents, already configured for the AI Platform when it's connected
-- The `mass` CLI
+- Massdriver tooling: the `mass` CLI, the Massdriver MCP server for agents, and the Massdriver plugin for Claude Code when it's selected
 - Your dotfiles, if you gave a repository
 
 Work goes in `/workspace`. It's a separate disk that survives the VM being rebuilt; docker images and build cache live there too. Everything else is rebuilt from scratch on each new release of this bundle.
@@ -64,6 +64,19 @@ flowchart LR
 When the environment has an LLM Endpoint, the sandbox writes its own key where the gateway picks it up, and points each agent at the gateway with every model it serves. Nothing is copied by hand. Without one, the agents are installed but have no model configured.
 
 Agents start on the gateway's default model. To use another, run `/models` inside opencode, or start it with `opencode -m aiplatform/<model>`. Models added to the gateway later show up after the sandbox is redeployed.
+
+## Massdriver tools
+
+Agents can drive Massdriver through its MCP server, and the `mass` CLI is on the path. Both stay off until the sandbox has a Massdriver API key.
+
+To turn them on, store a service account key in Secrets Manager, in the sandbox's region, named `<sandbox-name>/massdriver-api-key`:
+
+```bash
+aws secretsmanager create-secret --region <region> --name <sandbox-name>/massdriver-api-key \
+  --secret-string '{"api_key": "<service account key>", "organization_id": "<org slug>"}'
+```
+
+Then, in the sandbox, run `sandbox-massdriver-login` and open a new shell. It puts the key in the environment and the `mass` profile, and switches the MCP server on for opencode. Delete the secret and run it again to switch everything off.
 
 ## Stopping
 

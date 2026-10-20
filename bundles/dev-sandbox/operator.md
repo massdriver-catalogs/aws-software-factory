@@ -102,6 +102,32 @@ An entry means the idle stop fired: CPU stayed under 3% for {{params.idle_stop}}
 
 No entry and it stopped around {{params.nightly_stop}} ({{params.timezone}}): that was the nightly stop.
 
+## Massdriver tools don't work
+
+As `dev`:
+
+```bash
+sandbox-massdriver-login
+```
+
+- **"No Massdriver key … tools stay off":** there's no secret at `{{id}}/massdriver-api-key`. Create it, then run `sandbox-massdriver-login` again and open a new shell:
+
+  ```bash
+  aws secretsmanager create-secret --region {{dependencies.network.region}} --name {{id}}/massdriver-api-key \
+    --secret-string '{"api_key": "<service account key>", "organization_id": "<org slug>"}'
+  ```
+
+- **"must be JSON with api_key and organization_id":** the secret holds a bare key. Replace it with the JSON form using `aws secretsmanager put-secret-value`.
+- **The MCP server fails to start in opencode:** run it by hand to see why.
+
+  ```bash
+  . ~/.config/sandbox/massdriver.env
+  echo '{}' | docker run -i --rm -e MASSDRIVER_API_KEY -e MASSDRIVER_ORGANIZATION_ID -e MASSDRIVER_URL docker.io/massdrivercloud/mcp-server:0.2.0
+  ```
+
+  `Unable to find image` means setup couldn't pull it, usually egress; `docker pull` it. `401` or `unauthorized` means the key is wrong or its service account was deleted; replace the secret's value.
+- **`mass` says it isn't authenticated:** run `mass whoami` in a new shell. Shells opened before the login don't have the key.
+
 ## Setup didn't finish
 
 ```bash

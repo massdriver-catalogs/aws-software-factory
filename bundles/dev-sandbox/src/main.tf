@@ -87,6 +87,10 @@ resource "aws_instance" "sandbox" {
     dotfiles_repo      = var.dotfiles_repo
     opencode_config    = jsonencode(local.opencode_config)
     claude_settings    = jsonencode(local.claude_settings)
+    mass_cli_version   = local.mass_cli_version
+    mcp_image          = local.mcp_image
+    massdriver_url     = local.massdriver_url
+    massdriver_secret  = local.massdriver_secret
   })
 
   # A new AMI would rebuild the VM on the next unrelated deploy. Upgrades

@@ -29,10 +29,60 @@ case "$(uname -m)" in
   aarch64) MASS_ARCH=arm64 ;;
   *) MASS_ARCH=amd64 ;;
 esac
-MASS_VERSION=$(curl -fsSL https://api.github.com/repos/massdriver-cloud/mass/releases/latest | jq -r .tag_name)
+MASS_VERSION="${mass_cli_version}"
 mkdir -p /tmp/mass
 curl -fsSL "https://github.com/massdriver-cloud/mass/releases/download/$MASS_VERSION/mass-$MASS_VERSION-linux-$MASS_ARCH.tar.gz" | tar -xz -C /tmp/mass
 install -m 0755 "$(find /tmp/mass -type f -name mass | head -n 1)" /usr/local/bin/mass
+
+for _ in $(seq 1 10); do docker pull "${mcp_image}" && break; sleep 15; done
+
+cat > /usr/local/bin/sandbox-massdriver-login <<'SH'
+#!/bin/bash
+set -euo pipefail
+ENV_FILE="$HOME/.config/sandbox/massdriver.env"
+OPENCODE="$HOME/.config/opencode/opencode.json"
+
+set_mcp() {
+  [ -f "$OPENCODE" ] && jq -e '.mcp.massdriver' "$OPENCODE" >/dev/null 2>&1 || return 0
+  jq --argjson on "$1" '.mcp.massdriver.enabled = $on' "$OPENCODE" > "$OPENCODE.tmp" && mv "$OPENCODE.tmp" "$OPENCODE"
+}
+
+if ! VALUE=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${massdriver_secret} --query SecretString --output text 2>/dev/null); then
+  rm -f "$ENV_FILE"
+  set_mcp false
+  echo "No Massdriver key in Secrets Manager at ${massdriver_secret}; Massdriver tools stay off." >&2
+  exit 0
+fi
+
+KEY=$(jq -r '.api_key // empty' <<<"$VALUE" 2>/dev/null || true)
+ORG=$(jq -r '.organization_id // empty' <<<"$VALUE" 2>/dev/null || true)
+URL=$(jq -r '.url // empty' <<<"$VALUE" 2>/dev/null || true)
+if [ -z "$KEY" ] || [ -z "$ORG" ]; then
+  echo "${massdriver_secret} must be JSON with api_key and organization_id." >&2
+  exit 1
+fi
+URL="$${URL:-${massdriver_url}}"
+
+umask 077
+cat > "$ENV_FILE" <<ENV
+export MASSDRIVER_API_KEY="$KEY"
+export MASSDRIVER_ORGANIZATION_ID="$ORG"
+export MASSDRIVER_ORG_ID="$ORG"
+export MASSDRIVER_URL="$URL"
+ENV
+mkdir -p "$HOME/.config/massdriver"
+cat > "$HOME/.config/massdriver/config.yaml" <<CFG
+version: 1
+profiles:
+  default:
+    organization_id: $ORG
+    api_key: $KEY
+    url: $URL
+CFG
+set_mcp true
+echo "Massdriver tools are on for $ORG. Open a new shell, then restart opencode or Claude Code."
+SH
+chmod 0755 /usr/local/bin/sandbox-massdriver-login
 
 install -d -o dev -g dev -m 0700 /home/dev/.config/sandbox /home/dev/.config/opencode /home/dev/.claude
 
@@ -64,6 +114,7 @@ EOF
 cat >> /home/dev/.bashrc <<'EOF'
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 [ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+[ -f "$HOME/.config/sandbox/massdriver.env" ] && . "$HOME/.config/sandbox/massdriver.env"
 command -v mise >/dev/null && eval "$(mise activate bash)"
 [ "$PWD" = "$HOME" ] && cd /workspace
 EOF
@@ -81,7 +132,12 @@ LANGUAGES="${languages}"
 for agent in ${agents}; do
   case "$agent" in
     opencode) curl -fsSL https://opencode.ai/install | bash ;;
-    claude-code) curl -fsSL https://claude.ai/install.sh | bash ;;
+    claude-code)
+      curl -fsSL https://claude.ai/install.sh | bash
+      claude plugin marketplace add massdriver-cloud/claude-plugins \
+        && claude plugin install massdriver@massdriver \
+        || echo "Massdriver Claude Code plugin didn't install; run: claude plugin install massdriver@massdriver" >&2
+      ;;
   esac
 done
 DOTFILES="${dotfiles_repo}"
@@ -92,5 +148,6 @@ fi
 EOF
 chown dev:dev /home/dev/.sandbox-setup.sh
 sudo -iu dev bash /home/dev/.sandbox-setup.sh
+sudo -iu dev sandbox-massdriver-login || true
 
 touch /var/lib/dev-sandbox-ready

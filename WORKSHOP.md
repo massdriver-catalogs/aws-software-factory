@@ -121,14 +121,6 @@ Massdriver creates repositories, workflows and runners through a GitHub App on y
 8. **Install App** in the sidebar → your organization → **All repositories** → **Install**. The URL ends in `/installations/<number>`: that number is the **Installation ID**.
 9. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and the whole contents of the `.pem` file. **Save**, then **Share** it with all environments.
 
-If the **Private Key** box won't take the multi-line key, create the credential from a terminal instead:
-
-```bash
-jq -n --rawfile key ~/Downloads/<app>.private-key.pem \
-  '{owner: "<your-org>", app_id: "<app-id>", installation_id: "<installation-id>", private_key: $key}' > /tmp/github-app.json \
-  && mass resource create -n github-app -t github-app -f /tmp/github-app.json; rm -f /tmp/github-app.json
-```
-
 ### 5. Networking
 
 Create project **Networking** (`networking`) with environment **Dev** (`dev`). Set the AWS IAM Role as the environment's credential default.

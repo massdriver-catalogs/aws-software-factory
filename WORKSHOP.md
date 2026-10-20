@@ -92,34 +92,19 @@ Costs are per month unless noted. Every pick is the cheapest option that doesn't
    - **Variables → New repository variable:** `MASSDRIVER_ORG_ID` = your Massdriver organization's ID. A secret with that name works too.
 4. **Actions → Publish → Run workflow**, tick **all**, **Run workflow**. In a few minutes every credential type, resource type and bundle is in your Massdriver catalog. From now on, every push to `main` publishes what changed.
 
-### 3. Connect AWS (~5 minutes)
+### 3. Connect AWS (~2 minutes)
 
-Massdriver deploys into your account by assuming a role you create. The role trusts Massdriver's AWS account only when your organization's external ID is presented.
+The role was created in the prerequisites; now that the catalog is published, Massdriver has the **AWS IAM Role** credential type to put it in.
 
-1. Make up an **External ID**: any long, hard-to-guess value (`uuidgen`, or a password generator). Massdriver doesn't generate one; you paste the same value in two places.
-2. In the AWS Console: **IAM → Roles → Create role**.
-3. Choose **AWS account → Another AWS account** and enter `308878630280`.
-4. Tick **Require external ID** and paste your External ID. **Next**.
-5. Search for and tick **AdministratorAccess**. The catalog creates networks, IAM roles, GPU instances and model endpoints. **Next**.
-6. Name the role `massdriver` and **Create role**.
-7. Open the role and copy its **ARN** from the top of the page. In Massdriver, **Credentials → Add → AWS IAM Role**, paste the ARN and your External ID. **Save**.
-8. Open the new credential and **Share** it with all environments, so every project can use it as a default.
+1. In Massdriver: **Credentials → Add → AWS IAM Role**. Paste the role ARN and your External ID. **Save**.
+2. Open the new credential and **Share** it with all environments, so every project can use it as a default.
 
 Bedrock's open-weight models, Kimi included, are enabled by default. Nothing else to turn on.
 
-### 4. Connect GitHub (~10 minutes)
+### 4. Connect GitHub (~2 minutes)
 
-Massdriver creates repositories, workflows and runners through a GitHub App on your organization. The app's tokens expire within an hour, and it acts as a bot, not as you.
-
-1. Go to **github.com/organizations/<your-org>/settings/apps/new**.
-2. **GitHub App name:** `<your-org>-massdriver`. **Homepage URL:** your organization's GitHub URL. Under **Webhook**, untick **Active**.
-3. **Repository permissions**, all **Read and write**: Actions, Administration, Contents, Issues, Pull requests, Secrets, Variables, Workflows. Metadata becomes Read-only on its own.
-4. **Organization permissions:** Self-hosted runners → **Read and write**.
-5. **Where can this GitHub App be installed?** → **Only on this account**. **Create GitHub App**.
-6. On the app's page, copy the **App ID**.
-7. In the app's sidebar, **Credentials → Key pairs → New key**. A `.pem` file downloads.
-8. **Install App** in the sidebar → your organization → **All repositories** → **Install**. The URL ends in `/installations/<number>`: that number is the **Installation ID**.
-9. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and the whole contents of the `.pem` file. **Save**, then **Share** it with all environments.
+1. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and paste the whole `.pem` file into **Private Key**. **Save**.
+2. **Share** it with all environments.
 
 ### 5. Networking
 

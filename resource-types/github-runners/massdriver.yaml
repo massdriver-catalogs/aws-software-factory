@@ -3,8 +3,7 @@ version: 0.0.0
 label: GitHub Runners
 
 ui:
-  connectionOrientation: environmentDefault
-  environmentDefaultGroup: runners
+  connectionOrientation: link
 
 schema:
   title: GitHub Runners

@@ -3,8 +3,7 @@ version: 0.0.0
 label: LLM Endpoint
 
 ui:
-  connectionOrientation: environmentDefault
-  environmentDefaultGroup: models
+  connectionOrientation: link
 
 schema:
   title: LLM Endpoint

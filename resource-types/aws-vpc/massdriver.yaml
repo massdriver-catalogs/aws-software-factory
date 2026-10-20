@@ -3,8 +3,7 @@ version: 0.0.0
 label: AWS VPC
 
 ui:
-  connectionOrientation: environmentDefault
-  environmentDefaultGroup: networks
+  connectionOrientation: link
 
 schema:
   title: AWS VPC

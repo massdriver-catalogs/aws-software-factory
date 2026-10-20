@@ -181,6 +181,12 @@ Plus the token minter's Lambda, schedule and secret: under $1/month. **Factory r
 
 Jobs that say `runs-on: [self-hosted, factory]` now run inside the VPC with the AI Platform in their environment. Turn on AI review by copying `bundles/github-actions-runners/workflows/ai-review.yml` into the app repository's `.github/workflows/`, then open a pull request: a review from the AI Platform's default model appears on it within a minute or two.
 
+**Issue → pull request.** Copy `bundles/github-actions-runners/workflows/agent.yml` into the same folder and create a label named `agent`. Open an issue (e.g. "Add a `/health` route that returns `{"ok": true}`, with a test") and label it `agent`. Within a few minutes the agent comments, opens a pull request from `agent/issue-N`, CI runs on it, and AI review comments on it. Comment `/agent` with the review's point and the agent updates the same pull request. — $0 beyond tokens (a run is typically a few cents on Kimi K2.5)
+
+**Alarm → issue.** In the app's project add **Alarm to Issue**, set the GitHub App as the environment default, and point its **repository** at the CI Platform's repository (remote reference). Picks: **Hand alarms to the agent** off, **Massdriver organization ID** your org, **Send a test alarm on this deploy** on for the first deploy, then off. The test opens an `Alarm: …` issue with links to the alarm and to the component in Massdriver. — $0 (EventBridge is free for AWS events; the function runs only on alarm changes)
+
+Turn **Hand alarms to the agent** on to close the loop: a production alarm opens an issue, the agent opens a fix, review and CI run, and a person merges.
+
 ### 7. Tear it down
 
 > [!WARNING]

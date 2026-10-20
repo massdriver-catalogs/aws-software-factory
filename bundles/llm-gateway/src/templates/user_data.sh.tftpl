@@ -13,6 +13,10 @@ cat > /opt/litellm/custom_auth.py <<'PY'
 ${custom_auth}
 PY
 
+cat > /opt/litellm/usage_tracking.py <<'PY'
+${usage_tracking}
+PY
+
 cat > /opt/litellm/sync.sh <<'SH'
 #!/bin/bash
 set -euo pipefail
@@ -28,6 +32,9 @@ mv $dir/master_key.tmp $dir/master_key
 printf 'LITELLM_MASTER_KEY=%s\n' "$(cat $dir/master_key)" > $dir/env.tmp
 chmod 600 $dir/env.tmp
 mv $dir/env.tmp $dir/env
+
+aws ssm get-parameter --region ${region} --name ${usage_param} --query Parameter.Value --output text > $dir/usage.json.tmp
+mv $dir/usage.json.tmp $dir/usage.json
 
 aws ssm get-parameter --region ${region} --name ${config_param} --with-decryption --query Parameter.Value --output text > $dir/config.yaml.tmp
 if ! cmp -s $dir/config.yaml.tmp $dir/config.yaml; then
@@ -54,6 +61,7 @@ ExecStart=/usr/bin/docker run --name litellm --network host \
   --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} \
   -v /etc/litellm:/etc/litellm:ro \
   -v /opt/litellm/custom_auth.py:/app/custom_auth.py:ro \
+  -v /opt/litellm/usage_tracking.py:/app/usage_tracking.py:ro \
   ${image} \
   --config /etc/litellm/config.yaml --port ${port} --host 0.0.0.0
 ExecStop=/usr/bin/docker stop litellm

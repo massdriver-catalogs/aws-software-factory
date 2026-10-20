@@ -10,16 +10,23 @@ params:
   examples:
     - __name: Workshop
       bedrock_models:
+        - kimi-k2-5
         - kimi-k3
       log_retention_days: 1
+      monthly_budget_usd: 20
+      budget_overrides: []
     - __name: Lowest token cost
       bedrock_models:
         - kimi-k2-5
         - gpt-oss-20b
       log_retention_days: 1
+      monthly_budget_usd: 10
+      budget_overrides: []
   required:
     - bedrock_models
     - log_retention_days
+    - monthly_budget_usd
+    - budget_overrides
   properties:
     bedrock_models:
       title: Bedrock models
@@ -29,6 +36,7 @@ params:
       type: array
       uniqueItems: true
       default:
+        - kimi-k2-5
         - kimi-k3
       items:
         type: string
@@ -54,6 +62,38 @@ params:
         - 30
         - 90
 
+    monthly_budget_usd:
+      title: Monthly budget per consumer (USD)
+      description: >-
+        ***Caps token spend per sandbox, runner or app.*** Once a consumer's estimated Bedrock spend
+        for the calendar month reaches this, the gateway answers it with 429 until the 1st. 0 means
+        no limit. The self-hosted model doesn't count; its GPU is billed by the hour.
+      type: number
+      default: 20
+      minimum: 0
+    budget_overrides:
+      title: Budget overrides
+      description: >-
+        A different monthly budget for specific consumers. The consumer name is the sandbox's or
+        app's instance name, e.g. `devsandboxes-cory-sandbox`.
+      type: array
+      default: []
+      items:
+        type: object
+        required:
+          - consumer
+          - monthly_budget_usd
+        properties:
+          consumer:
+            title: Consumer
+            type: string
+            pattern: ^[a-z0-9-]+$
+          monthly_budget_usd:
+            title: Monthly budget (USD)
+            description: 0 means no limit.
+            type: number
+            minimum: 0
+
 dependencies:
   aws_authentication:
     resource_type: aws-iam-role@0.0.0
@@ -77,6 +117,8 @@ steps:
 ui:
   ui:order:
     - bedrock_models
+    - monthly_budget_usd
+    - budget_overrides
     - log_retention_days
     - "*"
   bedrock_models:

@@ -32,6 +32,24 @@ The gateway serves two kinds of model:
 
 Consumers see every model in the list and choose per request; in opencode that's `/models`. The list is published on this gateway's **LLM Endpoint** resource, and connected sandboxes pick it up on their next deploy.
 
+## Usage and budgets
+
+```mermaid
+flowchart LR
+  C[Consumer key] --> A{Over this month's budget?}
+  A -->|yes| X[429]
+  A -->|no| M[Model]
+  M --> L[Usage line in the gateway's logs]
+  M --> T[Monthly totals per consumer<br/>DynamoDB]
+  T --> A
+```
+
+Every request writes one JSON line to the gateway's log group with the consumer, model, input and output tokens, and estimated cost. Monthly totals per consumer are kept in a small DynamoDB table the gateway owns.
+
+**Monthly budget per consumer** caps each sandbox, runner or app. Once its estimated Bedrock spend for the calendar month (UTC) reaches the budget, the gateway answers it with `429` and a message saying so until the 1st. **Budget overrides** give specific consumers a different limit; 0 means no limit. Changes apply within a minute, without restarting anything.
+
+Costs are estimated from list prices per million tokens, so they track the bill closely but aren't the bill. The self-hosted model costs nothing per token and never counts toward a budget.
+
 ## Instance
 
 A t4g.small running LiteLLM in Docker. Configuration and keys are read from Parameter Store every minute, so model changes apply without replacing the instance.

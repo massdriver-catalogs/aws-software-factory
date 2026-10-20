@@ -9,6 +9,17 @@ locals {
 
   key_prefix   = "/${local.name}/keys"
   config_param = "/${local.name}/config"
+  usage_param  = "/${local.name}/usage"
+
+  # USD per million tokens, input and output, at us-east-1 on-demand rates.
+  # Budgets are enforced on these estimates; Cost Explorer has the exact bill.
+  bedrock_prices = {
+    "kimi-k3"          = { input = 3.30, output = 16.50 }
+    "kimi-k2-5"        = { input = 0.60, output = 3.00 }
+    "qwen3-coder-next" = { input = 0.22, output = 1.80 }
+    "gpt-oss-120b"     = { input = 0.15, output = 0.60 }
+    "gpt-oss-20b"      = { input = 0.07, output = 0.30 }
+  }
 
   bedrock_ids = {
     "kimi-k3"          = "us.moonshotai.kimi-k3"
@@ -80,6 +91,7 @@ resource "aws_ssm_parameter" "config" {
     }
     litellm_settings = {
       drop_params = true
+      callbacks   = "usage_tracking.usage_tracker"
     }
   })
 }
@@ -87,4 +99,37 @@ resource "aws_ssm_parameter" "config" {
 resource "aws_cloudwatch_log_group" "gateway" {
   name              = "/${local.name}/gateway"
   retention_in_days = var.log_retention_days
+}
+
+resource "aws_dynamodb_table" "usage" {
+  name         = "${local.name}-usage"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "consumer"
+  range_key    = "month"
+
+  attribute {
+    name = "consumer"
+    type = "S"
+  }
+
+  attribute {
+    name = "month"
+    type = "S"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+}
+
+resource "aws_ssm_parameter" "usage" {
+  name = local.usage_param
+  type = "String"
+  value = jsonencode({
+    table              = aws_dynamodb_table.usage.name
+    region             = local.region
+    prices             = { for m in var.bedrock_models : m => local.bedrock_prices[m] }
+    default_budget_usd = var.monthly_budget_usd
+    overrides          = { for o in var.budget_overrides : o.consumer => o.monthly_budget_usd }
+  })
 }

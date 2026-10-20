@@ -67,6 +67,37 @@ curl -s -H "Authorization: Bearer $(aws secretsmanager get-secret-value --region
 
 Run this from the gateway host. No answer means the model server is stopped (nightly stop) or still loading weights. Start it, or see the model server's runbook.
 
+## Who is spending what
+
+Tokens and estimated cost by consumer and model, from the request logs. Set the start to midnight UTC for today, or the 1st for the month:
+
+```bash
+aws logs start-query --region {{dependencies.network.region}} --log-group-name /{{id}}/gateway \
+  --start-time $(date -u -d "$(date -u +%Y-%m-%d)" +%s) --end-time $(date +%s) \
+  --query-string 'filter event = "usage" | stats count(*) as requests, sum(input_tokens) as input, sum(output_tokens) as output, sum(cost_usd) as usd by consumer, model | sort usd desc'
+aws logs get-query-results --region {{dependencies.network.region}} --query-id <query-id>
+```
+
+On macOS, replace the `date -u -d …` with `$(date -u -j -f %Y-%m-%d "$(date -u +%Y-%m-%d)" +%s)`.
+
+This month's running totals:
+
+```bash
+aws dynamodb scan --region {{dependencies.network.region}} --table-name {{id}}-usage \
+  --query 'Items[].[consumer.S, month.S, cost_usd.N, requests.N]' --output table
+```
+
+## A consumer gets 429 "Monthly AI budget reached"
+
+It spent its budget for the month. If that's expected work, raise **Monthly budget per consumer** or add a **Budget override** for that consumer and redeploy; it takes effect within a minute. If it isn't, find what it's been doing with the query above. A runaway agent loop shows up as a high request count.
+
+To reset one consumer's spend for the month:
+
+```bash
+aws dynamodb delete-item --region {{dependencies.network.region}} --table-name {{id}}-usage \
+  --key '{"consumer":{"S":"<consumer>"},"month":{"S":"<YYYY-MM>"}}'
+```
+
 ## Test a request end to end
 
 ```bash

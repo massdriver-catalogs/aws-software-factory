@@ -87,6 +87,12 @@ resource "aws_iam_role_policy" "gateway" {
         Resource = aws_secretsmanager_secret.master_key.arn
       },
       {
+        Sid      = "TrackUsage"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.usage.arn
+      },
+      {
         Sid      = "WriteLogs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
@@ -142,6 +148,8 @@ resource "aws_instance" "gateway" {
     master_key_arn = aws_secretsmanager_secret.master_key.arn
     log_group      = aws_cloudwatch_log_group.gateway.name
     custom_auth    = file("${path.module}/templates/custom_auth.py")
+    usage_tracking = file("${path.module}/templates/usage_tracking.py")
+    usage_param    = local.usage_param
     image          = local.image
   })
   user_data_replace_on_change = true

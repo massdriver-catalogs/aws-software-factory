@@ -66,8 +66,9 @@ params:
     require_sign_in:
       title: Require sign-in
       description: >-
-        Only signed-in users can call this function's routes. Needs a user pool connected to the
-        API; turn it off for routes that must stay public.
+        Only signed-in users can call this function's routes, once the API has a user pool. Until
+        then the routes are public, and every deploy warns about it; connect a pool to the API and
+        redeploy this function to protect them. Turn it off for routes that must stay public.
       type: boolean
       default: true
     memory_mb:

@@ -10,17 +10,14 @@ params:
     - __name: Issues only
       region: us-east-1
       hand_to_agent: false
-      massdriver_organization: ""
       send_test_alarm: false
     - __name: Hand alarms to the agent
       region: us-east-1
       hand_to_agent: true
-      massdriver_organization: ""
       send_test_alarm: false
   required:
     - region
     - hand_to_agent
-    - massdriver_organization
     - send_test_alarm
   properties:
     region:
@@ -49,14 +46,6 @@ params:
         the team trusts it.
       type: boolean
       default: false
-    massdriver_organization:
-      title: Massdriver organization ID
-      description: >-
-        Optional. Adds a link to the alarming component in Massdriver, where its configuration,
-        deployments and runbook are. The ID is in the Massdriver URL after `/orgs/`.
-      type: string
-      default: ""
-      pattern: ^([a-z0-9-]+)?$
     send_test_alarm:
       title: Send a test alarm on this deploy
       description: >-
@@ -86,6 +75,5 @@ ui:
   ui:order:
     - region
     - hand_to_agent
-    - massdriver_organization
     - send_test_alarm
     - "*"

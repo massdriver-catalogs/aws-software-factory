@@ -60,9 +60,9 @@ function describe(detail) {
   // Instance names are <project>-<environment>-<component>, and every alarm
   // name starts with its instance's name.
   const [project, environment, component] = name.split("-");
-  if (env.MASSDRIVER_ORG && component) {
+  if (component) {
     links.push(
-      `- [${project}-${environment}-${component} in Massdriver](https://app.massdriver.cloud/orgs/${env.MASSDRIVER_ORG}/projects/${project}/environments/${environment}?package=${component}): configuration, deployments and runbook`,
+      `- [Massdriver](https://app.massdriver.cloud/orgs): project \`${project}\`, environment \`${environment}\`, instance \`${project}-${environment}-${component}\`, for its configuration, deployments and runbook`,
     );
   }
   let message = "";

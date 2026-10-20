@@ -18,6 +18,8 @@ The function receives API Gateway's version 2.0 event and returns `statusCode`, 
 
 With **Require sign-in** on, API Gateway rejects requests to this function's routes unless they carry a valid token from the user pool connected to the API. The function receives the user's claims at `requestContext.authorizer.jwt.claims` (`sub`, `email`, …).
 
+**Sign-in needs a user pool on the API.** If the API has none, the deploy still succeeds but the routes are **public**: the deployment log ends with a warning saying so, and the function's description in AWS starts with `PUBLIC`. Connect a user pool to the API, redeploy the API, then redeploy this function. Deploys don't cascade, so the function stays public until its own redeploy.
+
 ## Table
 
 With a DynamoDB table connected, the function gets the table's read-write policy, or read with **Table access**, plus `TABLE_NAME` and `TABLE_PARTITION_KEY` environment variables.

@@ -3,6 +3,10 @@ locals {
   has_image   = var.image_uri != ""
   has_storage = var.storage != null
 
+  has_authorizer      = try(var.api.authorizer_id, null) != null
+  sign_in_enforced    = var.require_sign_in && local.has_authorizer
+  waiting_for_sign_in = var.require_sign_in && !local.has_authorizer
+
   table_policy_arn = local.has_storage ? coalesce(try(var.table_access, null), var.storage.policies[0].arn) : null
 
   # The gateway only listens inside the VPC, so a function that uses it has to
@@ -108,6 +112,11 @@ resource "aws_iam_role_policy_attachment" "table" {
 
 resource "aws_lambda_function" "main" {
   function_name = local.name
+  description = (
+    local.sign_in_enforced ? "Routes require sign-in" :
+    local.waiting_for_sign_in ? "PUBLIC: sign-in requested but the API has no user pool yet" :
+    "Routes are public"
+  )
   role          = aws_iam_role.function.arn
   architectures = ["arm64"]
   memory_size   = var.memory_mb
@@ -176,14 +185,17 @@ resource "aws_apigatewayv2_route" "main" {
   api_id             = var.api.id
   route_key          = each.value
   target             = "integrations/${aws_apigatewayv2_integration.main.id}"
-  authorization_type = var.require_sign_in ? "JWT" : "NONE"
-  authorizer_id      = var.require_sign_in ? try(var.api.authorizer_id, null) : null
+  authorization_type = local.sign_in_enforced ? "JWT" : "NONE"
+  authorizer_id      = local.sign_in_enforced ? var.api.authorizer_id : null
+}
 
-  lifecycle {
-    precondition {
-      condition     = !var.require_sign_in || try(var.api.authorizer_id, null) != null
-      error_message = "Require sign-in is on, but the API has no user pool connected. Connect one to the HTTP API, or turn Require sign-in off for public routes."
-    }
+# Not a precondition: an app is usually deployed before its user pool exists,
+# and failing that first deploy helps no one. The routes stay public until a
+# pool is connected and this function is redeployed, and every deploy says so.
+check "sign_in" {
+  assert {
+    condition     = !local.waiting_for_sign_in
+    error_message = "Require sign-in is on, but the API has no user pool connected, so these routes are PUBLIC: anyone can call them. Connect a user pool to the HTTP API, then redeploy this function."
   }
 }
 

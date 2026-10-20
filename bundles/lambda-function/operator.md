@@ -47,3 +47,18 @@ aws lambda invoke --region {{dependencies.api.region}} --function-name {{id}} \
 {{^dependencies.llm}}
 No LLM Endpoint is connected. Connect the AI Platform's LLM Endpoint and the VPC, then redeploy.
 {{/dependencies.llm}}
+
+## Routes answer without sign-in
+
+{{#params.require_sign_in}}
+**Require sign-in** is on, so the API had no user pool when this function last deployed. Check:
+
+```bash
+aws lambda get-function-configuration --region {{dependencies.api.region}} --function-name {{id}} --query Description
+```
+
+`PUBLIC: …` confirms it. Connect a user pool to the HTTP API, redeploy the API, then redeploy this function.
+{{/params.require_sign_in}}
+{{^params.require_sign_in}}
+**Require sign-in** is off. Turn it on, and make sure the HTTP API has a user pool connected.
+{{/params.require_sign_in}}

@@ -16,7 +16,7 @@ Every CloudWatch alarm whose name starts with this environment's `<project>-<env
 
 ## What it does
 
-- **Alarm fires:** opens an issue titled `Alarm: <alarm name>`, labeled `alarm`, with the reason, the metric, links to the alarm and (for functions) their logs, and, when **Massdriver organization ID** is set, the component in Massdriver.
+- **Alarm fires:** opens an issue titled `Alarm: <alarm name>`, labeled `alarm`, with the reason, the metric, links to the alarm and (for functions) their logs, and the Massdriver project, environment and instance it belongs to.
 - **Fires again while the issue is open:** comments on that issue instead of opening another.
 - **Recovers:** comments that it recovered. Closing the issue stays with people, once the cause is fixed.
 

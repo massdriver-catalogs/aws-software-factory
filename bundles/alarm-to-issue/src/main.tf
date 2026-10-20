@@ -84,7 +84,6 @@ resource "aws_lambda_function" "handler" {
       APP_SECRET_ARN = aws_secretsmanager_secret.github_app.arn
       REPOSITORY     = var.repository.full_name
       HAND_TO_AGENT  = tostring(var.hand_to_agent)
-      MASSDRIVER_ORG = var.massdriver_organization
     }
   }
 

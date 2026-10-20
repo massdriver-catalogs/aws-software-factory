@@ -179,15 +179,15 @@ Add these, then connect the API and the table to the function:
 | Static Site | Single-page app | — | $0 in CloudFront's free tier |
 | HTTP API | Development | — | ~$1 per million requests |
 | DynamoDB Table | Development | — | ~$1.25 per million writes, $0.25 per million reads |
-| Lambda Function | Free Tier | **Container image**: the image URI from step 8; **Require sign-in**: off, for now | $0 in Lambda's free tier |
+| Lambda Function | Free Tier | **Container image**: the image URI from step 8 | $0 in Lambda's free tier |
 
 With the environment's LLM endpoint default set, the function also runs inside the VPC with its own AI Platform key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. **App: effectively $0** at workshop traffic; the free tiers cover it.
 
 Open the HTTP API's endpoint in a browser: the app answers.
 
-Now add sign-in. Add **User Pool** (**Users**) with the **Free Tier** preset, set **Where to return after sign-in** to the Static Site's URL with its trailing slash, and connect it to the **HTTP API**. **$0** (free for the first 10,000 monthly users). Redeploy the HTTP API, then set the function's **Require sign-in** on and redeploy it. The endpoint now answers `401` without a signed-in user's token.
+Now add sign-in. Add **User Pool** (**Users**) with the **Free Tier** preset, set **Where to return after sign-in** to the Static Site's URL with its trailing slash, and connect it to the **HTTP API**. **$0** (free for the first 10,000 monthly users). Until now the function's routes have been public: **Require sign-in** is on in its preset, but there was no user pool yet, and its deploy log said so. Redeploy the HTTP API, then redeploy the function. The endpoint now answers `401` without a signed-in user's token.
 
-Add **Alarm to Issue** with the **Issues only** preset, fill in **Massdriver organization ID**, and turn on **Send a test alarm on this deploy** for the first deploy only. Point its **repository** at the Codebases repository with a remote reference. **$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and to the component in Massdriver.
+Add **Alarm to Issue** with the **Issues only** preset and turn on **Send a test alarm on this deploy** for the first deploy only. Point its **repository** at the Codebases repository with a remote reference. **$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and the Massdriver project, environment and instance it came from.
 
 ### 10. Your sandbox
 

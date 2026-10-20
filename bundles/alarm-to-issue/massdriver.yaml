@@ -1,0 +1,86 @@
+name: alarm-to-issue
+description: >-
+  Opens a GitHub issue in the app's repository when one of this environment's alarms fires, with
+  the alarm's details and links. Optionally hands it straight to the issue agent.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/alarm-to-issue
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Issues only
+      region: us-east-1
+      hand_to_agent: false
+      massdriver_organization: ""
+      send_test_alarm: false
+  required:
+    - region
+    - hand_to_agent
+    - massdriver_organization
+    - send_test_alarm
+  properties:
+    region:
+      title: Region
+      description: The region this environment's alarms live in.
+      type: string
+      default: us-east-1
+      oneOf:
+        - const: us-east-1
+          title: us-east-1 (N. Virginia)
+        - const: us-east-2
+          title: us-east-2 (Ohio)
+        - const: us-west-2
+          title: us-west-2 (Oregon)
+        - const: eu-west-1
+          title: eu-west-1 (Ireland)
+        - const: eu-central-1
+          title: eu-central-1 (Frankfurt)
+        - const: ap-northeast-1
+          title: ap-northeast-1 (Tokyo)
+    hand_to_agent:
+      title: Hand alarms to the agent
+      description: >-
+        Label new alarm issues `agent`, so the issue agent starts working on a fix immediately. The
+        fix still arrives as a pull request for a person to review. Leave off in production until
+        the team trusts it.
+      type: boolean
+      default: false
+    massdriver_organization:
+      title: Massdriver organization ID
+      description: >-
+        Optional. Adds a link to the alarming component in Massdriver, where its configuration,
+        deployments and runbook are. The ID is in the Massdriver URL after `/orgs/`.
+      type: string
+      default: ""
+      pattern: ^([a-z0-9-]+)?$
+    send_test_alarm:
+      title: Send a test alarm on this deploy
+      description: >-
+        Opens (or comments on) an issue titled with a test alarm, to prove the wiring end to end.
+        Turn it off again after.
+      type: boolean
+      default: false
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  github:
+    resource_type: github-app@0.0.0
+    required: true
+  repository:
+    resource_type: source-repository@0.0.0
+    required: true
+
+resources: {}
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - region
+    - hand_to_agent
+    - massdriver_organization
+    - send_test_alarm
+    - "*"

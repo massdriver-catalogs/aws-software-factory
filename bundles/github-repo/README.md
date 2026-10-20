@@ -4,16 +4,26 @@ A repository in the connected GitHub organization, created through the GitHub Ap
 
 ```mermaid
 flowchart LR
-  P[push to the default branch] --> W[GitHub Actions: build.yml]
-  W -->|arm64 image| B{ECR connected?}
-  B -->|yes| E[push :git-sha to ECR]
-  B -->|no| D[build only]
-  E --> L[Lambda Function sets its image to that tag]
+  P[pull request or push] --> T[tests]
+  P --> S[secret scan]
+  T --> B[build arm64 image]
+  S --> B
+  B --> V[image scan]
+  V --> C{push to the default branch<br/>and ECR connected?}
+  C -->|yes| E[push :git-sha to ECR]
+  C -->|no| D[stop]
 ```
 
 ## The pipeline
 
-With **Add a starter app** on, the repository starts with a small Python Lambda function, its Dockerfile and `.github/workflows/build.yml`. Every pull request builds the image. Every push to the default branch builds it and, when a container repository is connected, pushes it to ECR tagged with the commit SHA. Images are built for arm64 to match the Lambda Function bundle.
+With **Add a starter app** on, the repository starts with a small Python Lambda function, a test for it, its Dockerfile and `.github/workflows/build.yml`. Every pull request and every push to the default branch:
+
+1. runs the tests with pytest,
+2. scans the whole git history for committed secrets with gitleaks,
+3. builds the image for arm64, to match the Lambda Function bundle,
+4. scans the image with Trivy and fails on any critical vulnerability that has a fix.
+
+On the default branch, when a container repository is connected, the image is then pushed to ECR tagged with the commit SHA. Nothing is pushed unless every step passed.
 
 The workflow reads three repository variables, which this bundle sets when a container repository is connected: `AWS_REGION`, `AWS_ROLE_ARN` and `ECR_REPOSITORY_URL`. Without them, it builds and stops. Connecting a container repository later turns pushing on without touching the workflow.
 

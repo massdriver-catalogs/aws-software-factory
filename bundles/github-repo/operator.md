@@ -18,6 +18,14 @@ gh run view -R {{resources.repository.full_name}} --log-failed
 - **The workflow file was removed or renamed:** it must be `.github/workflows/*.yml` on the default branch.
 - **Pushed to another branch:** only the default branch pushes images; other branches build only through pull requests.
 
+## The build failed before pushing
+
+Open the failed run and check which job stopped:
+
+- **test:** a pytest failure. Run `pytest -q` locally to reproduce.
+- **secrets:** gitleaks found something that looks like a credential, in the current files or anywhere in history. Revoke the credential first; removing it from the code doesn't un-leak it. A false positive can be allowed with a `.gitleaksignore` entry holding the finding's fingerprint from the log.
+- **Scan the image:** Trivy found a critical vulnerability with a fix available. Rebuilding usually pulls the patched base image; otherwise bump the base image tag in the Dockerfile.
+
 ## "Not authorized to perform sts:AssumeRoleWithWebIdentity"
 
 The role only trusts `repo:<owner>/<name>:ref:refs/heads/{{params.default_branch}}`. Builds from forks, tags or other branches can't assume it. If the repository was renamed or transferred, the trust no longer matches: redeploy this bundle.

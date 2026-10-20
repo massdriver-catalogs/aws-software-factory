@@ -45,6 +45,7 @@ resource "github_repository_file" "starter" {
   for_each = var.seed_starter_files ? {
     "Dockerfile"    = file("${path.module}/starter/Dockerfile")
     "app.py"        = file("${path.module}/starter/app.py")
+    "test_app.py"   = file("${path.module}/starter/test_app.py")
     ".dockerignore" = file("${path.module}/starter/dockerignore")
   } : {}
 

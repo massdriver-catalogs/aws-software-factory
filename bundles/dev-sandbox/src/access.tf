@@ -56,10 +56,15 @@ resource "aws_iam_user_policy" "access" {
 resource "massdriver_resource" "access" {
   field = "access"
   name  = "Connect to ${local.name}"
-  resource = jsonencode({
+  resource = jsonencode(merge({
     name              = local.name
     region            = local.region
     access_key_id     = aws_iam_access_key.access.id
     secret_access_key = aws_iam_access_key.access.secret
-  })
+    }, var.browser_access ? {
+    browser_url      = "https://${aws_cloudfront_distribution.browser["opencode"].domain_name}"
+    preview_url      = "https://${aws_cloudfront_distribution.browser["preview"].domain_name}"
+    browser_username = local.browser_username
+    browser_password = random_password.browser[0].result
+  } : {}))
 }

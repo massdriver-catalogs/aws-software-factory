@@ -94,10 +94,30 @@ Use HTTPS URLs (`https://github.com/<org>/<repo>`). Repositories outside the App
 
 Commits are authored as **Your name for commits** and **Your email for commits**. Use an address on your GitHub account and commits link to your profile; pushes always show the App as the pusher.
 
+## Browser access
+
+Turn on **Browser access** and the sandbox gets two HTTPS URLs, both behind one username and password:
+
+- **opencode in a browser tab**, the same agents and workspace as over SSH;
+- **an app preview**, whatever your dev server serves on the **Preview port**.
+
+```mermaid
+flowchart LR
+  B[Your browser] -->|HTTPS + password| C[CloudFront]
+  C -->|private connection| O[opencode web :4096]
+  C -->|private connection| P[your dev server :preview port]
+  subgraph S[Sandbox, private subnet]
+    O
+    P
+  end
+```
+
+CloudFront reaches the sandbox over a private connection into the VPC, so nothing on the sandbox is open to the internet, and only CloudFront's addresses are allowed in on those two ports. That connection only works into a private subnet, so browser access needs **Private** network mode.
+
+The URLs and password are on this sandbox's **Connect to …** resource, and the connect script prints them. Dev servers must listen on all interfaces to be previewed: `npm run dev -- --host`, `python -m http.server 5173 --bind 0.0.0.0`.
+
+A stopped sandbox can't answer, so the URLs fail until it's started again; `ssh` to it wakes it. Rebuilding the sandbox (a new release, a changed setting) moves the URLs onto the new VM, which takes CloudFront about 15 minutes.
+
 ## Stopping
 
 The VM stops itself after the chosen idle time (CPU near zero) and at the nightly stop time. `ssh` starts it again. A stopped sandbox costs only its disks.
-
-## Not included yet
-
-Browser access (opencode web).

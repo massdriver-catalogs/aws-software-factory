@@ -19,6 +19,22 @@ params:
       autonomy: free
       languages: [python, node]
       dotfiles_repo: ""
+      browser_access: false
+      preview_port: 5173
+    - __name: In the browser
+      size: light
+      chip: arm
+      workspace_gb: 20
+      network_mode: private
+      idle_stop: 30m
+      nightly_stop: "20:00"
+      timezone: America/Los_Angeles
+      agents: [opencode]
+      autonomy: free
+      languages: [python, node]
+      dotfiles_repo: ""
+      browser_access: true
+      preview_port: 5173
     - __name: Heavy builds
       size: heavy
       chip: arm
@@ -31,6 +47,8 @@ params:
       autonomy: free
       languages: [python, node, go]
       dotfiles_repo: ""
+      browser_access: false
+      preview_port: 5173
   required:
     - size
     - chip
@@ -42,6 +60,8 @@ params:
     - agents
     - autonomy
     - languages
+    - browser_access
+    - preview_port
   properties:
     size:
       title: Size
@@ -87,6 +107,28 @@ params:
           title: Public IP, no inbound — ~$4/month for the address, no NAT needed
         - const: private
           title: Private — goes out through the VPC's egress, which must be on
+    browser_access:
+      title: Browser access
+      description: >-
+        opencode in a browser tab, plus a preview URL for a dev server running in the sandbox,
+        both over HTTPS through CloudFront and behind a password. Needs **Private** network mode
+        and opencode among the coding agents. ***CloudFront's free tier covers a developer's use;
+        beyond it, ~$0.085/GB.***
+      type: boolean
+      default: false
+    preview_port:
+      title: Preview port
+      description: >-
+        The port your dev server listens on, bound to 0.0.0.0 (e.g. `npm run dev -- --host`).
+        Changing it recreates the preview URL.
+      type: integer
+      default: 5173
+      minimum: 1024
+      maximum: 65535
+      not:
+        const: 4096
+      message:
+        not: "4096 is taken by opencode's browser interface."
     idle_stop:
       title: Stop when idle for
       description: >-
@@ -240,6 +282,8 @@ ui:
     - agents
     - autonomy
     - languages
+    - browser_access
+    - preview_port
     - dotfiles_repo
     - git_name
     - git_email
@@ -250,3 +294,5 @@ ui:
     ui:widget: checkboxes
   languages:
     ui:widget: checkboxes
+  preview_port:
+    ui:widget: updown

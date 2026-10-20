@@ -143,6 +143,8 @@ Connect from your own terminal (no AWS login):
 2. In Massdriver, open the sandbox's **Connect to …** resource → **Connect script**, then `sh ~/Downloads/<file>`
 3. `ssh devsandboxes-<you>-sandbox`, then `opencode`
 
+Or in the browser: set **Network** to **Private** and turn on **Browser access**. The connect script then prints an opencode URL and an app preview URL with a username and password. — ~$0 (CloudFront's free tier; private mode also drops the ~$4/month public address). The first deploy with browser access takes about 15 minutes while CloudFront connects to the VM.
+
 ### 5. Your app
 
 Create a project named after the app (e.g. **Todo App**, `todoapp`) with environment **Dev** (`dev`). Add **HTTP API**, **DynamoDB Table** and **Lambda Function**; connect the API and the table to the function.

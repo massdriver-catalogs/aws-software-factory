@@ -221,4 +221,37 @@ chown dev:dev /home/dev/.sandbox-setup.sh
 sudo -iu dev bash /home/dev/.sandbox-setup.sh
 sudo -iu dev sandbox-massdriver-login || true
 
+if [ -n "${browser_access}" ]; then
+  cat > /usr/local/bin/sandbox-browser-secret <<'EOF'
+#!/bin/bash
+set -euo pipefail
+PW=$(aws secretsmanager get-secret-value --region ${region} --secret-id "${browser_secret}" --query SecretString --output text)
+install -d -m 0700 -o dev -g dev /run/opencode-web
+umask 077
+printf 'OPENCODE_SERVER_PASSWORD=%s\n' "$PW" > /run/opencode-web/env
+chown dev:dev /run/opencode-web/env
+EOF
+  chmod 0755 /usr/local/bin/sandbox-browser-secret
+
+  cat > /etc/systemd/system/opencode-web.service <<'EOF'
+[Unit]
+Description=opencode in the browser
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dev
+WorkingDirectory=/workspace
+ExecStartPre=+/usr/local/bin/sandbox-browser-secret
+ExecStart=/bin/bash -lc 'set -a; . /run/opencode-web/env; set +a; exec opencode web --hostname 0.0.0.0 --port 4096'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable --now opencode-web
+fi
+
 touch /var/lib/dev-sandbox-ready

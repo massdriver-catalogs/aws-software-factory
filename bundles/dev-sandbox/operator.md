@@ -144,6 +144,29 @@ git config --global --get-regexp '^credential'
 - **Push rejected with "refusing to allow a GitHub App to create or update workflow":** the App lacks the Workflows permission. Grant it in the App's settings and accept the new permissions on the installation.
 - **A stale token after the App's permissions changed:** `rm ~/.cache/sandbox/github-token.json` and retry.
 
+## Browser access doesn't load
+
+{{#params.browser_access}}
+{{#resources.access}}
+Browser: {{resources.access.browser_url}} · Preview: {{resources.access.preview_url}}
+{{/resources.access}}
+
+- **504 or "origin not reachable":** the sandbox is stopped. `ssh {{id}}` starts it; the page answers about a minute later.
+- **502 on the browser URL:** opencode's web server isn't running.
+
+  ```bash
+  ssh {{id}} 'systemctl status opencode-web --no-pager; journalctl -u opencode-web -n 50 --no-pager'
+  ```
+
+  `sudo systemctl restart opencode-web` restarts it. If its password file is missing, the sandbox role can't read its browser-password secret.
+- **502 on the preview URL:** nothing is listening on the preview port, or the dev server is bound to localhost only. Start it with `--host` / `--bind 0.0.0.0`.
+- **401 again and again:** the password is wrong or from before browser access was turned off and on again. Download and run the connect script again for the current one.
+- **Right after a redeploy that rebuilt the VM:** CloudFront is moving to the new VM, which takes up to 15 minutes.
+{{/params.browser_access}}
+{{^params.browser_access}}
+Browser access is off. Turn on **Browser access** (with **Private** network mode) and redeploy.
+{{/params.browser_access}}
+
 ## Setup didn't finish
 
 ```bash

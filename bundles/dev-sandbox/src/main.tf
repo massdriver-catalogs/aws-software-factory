@@ -96,6 +96,8 @@ resource "aws_instance" "sandbox" {
     gh_cli_version     = local.gh_cli_version
     git_name           = local.git_name
     git_email          = local.git_email
+    browser_access     = var.browser_access ? "1" : ""
+    browser_secret     = var.browser_access ? "${local.name}/browser-password" : ""
   })
 
   # A new AMI would rebuild the VM on the next unrelated deploy. Upgrades
@@ -106,9 +108,17 @@ resource "aws_instance" "sandbox" {
       condition     = var.network_mode == "public" || var.network.internet_egress
       error_message = "Private network mode needs the VPC's internet egress turned on."
     }
+    precondition {
+      condition     = !var.browser_access || var.network_mode == "private"
+      error_message = "Browser access needs Private network mode: CloudFront reaches a VM only in a private subnet."
+    }
+    precondition {
+      condition     = !var.browser_access || contains(var.agents, "opencode")
+      error_message = "Browser access serves opencode, so opencode must be one of the coding agents."
+    }
   }
 
-  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github]
+  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github, aws_secretsmanager_secret_version.browser]
 
   tags = { Name = local.name }
 }

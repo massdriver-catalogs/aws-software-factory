@@ -41,6 +41,20 @@ nvidia-smi
 - **nvidia-smi fails:** the GPU driver didn't load. Stop and start the instance to land on a new host.
 - **Download errors from Hugging Face:** check the VPC has internet egress.
 
+## A new server still takes 10 minutes to start
+
+It downloaded instead of loading from the cache bucket. On the host:
+
+```bash
+sudo grep -h "restored from" /var/log/cloud-init-output.log
+sudo systemctl status vllm-cache-save
+sudo journalctl -u vllm-cache-save -n 50
+```
+
+- **No "restored from" lines and the save job failed:** the first server never filled the cache. Run `sudo systemctl start vllm-cache-save` on a healthy server; the next build uses it.
+- **The save job is still running:** it uploads about 30 GB once the server is healthy. Builds started before it finishes still download.
+- **The model or vLLM version changed:** each one gets its own cache entry, so the first server on a new one downloads again.
+
 ## Deploy fails on GPU quota
 
 The account's "Running On-Demand G and VT instances" quota in {{dependencies.network.region}} is below 4 vCPUs.

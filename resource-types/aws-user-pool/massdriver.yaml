@@ -1,0 +1,45 @@
+name: aws-user-pool
+version: 0.0.0
+label: AWS User Pool
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: AWS User Pool
+  description: >-
+    A Cognito user pool with a browser app client and a hosted sign-in page. APIs verify its
+    tokens; web apps send users to its sign-in page.
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - arn
+    - region
+    - issuer
+    - client_id
+    - sign_in_url
+  properties:
+    id:
+      title: User Pool ID
+      type: string
+    arn:
+      title: User Pool ARN
+      type: string
+    region:
+      title: Region
+      type: string
+    issuer:
+      title: Token Issuer
+      description: The `iss` claim on this pool's tokens; JWT authorizers trust it.
+      type: string
+      pattern: ^https://
+    client_id:
+      title: App Client ID
+      description: The browser app client. Tokens it issues carry this as their audience.
+      type: string
+    sign_in_url:
+      title: Hosted Sign-in Domain
+      description: Base URL of the hosted sign-in and sign-up pages.
+      type: string
+      pattern: ^https://

@@ -36,3 +36,7 @@ schema:
       description: Used to scope Lambda invoke permissions to this API.
       type: string
       minLength: 1
+    authorizer_id:
+      title: Sign-in Authorizer ID
+      description: Present when the API verifies sign-in tokens. Routes that require sign-in use it.
+      type: string

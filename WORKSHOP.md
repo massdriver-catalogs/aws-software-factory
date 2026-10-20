@@ -130,56 +130,21 @@ jq -n --rawfile key ~/Downloads/<app>.private-key.pem \
 
 Create project **Networking** (`networking`) with environment **Dev** (`dev`). Set the AWS IAM Role as the environment's credential default.
 
-Add **Shared VPC**:
+Add **Shared VPC** with the **Development** preset: two zones, a NAT instance (~$7) and 7-day flow logs. Plus the flow-log encryption key, ~$1. **Shared VPC: ~$8–9.** When it's deployed, **Share** its **network** resource with all environments; every other project runs inside it.
 
-| Field | Pick | Cost |
-|---|---|---|
-| Region | us-east-1 | — |
-| CIDR | 10.0.0.0/16 | — |
-| Availability zones | 2 | — |
-| Internet egress for private subnets | NAT instance | ~$7 |
-| Interface endpoints | none | $0 (each adds ~$7 per zone) |
-| Flow log retention (days) | 7 | <$1 at workshop traffic |
-
-Plus the flow-log encryption key, ~$1. **Shared VPC: ~$8–9.** When it's deployed, **Share** its **network** resource with all environments; every other project runs inside it.
-
-Add **Budget Guard**:
-
-| Field | Pick | Cost |
-|---|---|---|
-| Monthly limit (USD) | 25 | — |
-| Alert at (% of limit, actual spend) | 50, 80, 100 | — |
-| Alert when the month is forecast to go over | on | — |
-| Email alerts to | your email | — |
-
-**Budget Guard: $0** (the first two budgets in an account are free). Confirm the subscription email AWS sends, or alerts won't arrive.
+Add **Budget Guard** with the **Free Tier** preset ($25 limit, alerts at 50/80/100% and on forecast), and put your address in **Email alerts to**. **Budget Guard: $0** (the first two budgets in an account are free). Confirm the subscription email AWS sends, or alerts won't arrive.
 
 ### 6. AI Platform
 
 Create project **AI Platform** (`aiplatform`) with environment **Dev** (`dev`). Set the AWS IAM Role and the Shared VPC as the environment's defaults.
 
-Add **LLM Gateway**:
-
-| Field | Pick | Cost |
-|---|---|---|
-| Bedrock models | Kimi K2.5 | ~$0.60 in / $3 out per million tokens |
-| Log retention (days) | 1 | <$1 |
-| Monthly budget per consumer (USD) | 20 | caps each sandbox, runner and function |
+Add **LLM Gateway** with the **Development** preset: Kimi K2.5 (~$0.60 in / $3 out per million tokens), 1-day logs, and a $20 monthly budget per consumer that caps each sandbox, runner and function.
 
 The gateway is a small t4g.small proxy, not a model: it forwards each request to Bedrock or to your own GPU. **Gateway: ~$14 plus tokens.** When it's deployed, **Share** its **endpoint** resource with all environments.
 
 Kimi K3 is stronger, at ~$3.30 / $16.50 per million tokens, but its multi-turn calls through Bedrock can fail on reasoning content, which is how opencode talks. Leave it for later.
 
-Optional, the "your own model" moment (needs G/VT quota): add **vLLM Model Server** and connect it to the gateway on the canvas.
-
-| Field | Pick | Cost |
-|---|---|---|
-| GPU | g6.xlarge — NVIDIA L4, 24 GB | ~$0.80 per hour running |
-| Model | gpt-oss-20b | — |
-| Stop when idle for | 1 hour | — |
-| Stop every night at | 8 pm | — |
-| Time zone for the nightly stop | yours | — |
-| Log retention (days) | 1 | <$1 |
+Optional, the "your own model" moment (needs G/VT quota): add **vLLM Model Server** with the **Development** preset (g6.xlarge with gpt-oss-20b, ~$0.80 per hour running, stops after an hour idle and at 8 pm), set **Time zone for the nightly stop** to yours, and connect it to the gateway on the canvas.
 
 Stopped, it costs its disk and key, ~$10. **A 3-hour workshop: ~$3.** It answers about 10 minutes after its deploy finishes, so deploy it before the sandbox. Once connected, the gateway also serves `self-hosted-gpt-oss-20b`.
 
@@ -189,14 +154,7 @@ Create project **CI Platform** (`ciplatform`) with one environment per GitHub or
 
 Add **GitHub Actions OIDC**. It has no fields and exists once per AWS account; it lets GitHub Actions push images with no stored AWS keys. **$0.** **Share** its resource with all environments.
 
-Add **GitHub Actions Runners**:
-
-| Field | Pick | Cost |
-|---|---|---|
-| Runners | 1 | ~$25 each |
-| Size | Medium — 2 vCPU, 4 GB | (in the line above) |
-| Disk (GB) | 30 | ~$2.40 |
-| Extra labels | none | — |
+Add **GitHub Actions Runners** with the **Development** preset: one Medium runner (~$25) with a 30 GB disk (~$2.40).
 
 Plus the token function, schedule and secret: under $1. **Runners: ~$28; ~$0.12 for the workshop.** They sit in the VPC's private subnets, take one job each, and can reach the AI Platform. Jobs never get the VM's AWS role.
 
@@ -204,18 +162,7 @@ Plus the token function, schedule and secret: under $1. **Runners: ~$28; ~$0.12 
 
 Create project **Codebases** (`codebases`) with one environment per app, e.g. **Todo App** (`todoapp`). Set the AWS IAM Role, the GitHub App and the GitHub Actions OIDC resource as the environment's defaults.
 
-Add **ECR Repository** and **GitHub Repository**, and connect the ECR Repository to the GitHub Repository.
-
-| Bundle | Field | Pick | Cost |
-|---|---|---|---|
-| ECR Repository | Tags | Immutable | — |
-| ECR Repository | Scan images on push | on | $0 |
-| ECR Repository | Keep the newest images | 10 | pennies for a few images |
-| ECR Repository | Delete untagged images after (days) | 1 | — |
-| ECR Repository | Encryption | AWS-managed (AES-256) | $0 |
-| GitHub Repository | Repository name | `todoapp` | — |
-| GitHub Repository | Visibility | Private | $0 |
-| GitHub Repository | Add a starter app | on | — |
+Add **ECR Repository** with the **Development** preset (immutable tags, scan on push, keep 10 images: pennies), and **GitHub Repository** with the **Private app** preset (repository `todoapp`). Connect the ECR Repository to the GitHub Repository.
 
 The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
 
@@ -225,67 +172,28 @@ Watch the first build under the repository's **Actions** tab. When it's green, t
 
 Create a project named after the app, e.g. **Todo App** (`todoapp`), with environment **Dev** (`dev`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
 
-Add **Static Site**, **HTTP API**, **DynamoDB Table** and **Lambda Function**. Connect the API and the table to the function.
+Add these, then connect the API and the table to the function:
 
-| Bundle | Field | Pick | Cost |
+| Bundle | Preset | Then change | Cost |
 |---|---|---|---|
-| Static Site | Single-page app | on | — |
-| Static Site | Where it's served from | North America and Europe — cheapest | $0 in CloudFront's free tier |
-| HTTP API | Steady requests per second / Burst requests | 50 / 100 | ~$1 per million requests |
-| HTTP API | Access log retention (days) | 1 | <$0.10 |
-| DynamoDB Table | Partition key / Sort key | `pk` / `sk`, String | — |
-| DynamoDB Table | Point-in-time recovery | off | $0 |
-| DynamoDB Table | Table class | Standard | ~$1.25 per million writes, $0.25 per million reads |
-| Lambda Function | Container image | the image URI from step 8 | — |
-| Lambda Function | Require sign-in | off, for now | — |
-| Lambda Function | Memory (MB) | 256 | a fraction of a cent per thousand requests |
-| Lambda Function | Log retention (days) | 1 | <$0.10 |
+| Static Site | Single-page app | — | $0 in CloudFront's free tier |
+| HTTP API | Development | — | ~$1 per million requests |
+| DynamoDB Table | Development | — | ~$1.25 per million writes, $0.25 per million reads |
+| Lambda Function | Free Tier | **Container image**: the image URI from step 8; **Require sign-in**: off, for now | $0 in Lambda's free tier |
 
 With the environment's LLM endpoint default set, the function also runs inside the VPC with its own AI Platform key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. **App: effectively $0** at workshop traffic; the free tiers cover it.
 
 Open the HTTP API's endpoint in a browser: the app answers.
 
-Now add sign-in. Add **User Pool** (**Users**) and connect it to the **HTTP API**:
+Now add sign-in. Add **User Pool** (**Users**) with the **Free Tier** preset, set **Where to return after sign-in** to the Static Site's URL with its trailing slash, and connect it to the **HTTP API**. **$0** (free for the first 10,000 monthly users). Redeploy the HTTP API, then set the function's **Require sign-in** on and redeploy it. The endpoint now answers `401` without a signed-in user's token.
 
-| Field | Pick | Cost |
-|---|---|---|
-| Anyone can sign up | on | — |
-| Multi-factor sign-in | Off | — |
-| Where to return after sign-in | the Static Site's URL, with its trailing slash | — |
-| Deletion protection | off | — |
-
-**$0** (free for the first 10,000 monthly users). Redeploy the HTTP API, then set the function's **Require sign-in** on and redeploy it. The endpoint now answers `401` without a signed-in user's token.
-
-Add **Alarm to Issue**. Point its **repository** at the Codebases repository with a remote reference.
-
-| Field | Pick | Cost |
-|---|---|---|
-| Hand alarms to the agent | off, for now | — |
-| Massdriver organization ID | yours | — |
-| Send a test alarm on this deploy | on for the first deploy, then off | — |
-
-**$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and to the component in Massdriver.
+Add **Alarm to Issue** with the **Issues only** preset, fill in **Massdriver organization ID**, and turn on **Send a test alarm on this deploy** for the first deploy only. Point its **repository** at the Codebases repository with a remote reference. **$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and to the component in Massdriver.
 
 ### 10. Your sandbox
 
 Create project **Developer Sandboxes** (`devsandboxes`) with an environment named after you, e.g. `cory`. Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
 
-Add **Developer Sandbox** with the **In the browser** preset:
-
-| Field | Pick | Cost |
-|---|---|---|
-| Size | Light — 2 vCPU, 4 GB | ~$0.03 per hour running |
-| Chip | ARM (Graviton) | — |
-| Workspace disk (GB) | 20 | ~$1.60 |
-| Network | Private | $0; goes out through the VPC's NAT instance |
-| Browser access | on | $0 in CloudFront's free tier |
-| Stop when idle for | 30 minutes | — |
-| Stop every night at | 8 pm | — |
-| Timezone | yours | — |
-| Coding agents | opencode | — |
-| How much do agents do on their own? | Run freely inside the sandbox | — |
-| Languages to install | Python, Node.js | — |
-| Your name for commits / Your email for commits | yours | — |
+Add **Developer Sandbox** with the **In the browser** preset: a Light ARM VM (~$0.03 per hour running), a 20 GB workspace (~$1.60), private network, browser access ($0 in CloudFront's free tier), opencode, and stops after 30 idle minutes and at 8 pm. Set **Timezone** and your name and email for commits.
 
 Plus the system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox: ~$3 stopped, ~$10 on workday hours. A 3-hour workshop: ~$0.15.** The first deploy with browser access takes about 15 minutes while CloudFront connects to the VM.
 

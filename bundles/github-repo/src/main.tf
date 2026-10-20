@@ -86,7 +86,7 @@ resource "github_repository_file" "workflow" {
     ignore_changes = [content, commit_message, commit_author, commit_email]
   }
 
-  depends_on = [github_repository_file.starter, github_actions_variable.push]
+  depends_on = [github_repository_file.starter, github_repository_file.factory, github_actions_variable.push]
 }
 
 moved {

@@ -22,5 +22,5 @@ resource "github_repository_file" "factory" {
     ignore_changes = [content, commit_message, commit_author, commit_email]
   }
 
-  depends_on = [github_repository_file.workflow, github_branch_default.main]
+  depends_on = [github_repository_file.starter, github_branch_default.main]
 }

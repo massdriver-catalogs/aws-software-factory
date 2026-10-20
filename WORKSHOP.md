@@ -8,11 +8,11 @@ Free workshop paired with the Product Hunt launch of the Massdriver Architect / 
 
 Everything runs live; nothing is take-home. The factory is the point of the workshop.
 
-1. **Foundation:** network, AI Platform, a developer sandbox, CI runners.
+1. **Foundation:** the network, the Software Factory (models, runners), a developer sandbox.
 2. **An app:** its codebase (repository and image repository), API, function, table, website and sign-in.
 3. **The factory:** an issue that an agent turns into a pull request, CI and AI review on that pull request, a merge that ships a new image, and an alarm that opens the next issue.
 
-Everything up to step 7 happens in the browser: GitHub, the AWS Console and Massdriver. The terminal only comes out to work inside the sandbox.
+Everything before step 10 happens in the browser: GitHub, the AWS Console and Massdriver. The terminal only comes out to work inside the sandbox.
 
 ## How it fits together
 
@@ -22,16 +22,13 @@ flowchart TB
     VPC[Shared VPC]
     BG[Budget Guard]
   end
-  subgraph AI[AI Platform]
-    GW[LLM Gateway]
-    GPU[vLLM Model Server<br/>optional]
+  subgraph SF[Software Factory]
+    GPU[vLLM Model Server<br/>optional] -.-> GW[LLM Gateway]
+    GW --> RUN[Factory runners<br/>AI review · issue agent]
+    OIDC[GitHub Actions OIDC]
   end
   subgraph DS[Developer Sandboxes]
     SB[Your sandbox<br/>opencode]
-  end
-  subgraph CI[CI Platform]
-    OIDC[GitHub Actions OIDC]
-    RUN[Factory runners<br/>AI review · issue agent]
   end
   subgraph CB[Codebases]
     REPO[GitHub repo] --> ECR[ECR repository]
@@ -45,15 +42,14 @@ flowchart TB
   end
 
   VPC --> GW & SB & RUN & FN
-  GPU -.-> GW
-  GW --> SB & RUN & FN
+  GW --> SB & FN
   OIDC --> REPO
   ECR -->|image| FN
   FN -->|alarm| A2I -->|issue| REPO
   REPO -->|labeled agent| RUN -->|pull request| REPO
 ```
 
-Each project has a job: **Networking** is the shared VPC; the **AI Platform** serves models; **Developer Sandboxes** has one environment per person; the **CI Platform** builds, reviews and runs agents, with one environment per GitHub organization; **Codebases** holds each app's repository and images, with one environment per app; and each **app** has its own project.
+Each project has a job: **Networking** is the shared VPC; the **Software Factory** serves models and runs CI, review and agents, with one environment per GitHub organization; **Developer Sandboxes** has one environment per person; **Codebases** holds each app's repository and images, with one environment per app; and each **app** has its own project.
 
 ## Attendee prerequisites (registration email, not day-of)
 
@@ -134,9 +130,9 @@ Add **Shared VPC** with the **Development** preset: two zones, a NAT instance (~
 
 Add **Budget Guard** with the **Free Tier** preset ($25 limit, alerts at 50/80/100% and on forecast), and put your address in **Email alerts to**. **Budget Guard: $0** (the first two budgets in an account are free). Confirm the subscription email AWS sends, or alerts won't arrive.
 
-### 6. AI Platform
+### 6. Software Factory
 
-Create project **AI Platform** (`aiplatform`) with environment **Dev** (`dev`). Set the AWS IAM Role and the Shared VPC as the environment's defaults.
+Create project **Software Factory** (`factory`) with one environment per GitHub organization and AWS account, e.g. **Main** (`main`). Set the AWS IAM Role, the Shared VPC and the GitHub App as the environment's defaults.
 
 Add **LLM Gateway** with the **Development** preset: Kimi K2.5 (~$0.60 in / $3 out per million tokens), 1-day logs, and a $20 monthly budget per consumer that caps each sandbox, runner and function.
 
@@ -144,31 +140,27 @@ The gateway is a small t4g.small proxy, not a model: it forwards each request to
 
 Kimi K3 is stronger, at ~$3.30 / $16.50 per million tokens, but its multi-turn calls through Bedrock can fail on reasoning content, which is how opencode talks. Leave it for later.
 
+Add **GitHub Actions OIDC**. It exists once per AWS account and lets GitHub Actions push images with no stored AWS keys. If the account already has one, turn on **Adopt the existing provider**. **$0.** **Share** its resource with all environments.
+
+Add **GitHub Actions Runners** with the **Development** preset: one Small runner (~$12) with a 30 GB disk (~$2.40). Connect the gateway to the runners on the canvas.
+
+Plus the token function, schedule and secret: under $1. **Runners: ~$15; ~$0.06 for the workshop.** They sit in the VPC's private subnets, take one job each, and reach the gateway with their own key. Jobs never get the VM's AWS role.
+
 Optional, the "your own model" moment (needs G/VT quota): add **vLLM Model Server** with the **Development** preset (g6.xlarge with gpt-oss-20b, ~$0.80 per hour running, stops after an hour idle and at 8 pm), set **Time zone for the nightly stop** to yours, and connect it to the gateway on the canvas.
 
 Stopped, it costs its disk and key, ~$10. **A 3-hour workshop: ~$3.** It answers about 10 minutes after its deploy finishes, so deploy it before the sandbox. Once connected, the gateway also serves `self-hosted-gpt-oss-20b`.
 
-### 7. CI Platform
-
-Create project **CI Platform** (`ciplatform`) with one environment per GitHub organization, e.g. **Citizen Devs** (`citizendevs`). Set the AWS IAM Role, the Shared VPC, the GitHub App and the LLM Gateway's endpoint as the environment's defaults.
-
-Add **GitHub Actions OIDC**. It has no fields and exists once per AWS account; it lets GitHub Actions push images with no stored AWS keys. **$0.** **Share** its resource with all environments.
-
-Add **GitHub Actions Runners** with the **Development** preset: one Small runner (~$12) with a 30 GB disk (~$2.40).
-
-Plus the token function, schedule and secret: under $1. **Runners: ~$15; ~$0.06 for the workshop.** They sit in the VPC's private subnets, take one job each, and can reach the AI Platform. Jobs never get the VM's AWS role.
-
-### 8. Codebases
+### 7. Codebases
 
 Create project **Codebases** (`codebases`) with one environment per app, e.g. **Todo App** (`todoapp`). Set the AWS IAM Role, the GitHub App and the GitHub Actions OIDC resource as the environment's defaults.
 
 Add **ECR Repository** with the **Development** preset (immutable tags, scan on push, keep 10 images: pennies), and **GitHub Repository** with the **Private app** preset (repository `todoapp`). Connect the ECR Repository to the GitHub Repository.
 
-The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. It also gets the factory workflows (the issue agent and AI review) and an `agent` label, which run on step 7's runners. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
+The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. It also gets the factory workflows (the issue agent and AI review) and an `agent` label, which run on the Software Factory's runners. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
 
 Watch the first build under the repository's **Actions** tab. When it's green, the image URI is in ECR: `<account>.dkr.ecr.us-east-1.amazonaws.com/codebases-todoapp-ecr:<commit>`.
 
-### 9. Your app
+### 8. Your app
 
 Create a project named after the app, e.g. **Todo App** (`todoapp`), with environment **Dev** (`dev`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
 
@@ -179,9 +171,9 @@ Add these, then connect the API and the table to the function:
 | Static Site | Single-page app | — | $0 in CloudFront's free tier |
 | HTTP API | Development | — | ~$1 per million requests |
 | DynamoDB Table | Development | — | ~$1.25 per million writes, $0.25 per million reads |
-| Lambda Function | Free Tier | **Container image**: the image URI from step 8 | $0 in Lambda's free tier |
+| Lambda Function | Free Tier | **Container image**: the image URI from step 7 | $0 in Lambda's free tier |
 
-With the environment's LLM endpoint default set, the function also runs inside the VPC with its own AI Platform key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. **App: effectively $0** at workshop traffic; the free tiers cover it.
+With the environment's LLM endpoint default set, the function also runs inside the VPC with its own gateway key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. **App: effectively $0** at workshop traffic; the free tiers cover it.
 
 Open the HTTP API's endpoint in a browser: the app answers.
 
@@ -189,7 +181,7 @@ Now add sign-in. Add **User Pool** (**Users**) with the **Free Tier** preset, se
 
 Add **Alarm to Issue** with the **Issues only** preset and turn on **Send a test alarm on this deploy** for the first deploy only. Point its **repository** at the Codebases repository with a remote reference. **$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and the Massdriver project, environment and instance it came from.
 
-### 10. Your sandbox
+### 9. Your sandbox
 
 Create project **Developer Sandboxes** (`devsandboxes`) with an environment named after you, e.g. `cory`. Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
 
@@ -199,7 +191,7 @@ Plus the system disk (~$1.30) and the idle alarm (~$0.10). **Sandbox: ~$3 stoppe
 
 Private mode means no public address (saving ~$4 a month) and nothing on the internet can reach the VM; CloudFront reaches it privately. The sandbox can clone and push your organization's repositories through the GitHub App, with no personal token.
 
-### 11. Shell in
+### 10. Shell in
 
 This is the first time you need a terminal.
 
@@ -218,20 +210,20 @@ This is the first time you need a terminal.
 
 Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5; `/models` switches to Kimi K3 or, if you added the GPU, `self-hosted-gpt-oss-20b`.
 
-### 12. The factory, live
+### 11. The factory, live
 
 All in the browser again.
 
-1. **Check the agents are there.** The `todoapp` repository already has `.github/workflows/agent.yml`, `.github/workflows/ai-review.yml` and an `agent` label, from **Add the factory workflows** in step 8.
+1. **Check the agents are there.** The `todoapp` repository already has `.github/workflows/agent.yml`, `.github/workflows/ai-review.yml` and an `agent` label, from **Add the factory workflows** in step 7.
 2. **Issue → pull request.** Open an issue, e.g. "Add a `/health` route that returns `{"ok": true}`, with a test", and label it `agent`. Within a few minutes the agent comments, then opens a pull request from `agent/issue-N`.
-3. **CI and review run on it.** The tests, secret scan, build and image scan run, and the AI Platform posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
+3. **CI and review run on it.** The tests, secret scan, build and image scan run, and the gateway's model posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
 4. **Merge it.** The push to `main` builds a new image and pushes it to ECR, tagged with the commit.
 5. **Ship it.** On the app's **Lambda Function**, set **Container image** to the new tag and deploy. Release to dev isn't automated yet; for now this one field is the release.
 6. **Close the loop.** On **Alarm to Issue**, turn **Hand alarms to the agent** on and deploy. From now on, when one of the app's alarms fires, an issue opens with the `agent` label, the agent proposes a fix, CI and review run, and a person decides whether to merge.
 
 Each agent run costs a few cents in tokens on Kimi K2.5.
 
-### 13. Tear it down
+### 12. Tear it down
 
 > [!WARNING]
 > **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$36/month together). Decommissioning deletes everything, disks included.
@@ -241,9 +233,8 @@ Decommission each environment in this order; the shared pieces go last because e
 1. **Your app** (`todoapp` / `dev`)
 2. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
 3. **Codebases** (`todoapp`). The GitHub repository is archived, not deleted; its images are deleted.
-4. **CI Platform** (your organization's environment)
-5. **AI Platform** (`dev`)
-6. **Networking** (`dev`)
+4. **Software Factory** (`main`)
+5. **Networking** (`dev`)
 
 Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again.
 

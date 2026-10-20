@@ -7,7 +7,7 @@ resource "github_issue_label" "agent" {
 }
 
 # The agent token service only answers runs of a workflow named agent.yml, so
-# the file name is part of the contract with the CI Platform's runners.
+# the file name is part of the contract with the Software Factory's runners.
 resource "github_repository_file" "factory" {
   for_each = local.factory ? toset(["agent.yml", "ai-review.yml"]) : toset([])
 

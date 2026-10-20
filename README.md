@@ -6,14 +6,13 @@ Agents never hold cloud credentials. Every infrastructure change goes through Ma
 
 ## Projects
 
-The bundles are designed for six kinds of project. Shared foundations are deployed once; per-developer and per-app pieces get an environment each.
+The bundles are designed for five kinds of project. Shared foundations are deployed once; per-developer and per-app pieces get an environment each.
 
 | Project | Holds | Environments |
 |---|---|---|
 | Networking | Shared VPC, Budget Guard | One per account and region |
-| AI Platform | LLM Gateway, optional vLLM Model Server | One per account and region |
+| Software Factory | LLM Gateway, optional vLLM Model Server, GitHub Actions OIDC, GitHub Actions Runners (AI review, issue → PR agent) | One per GitHub organization and AWS account |
 | Developer Sandboxes | Developer Sandbox | One per developer |
-| CI Platform | GitHub Actions OIDC, GitHub Actions Runners (AI review, issue → PR agent) | One per GitHub organization |
 | Codebases | GitHub Repository, ECR Repository | One per app |
 | Each app | HTTP API, Lambda Function, DynamoDB Table, User Pool, Static Site, Alarm to Issue | dev, prod, … |
 
@@ -21,22 +20,20 @@ Workloads share the VPC's subnets and are kept apart by their own security group
 
 ## How bundles connect
 
-Bundles exchange resource types, not internals, so one side can change without the other noticing: moving the AI Platform from Bedrock to a self-hosted GPU changes the gateway, not the sandboxes, runners or functions that use it.
+Bundles exchange resource types, not internals, so one side can change without the other noticing: moving the factory's models from Bedrock to a self-hosted GPU changes the gateway, not the sandboxes, runners or functions that use it.
 
 ```mermaid
 flowchart LR
   subgraph Networking
     VPC[shared-vpc]
   end
-  subgraph AIPlatform[AI Platform]
+  subgraph Factory[Software Factory]
     VLLM[vllm-model-server] -->|model-server| GW[llm-gateway]
+    GW -->|llm-endpoint| RUN[github-actions-runners]
+    OIDC[github-actions-oidc]
   end
   subgraph Sandboxes[Developer Sandboxes]
     SB[dev-sandbox]
-  end
-  subgraph CI[CI Platform]
-    OIDC[github-actions-oidc]
-    RUN[github-actions-runners]
   end
   subgraph Codebases
     ECR[ecr-repository] -->|aws-ecr-repository| REPO[github-repo]
@@ -50,7 +47,7 @@ flowchart LR
   end
 
   VPC -->|aws-vpc| GW & VLLM & SB & RUN & FN
-  GW -->|llm-endpoint| SB & RUN & FN
+  GW -->|llm-endpoint| SB & FN
   OIDC -->|aws-github-oidc| REPO
   REPO -->|source-repository| A2I
 ```
@@ -71,7 +68,7 @@ Two credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), wh
 | `github-repo` | A GitHub repository with a write-once starter app and a pipeline that tests, scans and pushes an arm64 image to ECR. Can adopt an existing repository |
 | `ecr-repository` | A container image repository with push and pull policies |
 | `http-api` | An API Gateway HTTP API; functions attach their own routes. Optional sign-in |
-| `lambda-function` | A function behind the API, with optional table and AI Platform access |
+| `lambda-function` | A function behind the API, with an optional table and access to the gateway's models |
 | `dynamodb-table` | An on-demand table with read and read-write policies |
 | `user-pool` | Cognito sign-in with a hosted page and a browser app client |
 | `static-site` | A private S3 bucket behind CloudFront |
@@ -92,7 +89,7 @@ bundles/          OpenTofu bundles
 
 1. **Publish from GitHub Actions.** Create a Massdriver service account in a group allowed to publish to the catalog. In the repository's **Settings → Secrets and variables → Actions**, add its key as the secret `MASSDRIVER_API_KEY` and your organization ID as `MASSDRIVER_ORG_ID` (a variable or a secret). Then run **Actions → Publish → Run workflow** with *all* ticked. After that, every push to `main` publishes whatever changed since the last successful publish: credential types and resource types first, then bundles.
 2. **Add credentials** in Massdriver: an **AWS IAM Role** and a **GitHub App**, each following the instructions on its form. Share both with every environment.
-3. **Build the foundations** — Networking, AI Platform, CI Platform — then add Developer Sandboxes, Codebases and apps as people and apps arrive.
+3. **Build the foundations** — Networking, then the Software Factory — then add Developer Sandboxes, Codebases and apps as people and apps arrive.
 
 ## Versioning
 

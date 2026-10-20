@@ -12,6 +12,7 @@ params:
       description: ""
       visibility: private
       seed_starter_files: true
+      factory_workflows: true
       adopt_existing_repository: false
       default_branch: main
     - __name: Public app
@@ -19,6 +20,7 @@ params:
       description: ""
       visibility: public
       seed_starter_files: true
+      factory_workflows: true
       adopt_existing_repository: false
       default_branch: main
     - __name: Adopt an existing repository
@@ -26,6 +28,7 @@ params:
       description: ""
       visibility: private
       seed_starter_files: false
+      factory_workflows: false
       adopt_existing_repository: true
       default_branch: main
   required:
@@ -66,6 +69,16 @@ params:
         Commits a small Lambda container app, its Dockerfile and the build workflow, so the first
         push proves the pipeline. Turn off to import an existing project; then add the workflow
         yourself.
+      type: boolean
+      default: true
+      $md.immutable: true
+    factory_workflows:
+      title: Add the factory workflows
+      description: >-
+        Commits `agent.yml` (an `agent` label or a `/agent` comment turns an issue into a pull
+        request) and `ai-review.yml` (an AI review on every pull request), and creates the `agent`
+        label. Both run on the CI Platform's factory runners, which need an LLM Endpoint connected;
+        without those runners these jobs wait in the queue. Written once, like the starter app.
       type: boolean
       default: true
       $md.immutable: true
@@ -115,6 +128,7 @@ ui:
     - description
     - visibility
     - seed_starter_files
+    - factory_workflows
     - adopt_existing_repository
     - default_branch
     - "*"

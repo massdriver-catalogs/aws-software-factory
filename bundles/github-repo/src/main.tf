@@ -3,6 +3,7 @@ locals {
   has_registry = var.registry != null
   full_name    = "${var.github.owner}/${var.repository_name}"
   seed         = var.seed_starter_files && !var.adopt_existing_repository
+  factory      = var.factory_workflows && !var.adopt_existing_repository
 }
 
 resource "github_repository" "main" {

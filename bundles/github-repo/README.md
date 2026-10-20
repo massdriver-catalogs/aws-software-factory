@@ -29,6 +29,15 @@ The workflow reads three repository variables, which this bundle sets when a con
 
 The starter files are written once, when the repository is created, and then belong to the team. Redeploying this bundle never overwrites them, and never replaces a file that already exists.
 
+## The factory workflows
+
+With **Add the factory workflows** on, the repository also gets two workflows and an `agent` label:
+
+- **`agent.yml`:** label an issue `agent`, or comment `/agent` with extra instructions, and a coding agent works on it and opens a pull request.
+- **`ai-review.yml`:** every pull request gets one review comment from the AI Platform's default model.
+
+Both run on the CI Platform's factory runners (`runs-on: [self-hosted, factory]`), which need an LLM Endpoint connected. Without those runners the jobs wait in the queue. Keep the name `agent.yml`: the runners' token service only hands a push token to a workflow with that name. Like the starter app, these files are written once and then belong to the team.
+
 ## AWS access without keys
 
 Pushing uses GitHub's OIDC tokens. This bundle creates a role that only the default branch of this one repository can assume, with the container repository's push policy attached. No AWS keys are stored in GitHub. The environment needs the **GitHub Actions OIDC** bundle's resource as its default; deploy that bundle once per AWS account.
@@ -45,6 +54,6 @@ The repository is archived, not deleted, so the code survives. The name stays ta
 
 ## Adopting an existing repository
 
-Turn on **Adopt an existing repository** on the first deploy to manage a repository that already exists in the organization, with **Repository name** set to its name. Massdriver takes it over as it is: no files are written, nothing is overwritten, and an archived repository is unarchived. From then on it behaves like one this bundle created, including being archived, not deleted, on decommission.
+Turn on **Adopt an existing repository** on the first deploy to manage a repository that already exists in the organization, with **Repository name** set to its name. Massdriver takes it over as it is: no files are written (neither the starter app nor the factory workflows), nothing is overwritten, and an archived repository is unarchived. From then on it behaves like one this bundle created, including being archived, not deleted, on decommission.
 
 If the repository already has Actions variables named `AWS_REGION`, `AWS_ROLE_ARN` or `ECR_REPOSITORY_URL`, delete them first; this bundle creates its own.

@@ -164,7 +164,7 @@ Create project **Codebases** (`codebases`) with one environment per app, e.g. **
 
 Add **ECR Repository** with the **Development** preset (immutable tags, scan on push, keep 10 images: pennies), and **GitHub Repository** with the **Private app** preset (repository `todoapp`). Connect the ECR Repository to the GitHub Repository.
 
-The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
+The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. It also gets the factory workflows (the issue agent and AI review) and an `agent` label, which run on step 7's runners. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
 
 Watch the first build under the repository's **Actions** tab. When it's green, the image URI is in ECR: `<account>.dkr.ecr.us-east-1.amazonaws.com/codebases-todoapp-ecr:<commit>`.
 
@@ -222,11 +222,7 @@ Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. o
 
 All in the browser again.
 
-1. **Turn on the agents.** In the `todoapp` repository on GitHub, **Add file → Create new file** twice, pasting each workflow from the catalog fork:
-   - `.github/workflows/ai-review.yml` ← `bundles/github-actions-runners/workflows/ai-review.yml`
-   - `.github/workflows/agent.yml` ← `bundles/github-actions-runners/workflows/agent.yml`
-
-   Then **Issues → Labels → New label** `agent`.
+1. **Check the agents are there.** The `todoapp` repository already has `.github/workflows/agent.yml`, `.github/workflows/ai-review.yml` and an `agent` label, from **Add the factory workflows** in step 8.
 2. **Issue → pull request.** Open an issue, e.g. "Add a `/health` route that returns `{"ok": true}`, with a test", and label it `agent`. Within a few minutes the agent comments, then opens a pull request from `agent/issue-N`.
 3. **CI and review run on it.** The tests, secret scan, build and image scan run, and the AI Platform posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
 4. **Merge it.** The push to `main` builds a new image and pushes it to ECR, tagged with the commit.

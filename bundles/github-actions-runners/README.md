@@ -44,11 +44,11 @@ GitHub's default runner group is open only to private repositories. For public r
 
 ## AI review on pull requests
 
-[`workflows/ai-review.yml`](workflows/ai-review.yml) reviews every pull request with the AI Platform's default model and posts one review comment. Copy it into a repository's `.github/workflows/` to turn it on. It needs runners with an LLM Endpoint connected, and uses only the job's own `GITHUB_TOKEN`.
+`ai-review.yml` reviews every pull request with the AI Platform's default model and posts one review comment. The **GitHub Repository** bundle commits it to new repositories (its source is [`bundles/github-repo/src/starter/ai-review.yml`](../github-repo/src/starter/ai-review.yml)). It needs runners with an LLM Endpoint connected, and uses only the job's own `GITHUB_TOKEN`.
 
 ## Issue → pull request agent
 
-[`workflows/agent.yml`](workflows/agent.yml) turns an issue into a pull request. Label an issue `agent`, or comment `/agent` with any extra instructions, and opencode works on it on these runners with the AI Platform's default model.
+`agent.yml` ([`bundles/github-repo/src/starter/agent.yml`](../github-repo/src/starter/agent.yml)) turns an issue into a pull request. Label an issue `agent`, or comment `/agent` with any extra instructions, and opencode works on it on these runners with the AI Platform's default model.
 
 ```mermaid
 sequenceDiagram
@@ -69,7 +69,7 @@ sequenceDiagram
 - The agent runs without any credential that can push: its checkout has none, and the token is fetched after it finishes. Only the `agent/issue-N` branch is pushed; merging stays with people.
 - If the agent changes nothing, it says so on the issue instead of opening an empty pull request. Runs stop after 20 minutes.
 
-Copy `agent.yml` into a repository's `.github/workflows/` and create an `agent` label to turn it on.
+New repositories get `agent.yml`, `ai-review.yml` and the `agent` label from the **GitHub Repository** bundle's **Add the factory workflows** option. For a repository created elsewhere, copy both files into its `.github/workflows/` and create an `agent` label.
 
 ## Cost
 

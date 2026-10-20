@@ -53,9 +53,16 @@ Each project has a job: **Networking** is the shared VPC; the **Software Factory
 
 ## Attendee prerequisites (registration email, not day-of)
 
-- **AWS account.** For the optional self-hosted GPU, request "Running On-Demand G and VT instances" quota of 4+ vCPUs about a week ahead; new accounts often start at 0. Without it, the workshop runs on Bedrock only, which is the default anyway.
-- **Massdriver account.**
-- **GitHub organization.** A free one is fine. GitHub Apps can't create repositories under a personal account.
+About 40 minutes, emailed ahead as a separate guide. Nothing gets connected to Massdriver beforehand: a new org has no credential types until the catalog is published to it in step 2.
+
+1. **Massdriver account and organization** (~5 min). Note the org ID.
+2. **AWS role for Massdriver** (~10 min). Attendees make up their own External ID, create a role trusting account `308878630280` with that External ID and AdministratorAccess, and note the External ID and the role ARN.
+3. **GitHub organization** (~3 min), on the Free plan. GitHub Apps can't create repositories under a personal account.
+4. **GitHub App** (~15 min), with the permissions in step 4 below, installed on all repositories. Note the App ID and Installation ID, and keep the `.pem` key safe.
+5. *Optional:* **GPU quota** for the self-hosted model. Request "Running On-Demand G and VT instances" ≥ 4 in us-east-1 a week ahead. Without it, everything runs on Bedrock.
+6. *Optional:* **AWS CLI and Session Manager plugin**, for a terminal instead of the browser.
+
+They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installation ID, and the `.pem` file.
 
 ## Cost talking points (us-east-1, on-demand, approximate)
 

@@ -2,51 +2,7 @@
 set -euo pipefail
 
 systemctl enable --now docker
-mkdir -p /opt/vllm /opt/hf/hub
-
-cat > /opt/vllm/cache.sh <<'SH'
-#!/bin/bash
-set -uo pipefail
-weights=weights/${hf_dir}.tar
-image=images/${image_key}.tar
-cached() { aws s3api head-object --region ${region} --bucket ${bucket} --key "$1" >/dev/null 2>&1; }
-
-case "$1" in
-  restore)
-    if [ ! -d /opt/hf/hub/${hf_dir} ] && cached "$weights"; then
-      rm -rf /opt/hf/hub/.restore && mkdir -p /opt/hf/hub/.restore
-      if aws s3 cp --region ${region} --only-show-errors "s3://${bucket}/$weights" - | tar -x -C /opt/hf/hub/.restore; then
-        mv /opt/hf/hub/.restore/${hf_dir} /opt/hf/hub/${hf_dir} && echo "weights restored from s3://${bucket}/$weights"
-      fi
-      rm -rf /opt/hf/hub/.restore
-    fi
-    if ! docker image inspect ${image_ref} >/dev/null 2>&1 && cached "$image"; then
-      aws s3 cp --region ${region} --only-show-errors "s3://${bucket}/$image" - | docker load && echo "image restored from s3://${bucket}/$image"
-    fi
-    ;;
-  save)
-    for _ in $(seq 1 120); do curl -sf localhost:${port}/health >/dev/null && break; sleep 30; done
-    curl -sf localhost:${port}/health >/dev/null || exit 1
-    cached "$weights" || tar -C /opt/hf/hub -cf - ${hf_dir} \
-      | aws s3 cp --region ${region} --only-show-errors --expected-size 60000000000 - "s3://${bucket}/$weights"
-    cached "$image" || docker save ${image_ref} \
-      | aws s3 cp --region ${region} --only-show-errors --expected-size 60000000000 - "s3://${bucket}/$image"
-    ;;
-esac
-SH
-chmod 700 /opt/vllm/cache.sh
-/opt/vllm/cache.sh restore || true
-
-cat > /etc/systemd/system/vllm-cache-save.service <<'UNIT'
-[Unit]
-Description=Save the model weights and vLLM image to S3 once the server is healthy
-After=vllm.service
-
-[Service]
-Type=oneshot
-TimeoutStartSec=0
-ExecStart=/opt/vllm/cache.sh save
-UNIT
+mkdir -p /opt/vllm /opt/hf
 
 cat > /opt/vllm/start.sh <<'SH'
 #!/bin/bash
@@ -73,7 +29,7 @@ ExecStart=/usr/bin/docker run --name vllm --gpus all --ipc=host -p ${port}:${por
   --env-file /opt/vllm/env \
   --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} \
   -v /opt/hf:/root/.cache/huggingface \
-  ${image_ref} \
+  ${image} \
   --model ${repo} --served-model-name ${served_name} --port ${port} \
   --max-model-len ${max_model_len} --enable-auto-tool-choice --tool-call-parser ${tool_parser}
 ExecStop=/usr/bin/docker stop vllm
@@ -84,4 +40,3 @@ UNIT
 
 systemctl daemon-reload
 systemctl enable --now vllm
-systemctl start --no-block vllm-cache-save

@@ -37,15 +37,4 @@ The account needs "Running On-Demand G and VT instances" quota of at least 4 vCP
 | gpt-oss-20b | 24 GB GPU (g6.xlarge or g5.xlarge) |
 | Qwen3 Coder 30B (FP8) | 48 GB GPU (g6e.xlarge) |
 
-## Where the model comes from
-
-```mermaid
-flowchart LR
-  H[Hugging Face<br/>Docker Hub] -->|first server only,<br/>through the VPC's egress| V[GPU server]
-  V -->|once healthy, saves| C[(Cache bucket)]
-  C -->|every later build,<br/>through the free S3 endpoint| V
-```
-
-The first server downloads the weights and the vLLM image through the VPC's egress, which takes about 10 minutes on a small NAT. Once it's serving, it saves both to a bucket this bundle owns. Every server built after that, whether replaced or after a release, loads them from the bucket instead.
-
-Stopping and starting a server doesn't download anything either way: the weights and image stay on its disk. The cache holds about 30 GB (~$0.70/month).
+Weights download from Hugging Face on first boot and stay on the instance's disk.

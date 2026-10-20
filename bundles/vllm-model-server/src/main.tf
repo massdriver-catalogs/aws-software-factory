@@ -2,7 +2,6 @@ locals {
   name   = var.md_metadata.name_prefix
   region = var.network.region
   port   = 8000
-  image  = "vllm/vllm-openai:v0.32.0"
 
   models = {
     "gpt-oss-20b" = {

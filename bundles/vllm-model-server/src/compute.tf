@@ -97,10 +97,7 @@ resource "aws_instance" "server" {
     served_name   = var.model
     max_model_len = local.model.max_model_len
     tool_parser   = local.model.tool_parser
-    image_ref     = local.image
-    image_key     = replace(replace(local.image, "/", "_"), ":", "_")
-    hf_dir        = "models--${replace(local.model.repo, "/", "--")}"
-    bucket        = aws_s3_bucket.cache.id
+    image         = "vllm/vllm-openai:v0.32.0"
   })
   user_data_replace_on_change = true
 

@@ -98,6 +98,9 @@ jobs:
                 "https://api.github.com/repos/$REPO/issues/$ISSUE/comments" -d @- >/dev/null
           }
 
+          # Caches the agent's test runs leave behind aren't part of its change.
+          printf '%s\n' '__pycache__/' '*.pyc' '.pytest_cache/' 'node_modules/' '.venv/' '.mypy_cache/' '.ruff_cache/' >> .git/info/exclude
+
           if [ -z "$(git status --porcelain)" ]; then
             comment "The agent finished without changing anything, so there's no pull request. Its log is in $RUN_URL. Add detail to the issue and comment \`/agent\` to try again."
             exit 0

@@ -7,19 +7,19 @@ version: 0.0.0
 
 params:
   examples:
-    - __name: Workshop
+    - __name: Development
       instance_type: g6.xlarge
       model: gpt-oss-20b
       idle_stop_minutes: 60
       nightly_stop: "20:00"
       timezone: America/Los_Angeles
       log_retention_days: 1
-    - __name: Team, coding model
+    - __name: Production
       instance_type: g6e.xlarge
       model: qwen3-coder-30b
-      idle_stop_minutes: 120
-      nightly_stop: "22:00"
-      timezone: America/New_York
+      idle_stop_minutes: 0
+      nightly_stop: never
+      timezone: UTC
       log_retention_days: 30
   required:
     - instance_type

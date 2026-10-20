@@ -1,0 +1,49 @@
+name: aws-static-site
+version: 0.0.0
+label: AWS Static Site
+
+ui:
+  connectionOrientation: link
+
+schema:
+  title: AWS Static Site
+  description: >-
+    A private S3 bucket served through CloudFront, and the IAM policy a pipeline attaches to
+    publish to it.
+  type: object
+  additionalProperties: false
+  required:
+    - url
+    - bucket
+    - distribution_id
+    - policies
+  properties:
+    url:
+      title: URL
+      type: string
+      pattern: ^https://
+    bucket:
+      title: Bucket
+      type: string
+    distribution_id:
+      title: CloudFront Distribution ID
+      type: string
+    policies:
+      title: Access Policies
+      description: IAM managed policies a consumer attaches to its role.
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - arn
+        properties:
+          name:
+            title: Name
+            description: What the policy allows, e.g. publish.
+            type: string
+          arn:
+            title: Policy ARN
+            type: string

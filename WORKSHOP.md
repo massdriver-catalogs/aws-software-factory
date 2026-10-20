@@ -162,6 +162,8 @@ Create a project named after the app (e.g. **Todo App**, `todoapp`) with environ
 
 **App total at workshop traffic: effectively $0** (Lambda, API Gateway and DynamoDB free tiers cover it). Open the HTTP API's endpoint in a browser: the placeholder answers with the request and the table's status.
 
+Add **User Pool** (**Users**) and connect it to the **API**: **Anyone can sign up** on, **Multi-factor sign-in** off, **Where to return after sign-in** = the static site's URL. — $0 (free for the first 10,000 monthly users). The function's routes now need a signed-in user.
+
 ### 6. Tear it down
 
 > [!WARNING]

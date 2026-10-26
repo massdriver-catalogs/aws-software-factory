@@ -118,7 +118,7 @@ resource "aws_instance" "sandbox" {
     }
   }
 
-  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github, aws_secretsmanager_secret_version.browser]
+  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github, aws_secretsmanager_secret_version.browser, aws_secretsmanager_secret_version.massdriver, massdriver_service_account_group_membership.agent]
 
   tags = { Name = local.name }
 }

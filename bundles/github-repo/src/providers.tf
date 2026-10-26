@@ -11,7 +11,7 @@ terraform {
     }
     massdriver = {
       source  = "massdriver-cloud/massdriver"
-      version = "~> 2.0"
+      version = "~> 2.4"
     }
   }
 }
@@ -35,4 +35,12 @@ provider "aws" {
   default_tags {
     tags = var.md_metadata.default_tags
   }
+}
+
+# Deployment tokens can't manage service accounts, so these resources use the
+# credential's API key. The default provider stays on the deployment token.
+provider "massdriver" {
+  alias           = "admin"
+  api_key         = try(var.massdriver.token, null)
+  organization_id = try(var.massdriver.organization_id, null)
 }

@@ -244,6 +244,19 @@ params:
       pattern: ^(|[^@\s]+@[^@\s]+)$
       message:
         pattern: "An email address, or empty."
+    massdriver_groups:
+      title: Massdriver access for agents
+      description: >-
+        Groups whose permissions the sandbox's agents get in Massdriver, through a service account
+        made for this sandbox. Needs a Massdriver Service Account credential on this environment.
+        Leave empty to keep the Massdriver tools off.
+      type: array
+      uniqueItems: true
+      default: []
+      items:
+        type: string
+        $md.list:
+          resource: group
 
 dependencies:
   aws_authentication:
@@ -257,6 +270,9 @@ dependencies:
     required: false
   github:
     resource_type: github-app@0.0.0
+    required: false
+  massdriver:
+    resource_type: massdriver-service-account@0.0.0
     required: false
 
 resources:
@@ -285,6 +301,7 @@ ui:
     - dotfiles_repo
     - git_name
     - git_email
+    - massdriver_groups
     - "*"
   workspace_gb:
     ui:widget: updown

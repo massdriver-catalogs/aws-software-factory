@@ -18,6 +18,17 @@ gh run view -R {{resources.repository.full_name}} --log-failed
 - **The workflow file was removed or renamed:** it must be `.github/workflows/*.yml` on the default branch.
 - **Pushed to another branch:** only the default branch pushes images; other branches build only through pull requests.
 
+## The release didn't deploy
+
+```bash
+gh run list -R {{resources.repository.full_name}} --workflow release.yml --limit 5
+```
+
+- **No release run:** the build failed, or ran on a pull request. Releases only follow successful builds on the default branch.
+- **"not authorized" or "forbidden":** the groups in **Release permissions** can't deploy the instance in **Release to**. Give the group `instance:deploy` on that environment, or pick another group.
+- **Instance not found:** **Release to** must be the full instance ID, `<project>-<environment>-<component>`.
+- **The deploy failed:** open the instance in Massdriver and read the deployment's logs.
+
 ## The build failed before pushing
 
 Open the failed run and check which job stopped:

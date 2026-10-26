@@ -38,6 +38,14 @@ With **Add the factory workflows** on, the repository also gets two workflows an
 
 Both run on the Software Factory's runners (`runs-on: [self-hosted, factory]`), which need an LLM Endpoint connected. Without those runners the jobs wait in the queue. Keep the name `agent.yml`: the runners' token service only hands a push token to a workflow with that name. Like the starter app, these files are written once and then belong to the team.
 
+## Release to dev
+
+Set **Release to** to an instance ID, like `todoapp-dev-fn`, and pick groups in **Release permissions**. The repository then gets `.github/workflows/release.yml`. After each successful build on the default branch, it deploys that instance with `image_uri` set to the new image.
+
+It deploys with a Massdriver service account made for this repository, in the groups you picked, so it can only do what those groups allow. Pick a group that can deploy to dev and not to production. The token is stored as the `MASSDRIVER_API_KEY` Actions secret.
+
+This needs a container repository and a Massdriver Service Account credential on the environment. The workflow is written once, like the starter app, and adopted repositories don't get it.
+
 ## AWS access without keys
 
 Pushing uses GitHub's OIDC tokens. This bundle creates a role that only the default branch of this one repository can assume, with the container repository's push policy attached. No AWS keys are stored in GitHub. The environment needs the **GitHub Actions OIDC** bundle's resource as its default; deploy that bundle once per AWS account.

@@ -67,16 +67,11 @@ Agents start on the gateway's default model. To use another, run `/models` insid
 
 ## Massdriver tools
 
-Agents can drive Massdriver through its MCP server, and the `mass` CLI is on the path. Both stay off until the sandbox has a Massdriver API key.
+Agents can drive Massdriver through its MCP server, and the `mass` CLI is on the path. Both stay off until the sandbox has a Massdriver key.
 
-To turn them on, store a service account key in Secrets Manager, in the sandbox's region, named `<sandbox-name>/massdriver-api-key`:
+To turn them on, connect a Massdriver Service Account credential to the environment and pick groups in **Massdriver access for agents**. The sandbox gets its own service account in those groups, and its agents get exactly those permissions. The key goes to Secrets Manager at `<sandbox-name>/massdriver-api-key` and is loaded at boot.
 
-```bash
-aws secretsmanager create-secret --region <region> --name <sandbox-name>/massdriver-api-key \
-  --secret-string '{"api_key": "<service account key>", "organization_id": "<org slug>"}'
-```
-
-Then, in the sandbox, run `sandbox-massdriver-login` and open a new shell. It puts the key in the environment and the `mass` profile, and switches the MCP server on for opencode. Delete the secret and run it again to switch everything off.
+A sandbox that's already running loads it the next time you run `sandbox-massdriver-login` and open a new shell. Empty the list and redeploy to remove the service account.
 
 ## GitHub
 

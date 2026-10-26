@@ -1,0 +1,38 @@
+name: massdriver-service-account
+version: 0.0.0
+label: Massdriver Service Account
+
+ui:
+  connectionOrientation: environmentDefault
+  environmentDefaultGroup: credentials
+  instructions:
+    - label: Create the service account
+      path: ./instructions/Create the service account.md
+  schema:
+    ui:order: [organization_id, token, "*"]
+
+schema:
+  title: Massdriver Service Account
+  description: >-
+    A service account that can create service accounts and add them to groups. Bundles use it to
+    give CI pipelines and agents their own scoped Massdriver tokens. It holds organization admin
+    power, so set it as the default only in environments that admins deploy.
+  type: object
+  additionalProperties: false
+  required:
+    - organization_id
+    - token
+  properties:
+    organization_id:
+      title: Organization ID
+      description: Shown under your organization's name in Massdriver's settings, and in the URL after app.massdriver.cloud/orgs/.
+      type: string
+      pattern: ^[a-z0-9-]+$
+      message:
+        pattern: "Lowercase letters, digits and hyphens only."
+    token:
+      title: Token
+      description: The token Massdriver showed once, when you created the service account.
+      type: string
+      minLength: 1
+      $md.sensitive: true

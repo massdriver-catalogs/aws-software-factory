@@ -29,8 +29,9 @@ app:
       logs and confirm it changes only what you expect and replaces nothing that holds data.
       4. If the plan is clean, propose it: `mass instance deploy <instance-id> --patch '<jq>' --propose
       -m '💸 Over budget: $<cost>/mo against $<budget>. Proposing <change>, about $<estimate>/mo. Plan:
-      <deployment id>.'` Never deploy without --propose. Use both message templates word for word,
-      filling only the angle brackets; every message starts with the 💸 emoji.
+      <deployment id>.'` Never deploy without --propose. Plan and propose only with these two mass
+      commands, never with the MCP tools, and use both message templates word for word, filling
+      only the angle brackets; every message starts with the 💸 emoji.
       5. If no param change gets it under budget, propose nothing. Journal whether the budget or the
       bundle should change.
       6. Before you plan anything, check the journal and the instance's proposed deployments. Never

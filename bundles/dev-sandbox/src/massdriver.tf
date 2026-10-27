@@ -1,5 +1,6 @@
 locals {
-  has_massdriver = var.massdriver != null && length(var.massdriver_groups) > 0
+  massdriver_groups = var.massdriver_groups == null ? [] : var.massdriver_groups
+  has_massdriver    = var.massdriver != null && length(local.massdriver_groups) > 0
 }
 
 resource "massdriver_service_account" "agent" {
@@ -11,7 +12,7 @@ resource "massdriver_service_account" "agent" {
 }
 
 resource "massdriver_service_account_group_membership" "agent" {
-  for_each           = local.has_massdriver ? toset(var.massdriver_groups) : toset([])
+  for_each           = local.has_massdriver ? toset(local.massdriver_groups) : toset([])
   provider           = massdriver.admin
   group_id           = each.key
   service_account_id = massdriver_service_account.agent[0].id

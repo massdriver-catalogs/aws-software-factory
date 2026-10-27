@@ -73,6 +73,36 @@ To turn them on, connect a Massdriver Service Account credential to the environm
 
 A sandbox that's already running loads it the next time you run `sandbox-massdriver-login` and open a new shell. Empty the list and redeploy to remove the service account.
 
+## AWS access
+
+**AWS access for agents** attaches a read-only AWS policy to the sandbox's role, so agents and the `aws` CLI can look around the account:
+
+- **Alarms, metrics, logs and resource lists:** `CloudWatchReadOnlyAccess` and `ViewOnlyAccess`.
+- **Read everything:** `ReadOnlyAccess`, which includes S3 objects and table data.
+
+Neither can change anything. Anyone with a shell on the sandbox has the same access.
+
+## Goal
+
+Give the sandbox a **Goal** and it works without anyone attached. A timer checks every 5 minutes and runs the agent headless in `/workspace`: Claude Code when it's installed, otherwise opencode. Each run's output goes to `/workspace/.goal/runs`, and the last 100 are kept.
+
+- **Once** runs it after boot, and again whenever the goal changes.
+- **Every 15 minutes** to **Every day** repeat it, and turn off the idle and nightly stops so the VM stays up.
+
+The goal is read on each run, so changing it never rebuilds the VM. Run it on demand with `sandbox-goal --now`. With **Ask before editing** set, a headless agent can't ask, so actions that need permission are refused.
+
+## Applications
+
+This bundle is a runtime. An application on it ships a ready-made agent through three app envs:
+
+| Env | Value |
+|---|---|
+| `AGENT_GOAL` | The goal |
+| `AGENT_GOAL_EVERY` | `once`, `15m`, `1h`, `6h` or `1d` |
+| `AGENT_CLI` | `claude-code` or `opencode`, installed even if it isn't picked |
+
+Its other app envs and secrets are exported to each goal run. A goal typed into the form replaces the application's, schedule included.
+
 ## GitHub
 
 ```mermaid

@@ -3,7 +3,7 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "idle" {
-  count               = var.idle_stop == "never" ? 0 : 1
+  count               = var.idle_stop == "never" || local.goal_recurring ? 0 : 1
   alarm_name          = "${local.name}-idle-stop"
   alarm_description   = "Stops ${local.name} after ${var.idle_stop} near zero CPU"
   namespace           = "AWS/EC2"
@@ -19,7 +19,7 @@ resource "aws_cloudwatch_metric_alarm" "idle" {
 }
 
 resource "aws_iam_role" "scheduler" {
-  count = var.nightly_stop == "off" ? 0 : 1
+  count = var.nightly_stop == "off" || local.goal_recurring ? 0 : 1
   name  = "${local.name}-nightly-stop"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -33,7 +33,7 @@ resource "aws_iam_role" "scheduler" {
 }
 
 resource "aws_iam_role_policy" "scheduler" {
-  count = var.nightly_stop == "off" ? 0 : 1
+  count = var.nightly_stop == "off" || local.goal_recurring ? 0 : 1
   name  = "stop-sandbox"
   role  = aws_iam_role.scheduler[0].id
   policy = jsonencode({
@@ -47,7 +47,7 @@ resource "aws_iam_role_policy" "scheduler" {
 }
 
 resource "aws_scheduler_schedule" "nightly_stop" {
-  count                        = var.nightly_stop == "off" ? 0 : 1
+  count                        = var.nightly_stop == "off" || local.goal_recurring ? 0 : 1
   name                         = "${local.name}-nightly-stop"
   schedule_expression          = "cron(${tonumber(split(":", var.nightly_stop)[1])} ${tonumber(split(":", var.nightly_stop)[0])} * * ? *)"
   schedule_expression_timezone = var.timezone

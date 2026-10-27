@@ -4,6 +4,7 @@ description: >-
   Reached through Session Manager, with no inbound ports and no cloud credentials beyond its own.
 source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/dev-sandbox
 version: 0.0.0
+provides: [runtime]
 
 params:
   examples:
@@ -21,6 +22,9 @@ params:
       dotfiles_repo: ""
       browser_access: false
       preview_port: 5173
+      goal: ""
+      goal_every: once
+      aws_access: none
     - __name: In the browser
       size: light
       chip: arm
@@ -35,6 +39,9 @@ params:
       dotfiles_repo: ""
       browser_access: true
       preview_port: 5173
+      goal: ""
+      goal_every: once
+      aws_access: none
     - __name: Heavy builds
       size: heavy
       chip: arm
@@ -49,6 +56,9 @@ params:
       dotfiles_repo: ""
       browser_access: false
       preview_port: 5173
+      goal: ""
+      goal_every: once
+      aws_access: none
   required:
     - size
     - chip
@@ -244,6 +254,47 @@ params:
       pattern: ^(|[^@\s]+@[^@\s]+)$
       message:
         pattern: "An email address, or empty."
+    goal:
+      title: Goal
+      description: >-
+        A standing task for the agent. It runs headless in /workspace, with every tool and permission
+        the sandbox has, and writes each run's output to /workspace/.goal/runs. Leave empty for an
+        interactive sandbox.
+      type: string
+      default: ""
+      maxLength: 8000
+    goal_every:
+      title: Work on the goal
+      description: >-
+        Once runs it after boot and again whenever the goal changes. Any repeat turns off the idle
+        and nightly stops, so the VM keeps running. ***A VM that never stops bills every hour.***
+      type: string
+      default: once
+      oneOf:
+        - const: once
+          title: Once
+        - const: 15m
+          title: Every 15 minutes
+        - const: 1h
+          title: Every hour
+        - const: 6h
+          title: Every 6 hours
+        - const: 1d
+          title: Every day
+    aws_access:
+      title: AWS access for agents
+      description: >-
+        What the sandbox can see in this AWS account, beyond its own secrets. It can never change
+        anything.
+      type: string
+      default: none
+      oneOf:
+        - const: none
+          title: None
+        - const: observe
+          title: Alarms, metrics, logs and resource lists
+        - const: read_only
+          title: Read everything, including S3 objects and table data
     massdriver_groups:
       title: Massdriver access for agents
       description: >-
@@ -301,6 +352,9 @@ ui:
     - dotfiles_repo
     - git_name
     - git_email
+    - goal
+    - goal_every
+    - aws_access
     - massdriver_groups
     - "*"
   workspace_gb:
@@ -311,3 +365,7 @@ ui:
     ui:widget: checkboxes
   preview_port:
     ui:widget: updown
+  goal:
+    ui:widget: textarea
+    ui:options:
+      rows: 8

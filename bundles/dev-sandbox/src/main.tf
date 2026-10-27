@@ -82,7 +82,8 @@ resource "aws_instance" "sandbox" {
     base_url           = local.has_llm ? var.llm.base_url : ""
     anthropic_base_url = local.has_llm ? trimsuffix(trimsuffix(var.llm.base_url, "/"), "/v1") : ""
     default_model      = local.has_llm ? var.llm.default_model : ""
-    agents             = join(" ", var.agents)
+    agents             = join(" ", local.agents)
+    goal_secret        = local.goal_secret
     languages          = join(" ", [for l in var.languages : local.mise_tools[l]])
     dotfiles_repo      = var.dotfiles_repo
     opencode_config    = jsonencode(local.opencode_config)
@@ -118,7 +119,7 @@ resource "aws_instance" "sandbox" {
     }
   }
 
-  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github, aws_secretsmanager_secret_version.browser, aws_secretsmanager_secret_version.massdriver, massdriver_service_account_group_membership.agent]
+  depends_on = [aws_ssm_parameter.llm_key, aws_secretsmanager_secret_version.github, aws_secretsmanager_secret_version.browser, aws_secretsmanager_secret_version.massdriver, massdriver_service_account_group_membership.agent, aws_secretsmanager_secret_version.goal]
 
   tags = { Name = local.name }
 }

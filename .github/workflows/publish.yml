@@ -7,6 +7,7 @@ on:
       - "platforms/**"
       - "resource-types/**"
       - "bundles/**"
+      - "applications/**"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
     inputs:
@@ -62,10 +63,14 @@ jobs:
           if grep -qx '.github/workflows/publish.yml' changed.txt; then
             git ls-files > changed.txt
           fi
-          for kind in platforms resource-types bundles; do
+          for kind in platforms resource-types bundles applications; do
             awk -F/ -v k="$kind" '$1 == k && NF > 2 { print $1 "/" $2 }' changed.txt | sort -u > "$kind.txt"
             echo "$kind:"; sed 's/^/  /' "$kind.txt"
           done
+          # Applications are built on a runtime bundle, so a bundle change rebuilds every one.
+          if [ -s bundles.txt ]; then
+            git ls-files 'applications/*/massdriver.yaml' | xargs -r -n1 dirname > applications.txt
+          fi
 
       # Order matters: bundles reference resource types, which must already exist.
       - name: Publish platforms and resource types
@@ -81,7 +86,7 @@ jobs:
       - name: Publish bundles
         run: |
           set -euo pipefail
-          for dir in $(cat bundles.txt); do
+          for dir in $(cat bundles.txt applications.txt); do
             [ -f "$dir/massdriver.yaml" ] || continue
             name=$(awk '/^name:/ { print $2; exit }' "$dir/massdriver.yaml")
             mass repository create "$name" -t bundle >/dev/null 2>&1 || true

@@ -254,4 +254,76 @@ EOF
   systemctl enable --now opencode-web
 fi
 
+cat > /usr/local/bin/sandbox-goal <<'SH'
+#!/bin/bash
+# Works on the sandbox's standing goal when it's due. --now runs it regardless.
+set -euo pipefail
+STATE=/workspace/.goal
+mkdir -p "$STATE/runs"
+exec 9>"$STATE/lock"
+flock -n 9 || { echo "A goal run is already in progress." >&2; exit 0; }
+
+CFG=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${goal_secret} --query SecretString --output text)
+GOAL=$(jq -r '.goal // empty' <<<"$CFG")
+[ -n "$GOAL" ] || exit 0
+EVERY=$(jq -r '.every_minutes // 0' <<<"$CFG")
+AGENT=$(jq -r '.agent // "opencode"' <<<"$CFG")
+HASH=$(printf '%s' "$GOAL" | sha256sum | cut -c1-16)
+
+if [ "$${1:-}" != "--now" ] && [ -f "$STATE/last" ]; then
+  read -r LAST_HASH LAST_AT < "$STATE/last"
+  if [ "$LAST_HASH" = "$HASH" ]; then
+    [ "$EVERY" -eq 0 ] && exit 0
+    [ $(( $(date +%s) - LAST_AT )) -lt $(( EVERY * 60 )) ] && exit 0
+  fi
+fi
+echo "$HASH $(date +%s)" > "$STATE/last"
+
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+[ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+[ -f "$HOME/.config/sandbox/massdriver.env" ] && . "$HOME/.config/sandbox/massdriver.env"
+command -v mise >/dev/null && eval "$(mise activate bash)"
+eval "$(jq -r '.env // {} | to_entries[] | "export \(.key)=\(.value | @sh)"' <<<"$CFG")"
+
+LOG="$STATE/runs/$(date -u +%Y%m%dT%H%M%SZ).log"
+cd /workspace
+echo "Goal run with $AGENT; log at $LOG" >&2
+STATUS=0
+case "$AGENT" in
+  claude-code) claude -p "$GOAL" ;;
+  *) opencode run "$GOAL" ;;
+esac > "$LOG" 2>&1 || STATUS=$?
+[ "$STATUS" -eq 0 ] || echo "The agent exited with status $STATUS." >> "$LOG"
+
+ls -1t "$STATE/runs" | tail -n +101 | sed "s|^|$STATE/runs/|" | xargs -r rm -f
+SH
+chmod 0755 /usr/local/bin/sandbox-goal
+
+cat > /etc/systemd/system/sandbox-goal.service <<'EOF'
+[Unit]
+Description=Work on the sandbox's standing goal
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dev
+ExecStart=/bin/bash -lc /usr/local/bin/sandbox-goal
+TimeoutStartSec=2h
+EOF
+
+cat > /etc/systemd/system/sandbox-goal.timer <<'EOF'
+[Unit]
+Description=Check the sandbox's standing goal every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now sandbox-goal.timer
+
 touch /var/lib/dev-sandbox-ready

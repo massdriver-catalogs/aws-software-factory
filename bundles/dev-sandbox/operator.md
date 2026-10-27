@@ -162,6 +162,19 @@ Browser: {{resources.access.browser_url}} · Preview: {{resources.access.preview
 Browser access is off. Turn on **Browser access** (with **Private** network mode) and redeploy.
 {{/params.browser_access}}
 
+## The goal isn't running
+
+```bash
+systemctl list-timers sandbox-goal.timer
+journalctl -u sandbox-goal -n 50
+ls -t /workspace/.goal/runs | head
+```
+
+- **No runs at all:** the goal is empty, or **Once** already ran this goal. Run `sandbox-goal --now`.
+- **A run never ends:** runs stop after 2 hours. The next one starts when the last finishes; `/workspace/.goal/lock` keeps them from overlapping.
+- **The agent says it isn't allowed:** **Ask before editing** is set. A headless agent can't ask; set autonomy to run freely.
+- **The VM stopped:** only a repeating goal turns the idle and nightly stops off.
+
 ## Setup didn't finish
 
 ```bash

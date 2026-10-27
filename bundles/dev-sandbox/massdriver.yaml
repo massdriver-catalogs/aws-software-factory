@@ -270,7 +270,8 @@ params:
       description: >-
         A standing task for the agent. It runs headless in /workspace, with every tool and permission
         the sandbox has, and writes each run's output to /workspace/.goal/runs. Leave empty for an
-        interactive sandbox.
+        interactive sandbox, or for an agent like the SRE Agent to use its built-in goal. A goal
+        typed here replaces the built-in one.
       type: string
       default: ""
       maxLength: 8000

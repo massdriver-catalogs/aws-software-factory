@@ -352,3 +352,60 @@ Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't
 - The default model, Kimi K2.5 on Bedrock, is a strong coding agent at pennies a run. Your own GPU with gpt-oss-20b is the "your model, your hardware" option: it works, it's private, and it's weaker than Kimi. Switching is one setting, and the sandbox never changes.
 - The agent never holds cloud credentials. Infrastructure changes go through Massdriver, and code changes go through pull requests a person merges.
 - "Issue → agent PR → review → merge → deploy to dev" is the closing demo. Alarms open issues the same way.
+
+## Addendum: costs in detail
+
+us-east-1 on-demand prices, for the presets this walkthrough uses.
+
+### Unit prices used
+
+| Item | Price |
+|---|---|
+| t4g.nano (NAT instance) | $0.0042/h, $3.07/mo |
+| t4g.small (gateway, Small runner) | $0.0168/h, $12.26/mo |
+| t4g.medium (sandbox Light, agents, Medium runner) | $0.0336/h, $24.53/mo |
+| t4g.large (sandbox Standard, the Demo preset) | $0.0672/h, $49.06/mo |
+| g6.xlarge (vLLM) | $0.8048/h, ~$587/mo |
+| gp3 disk | $0.08/GB-mo |
+| Public IPv4 | $0.005/h, $3.65/mo |
+| KMS key | $1/mo |
+| CloudWatch alarm | $0.10/mo |
+| Kimi K2.5 on Bedrock | $0.60 in / $3.00 out per M tokens |
+| Kimi K3 on Bedrock | $3.30 in / $16.50 out per M tokens |
+
+### Measured token use
+
+Measured on a running SRE Agent: ~217K tokens per run, **~$0.13–0.15 per agent run** on Kimi K2.5. Runs every 10 minutes come to 6 an hour, **~$0.75–0.90 an hour**.
+
+The issue agent, AI review and vibe-coding figures are estimates scaled from this.
+
+### Totals
+
+- **Workshop, agents removed after their tests:** ~$3–5 on Bedrock, ~$6–8 with the GPU.
+- **Workshop with the SRE agent running all 3 hours:** ~$7–9.
+- **A month left running 24×7 without the GPU:** ~$125, plus up to $20 per gateway consumer. That's about 6 consumers (runners, sandbox, two functions, two agents), so up to ~$120 of tokens.
+
+### Biggest risks
+
+1. **The SRE agent burns tokens fast.** Every 10 minutes it reads ~200K tokens: ~$0.75 an hour, ~$18 a day. The per-consumer cap ($20 on Development) stops it in about a day, and after that it silently does nothing for the rest of the month. To slow it, type your own goal and schedule on the instance. Remove both agents after their tests (step 12, item 7).
+2. **A forgotten GPU.** ~$0.80 an hour and ~$600 a month if it never stops. The Development preset idles out after an hour and stops at 8 pm, but a stopped GPU still bills ~$10 a month for its disk. It also needs G/VT quota that most new accounts lack. Skip it for the workshop.
+3. **Forgotten teardown.** The VPC, gateway and runners never stop (~$38 a month). Agents never stop (~$31 a month each). Token caps stack per consumer. A stopped sandbox still bills ~$3 a month for its disks.
+4. **Token caps run on the gateway's own estimates.** The real bill is in Cost Explorer. Bedrock bills per token with no minimum, so nothing bills after teardown.
+5. **Kimi K3 is ~5.5× K2.5.** The Demo gateway preset enables it. A K3 session costs ~5× as much, and its multi-turn calls can fail through Bedrock.
+
+### The Demo presets, per day
+
+| Piece | Demo settings | Per day |
+|---|---|---|
+| VPC | Development | ~$0.30 |
+| Gateway | K2.5 + K3, $50 cap per consumer | ~$0.46 |
+| Runners | 2× t4g.medium, 30 GB | ~$1.77 |
+| vLLM | never idles out, stops at 10 pm | ~$11.60 if started at 8 am (14 h × $0.80 + disk) |
+| Sandbox | t4g.large, never idles out, stops at midnight | ~$1.85 if up all day |
+| SRE Agent VM | t4g.large, 24×7 | ~$1.80 |
+| Cost Agent VM | t4g.large, 24×7 | ~$1.80 |
+| SRE Agent tokens | every 10 min | ~$18 until it reaches its $50 cap (~2.8 days) |
+| Cost Agent tokens | daily | ~$0.15 |
+| App, Codebases, Cost Reports | | ~$0 |
+
+**~$20 a day in infrastructure, ~$8 of it without the GPU, plus up to ~$18 a day of SRE Agent tokens.**

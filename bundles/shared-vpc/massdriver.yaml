@@ -8,6 +8,7 @@ version: 0.0.0
 params:
   examples:
     - __name: Development
+      monthly_budget: 15
       region: us-east-1
       cidr: 10.0.0.0/16
       zone_count: 2
@@ -15,6 +16,7 @@ params:
       private_endpoints: []
       flow_log_retention_days: 7
     - __name: Production
+      monthly_budget: 120
       region: us-east-1
       cidr: 10.0.0.0/16
       zone_count: 3
@@ -26,6 +28,7 @@ params:
         - logs
       flow_log_retention_days: 365
   required:
+    - monthly_budget
     - region
     - cidr
     - zone_count
@@ -33,6 +36,14 @@ params:
     - private_endpoints
     - flow_log_retention_days
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 15
     region:
       title: Region
       type: string
@@ -145,6 +156,7 @@ ui:
     - egress
     - private_endpoints
     - flow_log_retention_days
+    - monthly_budget
     - "*"
   zone_count:
     ui:widget: updown

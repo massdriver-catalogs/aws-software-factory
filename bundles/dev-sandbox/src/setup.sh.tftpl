@@ -256,28 +256,38 @@ fi
 
 cat > /usr/local/bin/sandbox-goal <<'SH'
 #!/bin/bash
-# Works on the sandbox's standing goal when it's due. --now runs it regardless.
+# Works on the sandbox's standing goal when it's due. --now runs it regardless;
+# --test runs the application's test goal instead, without touching the schedule.
 set -euo pipefail
 STATE=/workspace/.goal
+MODE="$${1:-}"
 mkdir -p "$STATE/runs"
 exec 9>"$STATE/lock"
 flock -n 9 || { echo "A goal run is already in progress." >&2; exit 0; }
 
 CFG=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${goal_secret} --query SecretString --output text)
-GOAL=$(jq -r '.goal // empty' <<<"$CFG")
-[ -n "$GOAL" ] || exit 0
-EVERY=$(jq -r '.every_minutes // 0' <<<"$CFG")
 AGENT=$(jq -r '.agent // "opencode"' <<<"$CFG")
+if [ "$MODE" = "--test" ]; then
+  GOAL=$(jq -r '.test_goal // empty' <<<"$CFG")
+  [ -n "$GOAL" ] || { echo "This sandbox has no test goal." >&2; exit 1; }
+  EVERY=0
+else
+  GOAL=$(jq -r '.goal // empty' <<<"$CFG")
+  [ -n "$GOAL" ] || exit 0
+  EVERY=$(jq -r '.every_minutes // 0' <<<"$CFG")
+fi
 HASH=$(printf '%s' "$GOAL" | sha256sum | cut -c1-16)
 
-if [ "$${1:-}" != "--now" ] && [ -f "$STATE/last" ]; then
+if [ "$MODE" = "--test" ]; then
+  :
+elif [ "$MODE" != "--now" ] && [ -f "$STATE/last" ]; then
   read -r LAST_HASH LAST_AT < "$STATE/last"
   if [ "$LAST_HASH" = "$HASH" ]; then
     [ "$EVERY" -eq 0 ] && exit 0
     [ $(( $(date +%s) - LAST_AT )) -lt $(( EVERY * 60 )) ] && exit 0
   fi
 fi
-echo "$HASH $(date +%s)" > "$STATE/last"
+[ "$MODE" = "--test" ] || echo "$HASH $(date +%s)" > "$STATE/last"
 
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 [ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
@@ -285,14 +295,16 @@ export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 command -v mise >/dev/null && eval "$(mise activate bash)"
 eval "$(jq -r '.env // {} | to_entries[] | "export \(.key)=\(.value | @sh)"' <<<"$CFG")"
 
-LOG="$STATE/runs/$(date -u +%Y%m%dT%H%M%SZ).log"
+LOG="$STATE/runs/$(date -u +%Y%m%dT%H%M%SZ)$${MODE:+-$${MODE#--}}.log"
 cd /workspace
 echo "Goal run with $AGENT; log at $LOG" >&2
+# Someone watching from a shell sees the run as it happens.
+if [ -t 1 ]; then OUT=(tee "$LOG"); else OUT=(cat); exec >"$LOG" 2>&1; fi
 STATUS=0
 case "$AGENT" in
   claude-code) claude -p "$GOAL" ;;
   *) opencode run "$GOAL" ;;
-esac > "$LOG" 2>&1 || STATUS=$?
+esac 2>&1 | "$${OUT[@]}" || STATUS=$?
 [ "$STATUS" -eq 0 ] || echo "The agent exited with status $STATUS." >> "$LOG"
 
 ls -1t "$STATE/runs" | tail -n +101 | sed "s|^|$STATE/runs/|" | xargs -r rm -f

@@ -1,7 +1,7 @@
 locals {
   # An application on this runtime defines its agent through app envs:
-  # AGENT_GOAL, AGENT_GOAL_EVERY and AGENT_CLI. A goal typed into the form
-  # replaces the application's, schedule included.
+  # AGENT_GOAL, AGENT_GOAL_EVERY, AGENT_CLI and AGENT_TEST_GOAL. A goal typed
+  # into the form replaces the application's, schedule included.
   app_env = try(jsondecode(file("/massdriver/envs.json")), {})
 
   form_goal  = var.goal == null ? "" : var.goal
@@ -31,7 +31,8 @@ resource "aws_secretsmanager_secret_version" "goal" {
     goal          = local.goal
     every_minutes = local.goal_minutes[local.goal_every]
     agent         = local.goal_agent
-    env           = { for k, v in local.app_env : k => tostring(v) if !contains(["AGENT_GOAL", "AGENT_GOAL_EVERY", "AGENT_CLI"], k) }
+    test_goal     = try(local.app_env.AGENT_TEST_GOAL, "")
+    env           = { for k, v in local.app_env : k => tostring(v) if !contains(["AGENT_GOAL", "AGENT_GOAL_EVERY", "AGENT_CLI", "AGENT_TEST_GOAL"], k) }
   })
 
   lifecycle {

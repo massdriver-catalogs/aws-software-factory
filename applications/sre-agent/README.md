@@ -27,3 +27,13 @@ Run it now, from a shell on the VM:
 ```bash
 sandbox-goal --now
 ```
+
+## Try it
+
+The test goal pretends one instance's alarm is firing and does everything else for real: a real proposal, or a real draft pull request, marked `🚨 [test]`. From a shell on the VM:
+
+```bash
+sandbox-goal --test
+```
+
+Reject the proposal or close the pull request afterwards.

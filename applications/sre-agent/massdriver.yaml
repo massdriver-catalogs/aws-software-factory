@@ -23,12 +23,21 @@ app:
       2. For each firing alarm, read the instance: its params, its bundle and version, its
       recent deployments and their logs, and its connections. Find the cause.
       3. If changing the instance's params fixes it, propose the change with
-      `mass instance deploy <instance-id> --patch '<jq>' --propose -m '<alarm, cause, fix>'`.
-      Never deploy without --propose.
+      `mass instance deploy <instance-id> --patch '<jq>' --propose -m '🚨 <alarm>: <cause>.
+      Proposing <fix>.'` Never deploy without --propose.
       4. If the bundle's code is at fault, use the Massdriver architect skill to plan the fix. Then
       clone the bundle's source repository (its source_url), make the change on a branch, and open
-      a draft pull request that names the alarm and explains the cause.
+      a draft pull request titled '🚨 <alarm>: <fix>' that names the alarm and explains the cause.
       5. Before you propose or open anything, check the journal, the instance's proposed
       deployments and the open pull requests. Never repeat one that is still open.
       6. Add to the journal what fired, what you found, and what you proposed, with links.
       If nothing is firing, add one line to the journal and stop."
+    AGENT_TEST_GOAL: >-
+      @text "This is a test run of the SRE agent, to show how it works. Everything is real except
+      the alarm. Pick one PROVISIONED instance that has alarms, preferring one in an environment
+      named dev and never this agent's own instance. Pretend its first alarm is firing, with a
+      message that fits the alarm's metric and threshold. Then do steps 2 to 4 of your standing
+      goal for that alarm, for real, and start the proposal message and any pull request title
+      with '🚨 [test]' instead of '🚨'. Explain each step as you go, and finish with the instance,
+      the alarm, and links to what you proposed or opened. Add the run to
+      /workspace/sre/journal.md, marked as a test."

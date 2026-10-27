@@ -8,18 +8,29 @@ version: 0.0.0
 params:
   examples:
     - __name: Issues only
+      monthly_budget: 1
       region: us-east-1
       hand_to_agent: false
       send_test_alarm: false
     - __name: Hand alarms to the agent
+      monthly_budget: 1
       region: us-east-1
       hand_to_agent: true
       send_test_alarm: false
   required:
+    - monthly_budget
     - region
     - hand_to_agent
     - send_test_alarm
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 1
     region:
       title: Region
       description: The region this environment's alarms live in.
@@ -76,4 +87,5 @@ ui:
     - region
     - hand_to_agent
     - send_test_alarm
+    - monthly_budget
     - "*"

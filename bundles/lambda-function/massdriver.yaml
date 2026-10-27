@@ -9,6 +9,7 @@ version: 0.0.0
 params:
   examples:
     - __name: Free Tier
+      monthly_budget: 5
       image_uri: ""
       routes:
         - ANY /{proxy+}
@@ -19,6 +20,7 @@ params:
       environment: []
       log_retention_days: 1
     - __name: Production
+      monthly_budget: 100
       image_uri: ""
       routes:
         - ANY /{proxy+}
@@ -29,6 +31,7 @@ params:
       environment: []
       log_retention_days: 30
   required:
+    - monthly_budget
     - image_uri
     - routes
     - require_sign_in
@@ -37,6 +40,14 @@ params:
     - environment
     - log_retention_days
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 5
     image_uri:
       title: Container image
       description: >-
@@ -167,6 +178,7 @@ ui:
     - environment
     - table_access
     - log_retention_days
+    - monthly_budget
     - "*"
   environment:
     items:

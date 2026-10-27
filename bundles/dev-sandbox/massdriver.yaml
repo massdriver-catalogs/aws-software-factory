@@ -9,6 +9,7 @@ provides: [runtime]
 params:
   examples:
     - __name: Lowest cost
+      monthly_budget: 15
       size: light
       chip: arm
       workspace_gb: 20
@@ -26,6 +27,7 @@ params:
       goal_every: once
       aws_access: none
     - __name: In the browser
+      monthly_budget: 25
       size: light
       chip: arm
       workspace_gb: 20
@@ -43,6 +45,7 @@ params:
       goal_every: once
       aws_access: none
     - __name: Heavy builds
+      monthly_budget: 120
       size: heavy
       chip: arm
       workspace_gb: 100
@@ -60,6 +63,7 @@ params:
       goal_every: once
       aws_access: none
   required:
+    - monthly_budget
     - size
     - chip
     - workspace_gb
@@ -71,6 +75,14 @@ params:
     - autonomy
     - languages
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 25
     size:
       title: Size
       description: Light runs agents, docker and normal builds comfortably. Go bigger for large monorepos or parallel agents.
@@ -358,6 +370,7 @@ ui:
     - goal_every
     - aws_access
     - massdriver_groups
+    - monthly_budget
     - "*"
   workspace_gb:
     ui:widget: updown

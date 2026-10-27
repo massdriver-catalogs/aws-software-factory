@@ -9,21 +9,32 @@ version: 0.0.0
 params:
   examples:
     - __name: Development
+      monthly_budget: 30
       runner_count: 1
       size: small
       disk_gb: 30
       extra_labels: []
     - __name: Production
+      monthly_budget: 200
       runner_count: 3
       size: large
       disk_gb: 60
       extra_labels: []
   required:
+    - monthly_budget
     - runner_count
     - size
     - disk_gb
     - extra_labels
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 30
     runner_count:
       title: Runners
       description: >-
@@ -96,6 +107,7 @@ ui:
     - size
     - disk_gb
     - extra_labels
+    - monthly_budget
     - "*"
   runner_count:
     ui:widget: updown

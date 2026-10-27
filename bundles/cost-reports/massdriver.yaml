@@ -1,0 +1,62 @@
+name: cost-reports
+description: >-
+  Turns on per-instance costs in Massdriver for this AWS account. Sets up a daily Cost and Usage
+  Report and a read-only user that Massdriver collects it with.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/cost-reports
+version: 0.0.0
+
+params:
+  examples:
+    - __name: Member account
+      bucket_region: us-east-1
+      activate_cost_allocation_tag: false
+      monthly_budget: 1
+    - __name: Management account
+      bucket_region: us-east-1
+      activate_cost_allocation_tag: true
+      monthly_budget: 1
+  required:
+    - monthly_budget
+    - bucket_region
+    - activate_cost_allocation_tag
+  properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 1
+    bucket_region:
+      title: Report bucket region
+      description: Where the reports are stored. AWS writes the report itself from us-east-1 either way.
+      type: string
+      default: us-east-1
+      pattern: ^[a-z]{2}(-gov)?-[a-z]+-[0-9]$
+      $md.immutable: true
+    activate_cost_allocation_tag:
+      title: Activate the md-package cost allocation tag
+      description: >-
+        More accurate costs, including deleted resources and Savings Plans. Only works in the AWS
+        management (payer) account; leave off in member accounts.
+      type: boolean
+      default: false
+
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+
+resources: {}
+
+steps:
+  - path: src
+    provisioner: opentofu:1.10
+
+ui:
+  ui:order:
+    - bucket_region
+    - activate_cost_allocation_tag
+    - monthly_budget
+    - "*"

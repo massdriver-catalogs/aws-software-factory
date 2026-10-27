@@ -8,6 +8,7 @@ version: 0.0.0
 params:
   examples:
     - __name: Private app
+      monthly_budget: 5
       repository_name: todoapp
       description: ""
       visibility: private
@@ -18,6 +19,7 @@ params:
       release_instance: ""
       release_groups: []
     - __name: Public app
+      monthly_budget: 5
       repository_name: todoapp
       description: ""
       visibility: public
@@ -28,6 +30,7 @@ params:
       release_instance: ""
       release_groups: []
     - __name: Adopt an existing repository
+      monthly_budget: 5
       repository_name: todoapp
       description: ""
       visibility: private
@@ -38,11 +41,20 @@ params:
       release_instance: ""
       release_groups: []
   required:
+    - monthly_budget
     - repository_name
     - visibility
     - seed_starter_files
     - default_branch
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 5
     repository_name:
       title: Repository name
       description: >-
@@ -166,4 +178,5 @@ ui:
     - default_branch
     - release_instance
     - release_groups
+    - monthly_budget
     - "*"

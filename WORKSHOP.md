@@ -114,6 +114,10 @@ Add **Shared VPC** with the **Development** preset: two zones, a NAT instance (~
 
 Add **Budget Guard** with the **Free Tier** preset ($25 limit, alerts at 50/80/100% and on forecast), and put your address in **Email alerts to**. **Budget Guard: $0** (the first two budgets in an account are free). Confirm the subscription email AWS sends, or alerts won't arrive.
 
+Add **Cost Reports** with the **Member account** preset (**Management account** if this is the payer account). **Cents.** When it's deployed, open its operator guide, run the command it shows, and paste the four values into **Settings → Integrations → AWS Cost and Usage Reports**. Every instance then shows its cost, usually within a day.
+
+Every bundle asks for a **Monthly budget**; the presets fill in a sensible one. That's what the cost agent in step 12 checks against.
+
 ### 6. Software Factory
 
 Create project **Software Factory** (`factory`) with one environment per GitHub organization and AWS account, e.g. **Main** (`main`). Set the AWS IAM Role, the Shared VPC and the GitHub App as the environment's defaults.
@@ -207,18 +211,42 @@ All in the browser again.
 
 Each agent run costs a few cents in tokens on Kimi K2.5.
 
-### 12. Tear it down
+### 12. Agents that run themselves
+
+The sandbox from step 9 can also be a home for an agent nobody is driving. The **SRE Agent** and **Cost Agent** are that sandbox with a goal, a schedule, and their own Massdriver identity. They read everything through Massdriver, hold no cloud credentials, and only ever propose.
+
+1. **Groups.** In Massdriver, **Settings → Groups**:
+   - **Service Account Managers:** allow `organization:manageServiceAccounts` and `organization:manageGroups` on `*`.
+   - **Factory Agents:** allow `project:view`, `instance:plan` and `instance:propose` on `*`. No `instance:deploy`, so a person approves every change.
+2. **The identity maker.** **Settings → Service Accounts → Create** `Massdriver SW Factory Agent Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token.
+3. **The project.** Create **Agents** (`agents`) with environment **Main** (`main`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint, the GitHub App and the Massdriver Service Account as its defaults.
+4. **The agents.** Add **SRE Agent** and **Cost Agent**, each with the **Lowest cost** preset, and pick **Factory Agents** in **Massdriver access for agents**. Each deploy creates a service account for that agent, in that group only. **~$30 each a month**, because a repeating goal keeps the VM up; **a 3-hour workshop: ~$0.15.** Tokens come on top, and the gateway's per-consumer budget caps each agent at $20 a month.
+   - The SRE agent checks Massdriver's alarms every 5 minutes.
+   - The cost agent checks every instance's cost against its budget once a day.
+5. **Watch one work.** Shell in to the Cost Agent the same way as step 10, with its **Connect script**, and run:
+
+   ```bash
+   sandbox-goal --test
+   ```
+
+   Cost data takes a day, so the test pretends one instance costs 3 times its budget. Everything else is real. It finds a cheaper config, runs a plan marked **💸 [test]**, and proposes the change with a **💸 [test]** message. Open the instance in Massdriver to see the plan and the pending proposal. Reject it.
+6. **The SRE agent's test.** Shell in to the SRE Agent and run `sandbox-goal --test`. It pretends one of the app's alarms is firing, digs into the instance, and proposes a fix or opens a draft pull request, marked **🚨 [test]**. Reject or close it.
+
+Their journals are in `/workspace/sre/journal.md` and `/workspace/cost/journal.md`; every run's output is in `/workspace/.goal/runs`.
+
+### 13. Tear it down
 
 > [!WARNING]
 > **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$36/month together). Decommissioning deletes everything, disks included.
 
 Decommission each environment in this order; the shared pieces go last because everything else runs on them:
 
-1. **Your app** (`todoapp` / `dev`)
-2. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
-3. **Codebases** (`todoapp`). The GitHub repository is archived, not deleted; its images are deleted.
-4. **Software Factory** (`main`)
-5. **Networking** (`dev`)
+1. **Agents** (`main`). Their service accounts are deleted with them.
+2. **Your app** (`todoapp` / `dev`)
+3. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
+4. **Codebases** (`todoapp`). The GitHub repository is archived, not deleted; its images are deleted.
+5. **Software Factory** (`main`)
+6. **Networking** (`dev`)
 
 Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again.
 

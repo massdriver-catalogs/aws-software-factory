@@ -8,30 +8,42 @@ version: 0.0.0
 params:
   examples:
     - __name: Free Tier
+      monthly_budget: 5
       region: us-east-1
       allow_self_sign_up: true
       mfa: "OFF"
       callback_urls: ["http://localhost:5173/"]
       deletion_protection: false
     - __name: Production
+      monthly_budget: 100
       region: us-east-1
       allow_self_sign_up: true
       mfa: OPTIONAL
       callback_urls: ["http://localhost:5173/"]
       deletion_protection: true
     - __name: Invite only
+      monthly_budget: 5
       region: us-east-1
       allow_self_sign_up: false
       mfa: "ON"
       callback_urls: ["http://localhost:5173/"]
       deletion_protection: true
   required:
+    - monthly_budget
     - region
     - allow_self_sign_up
     - mfa
     - callback_urls
     - deletion_protection
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 5
     region:
       title: Region
       type: string
@@ -108,4 +120,5 @@ ui:
     - mfa
     - callback_urls
     - deletion_protection
+    - monthly_budget
     - "*"

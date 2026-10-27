@@ -8,6 +8,7 @@ version: 0.0.0
 params:
   examples:
     - __name: Development
+      monthly_budget: 5
       region: us-east-1
       partition_key: { name: pk, type: S }
       sort_key: { name: sk, type: S }
@@ -16,6 +17,7 @@ params:
       deletion_protection: false
       table_class: STANDARD
     - __name: Production
+      monthly_budget: 100
       region: us-east-1
       partition_key: { name: pk, type: S }
       sort_key: { name: sk, type: S }
@@ -24,12 +26,21 @@ params:
       deletion_protection: true
       table_class: STANDARD
   required:
+    - monthly_budget
     - region
     - partition_key
     - point_in_time_recovery
     - deletion_protection
     - table_class
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 5
     region:
       title: Region
       type: string
@@ -158,4 +169,5 @@ ui:
     - point_in_time_recovery
     - deletion_protection
     - table_class
+    - monthly_budget
     - "*"

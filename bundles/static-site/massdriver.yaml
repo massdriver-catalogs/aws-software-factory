@@ -8,22 +8,34 @@ version: 0.0.0
 params:
   examples:
     - __name: Single-page app
+      monthly_budget: 5
       single_page_app: true
       price_class: PriceClass_100
       default_cache_seconds: 300
     - __name: Plain website
+      monthly_budget: 5
       single_page_app: false
       price_class: PriceClass_100
       default_cache_seconds: 3600
     - __name: Worldwide audience
+      monthly_budget: 50
       single_page_app: true
       price_class: PriceClass_All
       default_cache_seconds: 300
   required:
+    - monthly_budget
     - single_page_app
     - price_class
     - default_cache_seconds
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 5
     single_page_app:
       title: Single-page app
       description: >-
@@ -74,6 +86,7 @@ ui:
     - single_page_app
     - price_class
     - default_cache_seconds
+    - monthly_budget
     - "*"
   default_cache_seconds:
     ui:widget: updown

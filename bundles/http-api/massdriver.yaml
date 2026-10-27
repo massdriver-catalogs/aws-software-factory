@@ -8,24 +8,35 @@ version: 0.0.0
 params:
   examples:
     - __name: Development
+      monthly_budget: 5
       region: us-east-1
       cors_allowed_origins: []
       throttle_rate: 50
       throttle_burst: 100
       access_log_retention_days: 1
     - __name: Production
+      monthly_budget: 100
       region: us-east-1
       cors_allowed_origins: []
       throttle_rate: 1000
       throttle_burst: 2000
       access_log_retention_days: 30
   required:
+    - monthly_budget
     - region
     - cors_allowed_origins
     - throttle_rate
     - throttle_burst
     - access_log_retention_days
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 5
     region:
       title: Region
       description: Functions attached to this API must be in the same region.
@@ -109,6 +120,7 @@ ui:
     - throttle_rate
     - throttle_burst
     - access_log_retention_days
+    - monthly_budget
     - "*"
   throttle_rate:
     ui:widget: updown

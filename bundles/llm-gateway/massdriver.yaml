@@ -9,26 +9,38 @@ version: 0.0.0
 params:
   examples:
     - __name: Development
+      monthly_budget: 40
       bedrock_models: [kimi-k2-5]
       log_retention_days: 1
       monthly_budget_usd: 20
       budget_overrides: []
     - __name: Production
+      monthly_budget: 150
       bedrock_models: [kimi-k2-5, kimi-k3, qwen3-coder-next]
       log_retention_days: 30
       monthly_budget_usd: 100
       budget_overrides: []
     - __name: Lowest token cost
+      monthly_budget: 40
       bedrock_models: [kimi-k2-5, gpt-oss-20b]
       log_retention_days: 1
       monthly_budget_usd: 10
       budget_overrides: []
   required:
+    - monthly_budget
     - bedrock_models
     - log_retention_days
     - monthly_budget_usd
     - budget_overrides
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 40
     bedrock_models:
       title: Bedrock models
       description: >-
@@ -121,6 +133,7 @@ ui:
     - monthly_budget_usd
     - budget_overrides
     - log_retention_days
+    - monthly_budget
     - "*"
   bedrock_models:
     ui:widget: checkboxes

@@ -8,6 +8,7 @@ version: 0.0.0
 params:
   examples:
     - __name: Development
+      monthly_budget: 650
       instance_type: g6.xlarge
       model: gpt-oss-20b
       idle_stop_minutes: 60
@@ -15,6 +16,7 @@ params:
       timezone: America/Los_Angeles
       log_retention_days: 1
     - __name: Production
+      monthly_budget: 2500
       instance_type: g6e.xlarge
       model: qwen3-coder-30b
       idle_stop_minutes: 0
@@ -22,6 +24,7 @@ params:
       timezone: UTC
       log_retention_days: 30
   required:
+    - monthly_budget
     - instance_type
     - model
     - idle_stop_minutes
@@ -29,6 +32,14 @@ params:
     - timezone
     - log_retention_days
   properties:
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a
+        cheaper configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 650
     instance_type:
       title: GPU
       description: >-
@@ -132,4 +143,5 @@ ui:
     - nightly_stop
     - timezone
     - log_retention_days
+    - monthly_budget
     - "*"

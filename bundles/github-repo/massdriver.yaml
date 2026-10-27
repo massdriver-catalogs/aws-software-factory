@@ -103,8 +103,8 @@ params:
       title: Adopt an existing repository
       description: >-
         Take over a repository that already exists in the organization instead of creating one.
-        Nothing in it is changed or overwritten, and starter files are skipped. If it's archived,
-        it's unarchived. Only the first deploy reads this.
+        Nothing in it is overwritten, and starter files are skipped; only Release to adds its
+        workflow. If it's archived, it's unarchived. Only the first deploy reads this.
       type: boolean
       default: false
       $md.immutable: true

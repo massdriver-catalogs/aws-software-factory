@@ -43,7 +43,7 @@ resource "github_actions_variable" "release" {
 }
 
 resource "github_repository_file" "release" {
-  count = local.release && !var.adopt_existing_repository ? 1 : 0
+  count = local.release ? 1 : 0
 
   repository = github_repository.main.name
   branch     = var.default_branch

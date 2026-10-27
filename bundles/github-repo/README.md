@@ -44,7 +44,7 @@ Set **Release to** to an instance ID, like `todoapp-dev-fn`, and pick groups in 
 
 It deploys with a Massdriver service account made for this repository, in the groups you picked, so it can only do what those groups allow. Pick a group that can deploy to dev and not to production. The token is stored as the `MASSDRIVER_API_KEY` Actions secret.
 
-This needs a container repository and a Massdriver Service Account credential on the environment. The workflow is written once, like the starter app, and adopted repositories don't get it.
+This needs a container repository and a Massdriver Service Account credential on the environment. The workflow is written once, like the starter app. Adopted repositories get the service account, secret and variables, but add the workflow themselves.
 
 ## AWS access without keys
 

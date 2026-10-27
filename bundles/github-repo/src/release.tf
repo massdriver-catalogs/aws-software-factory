@@ -3,7 +3,7 @@ locals {
   release_groups   = var.release_groups == null ? [] : var.release_groups
   release = (
     local.has_registry && var.massdriver != null && local.release_instance != "" &&
-    length(local.release_groups) > 0 && !var.adopt_existing_repository
+    length(local.release_groups) > 0
   )
   massdriver_url = try(regex("^https?://[^/]+", var.md_metadata.observability.alarm_webhook_url), "https://api.massdriver.cloud")
 }
@@ -43,7 +43,7 @@ resource "github_actions_variable" "release" {
 }
 
 resource "github_repository_file" "release" {
-  count = local.release ? 1 : 0
+  count = local.release && !var.adopt_existing_repository ? 1 : 0
 
   repository = github_repository.main.name
   branch     = var.default_branch

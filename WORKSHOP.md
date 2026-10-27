@@ -205,8 +205,11 @@ All in the browser again.
 1. **Check the agents are there.** The `todoapp` repository already has `.github/workflows/agent.yml`, `.github/workflows/ai-review.yml` and an `agent` label, from **Add the factory workflows** in step 7.
 2. **Issue → pull request.** Open an issue, e.g. "Add a `/health` route that returns `{"ok": true}`, with a test", and label it `agent`. Within a few minutes the agent comments, then opens a pull request from `agent/issue-N`.
 3. **CI and review run on it.** The tests, secret scan, build and image scan run, and the gateway's model posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
-4. **Merge it.** The push to `main` builds a new image and pushes it to ECR, tagged with the commit.
-5. **Ship it.** On the app's **Lambda Function**, set **Container image** to the new tag and deploy. Release to dev isn't automated yet; for now this one field is the release.
+4. **Turn on release to dev.** Merged code should reach dev without anyone touching Massdriver. The repository gets its own Massdriver identity for that, made by a credential that can make identities.
+   - **Groups.** **Settings → Groups**: **Service Account Managers** allows `organization:manageServiceAccounts` and `organization:manageGroups` on `*`. **Release to Dev** allows `project:view` and `instance:deploy` where `md-environment` is `dev`.
+   - **The identity maker.** **Settings → Service Accounts → Create** `Massdriver SW Factory Agent Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token. **Share** it only with the projects `codebases`, `devsandboxes` and `agents`: whoever holds it can make an identity in any group. Set it as a default on **Codebases / Todo App**.
+   - **The repository.** On the **GitHub Repository**, set **Release to** to `todoapp-dev-fn`, pick **Release to Dev** in **Release permissions**, and deploy. The repository gets a `release` workflow and a service account in that group only.
+5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to the Lambda Function in dev. Watch the deployment appear in Massdriver with the message `Release <commit>`.
 6. **Close the loop.** On **Alarm to Issue**, turn **Hand alarms to the agent** on and deploy. From now on, when one of the app's alarms fires, an issue opens with the `agent` label, the agent proposes a fix, CI and review run, and a person decides whether to merge.
 
 Each agent run costs a few cents in tokens on Kimi K2.5.
@@ -215,10 +218,8 @@ Each agent run costs a few cents in tokens on Kimi K2.5.
 
 The sandbox from step 9 can also be a home for an agent nobody is driving. The **SRE Agent** and **Cost Agent** are that sandbox with a goal, a schedule, and their own Massdriver identity. They read everything through Massdriver, hold no cloud credentials, and only ever propose.
 
-1. **Groups.** In Massdriver, **Settings → Groups**:
-   - **Service Account Managers:** allow `organization:manageServiceAccounts` and `organization:manageGroups` on `*`.
-   - **Factory Agents:** allow `project:view`, `instance:plan` and `instance:propose` on `*`. No `instance:deploy`, so a person approves every change.
-2. **The identity maker.** **Settings → Service Accounts → Create** `Massdriver SW Factory Agent Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token. **Share** it only with the projects `devsandboxes` and `agents`: whoever holds it can make an identity in any group.
+1. **A group for agents.** **Settings → Groups → Factory Agents**: allow `project:view`, `instance:plan` and `instance:propose` on `*`. No `instance:deploy`, so a person approves every change.
+2. **The identity maker** from step 11 makes the agents' identities too.
 3. **The project.** Create **Agents** (`agents`) with environment **Main** (`main`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint, the GitHub App and the Massdriver Service Account as its defaults.
 4. **The agents.** Add **SRE Agent** and **Cost Agent**, each with the **Lowest cost** preset, and pick **Factory Agents** in **Massdriver access for agents**. Each deploy creates a service account for that agent, in that group only. **~$30 each a month**, because a repeating goal keeps the VM up; **a 3-hour workshop: ~$0.15.** Tokens come on top, and the gateway's per-consumer budget caps each agent at $20 a month.
    - The SRE agent checks Massdriver's alarms every 5 minutes.

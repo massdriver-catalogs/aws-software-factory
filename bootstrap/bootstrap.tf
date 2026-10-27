@@ -72,6 +72,18 @@ resource "massdriver_group_policy" "agents" {
   conditions = "*"
 }
 
+resource "massdriver_group" "release" {
+  name        = var.release_group
+  description = "Repositories that deploy their merged builds to dev."
+}
+
+resource "massdriver_group_policy" "release" {
+  group_id   = massdriver_group.release.id
+  effect     = "ALLOW"
+  actions    = ["project:view", "instance:deploy"]
+  conditions = jsonencode({ md-environment = var.release_environments })
+}
+
 resource "massdriver_project" "this" {
   for_each = var.projects
 

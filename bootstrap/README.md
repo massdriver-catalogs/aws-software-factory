@@ -7,11 +7,12 @@ Stands up the groups, service accounts, projects and environments an organizatio
 | Group that publishes the catalog, and its service account | Catalog Publishers, `github-publisher` |
 | Group that makes service accounts, its service account, and a Massdriver Service Account credential holding its token | Service Account Managers, Massdriver SW Factory Agent Creator |
 | Group agents are put in: `project:view`, `instance:plan`, `instance:propose` | Factory Agents |
+| Group repositories release with: `project:view`, `instance:deploy` in `dev` | Release to Dev |
 | Projects and environments | Networking/Dev, Software Factory/Main, Codebases/Todo App, Todo App/Dev, Developer Sandboxes, Agents/Main |
 
 Every name is a variable. Add people's sandbox environments under `projects.devsandboxes.environments`.
 
-Service Account Managers can add anything to any group, so it is equal to Organization Admin. The credential holding its token is shared only with environments whose attributes match `massdriver_credential_recipients`; by default that is the Developer Sandboxes and Agents projects.
+Service Account Managers can add anything to any group, so it is equal to Organization Admin. The credential holding its token is shared only with environments whose attributes match `massdriver_credential_recipients`; by default that is the Codebases, Developer Sandboxes and Agents projects.
 
 ## Run it
 

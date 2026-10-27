@@ -41,6 +41,18 @@ variable "agent_group" {
   default     = "Factory Agents"
 }
 
+variable "release_group" {
+  description = "The group repositories release to dev with. It can deploy only where md-environment matches release_environments."
+  type        = string
+  default     = "Release to Dev"
+}
+
+variable "release_environments" {
+  description = "md-environment values the release group can deploy to."
+  type        = list(string)
+  default     = ["dev"]
+}
+
 variable "projects" {
   description = "Projects and their environments, keyed by identifier."
   type = map(object({
@@ -88,7 +100,7 @@ variable "projects" {
 }
 
 variable "massdriver_credential_recipients" {
-  description = "Environment attribute conditions for sharing the Massdriver Service Account credential. It is admin-equal, so share it only with the projects that make agent identities."
+  description = "Environment attribute conditions for sharing the Massdriver Service Account credential. It is admin-equal, so share it only with the projects that make release and agent identities."
   type        = map(list(string))
-  default     = { md-project = ["devsandboxes", "agents"] }
+  default     = { md-project = ["codebases", "devsandboxes", "agents"] }
 }

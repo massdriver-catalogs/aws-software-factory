@@ -63,7 +63,6 @@ params:
       goal_every: once
       aws_access: none
   required:
-    - monthly_budget
     - size
     - chip
     - workspace_gb
@@ -370,7 +369,6 @@ ui:
     - goal_every
     - aws_access
     - massdriver_groups
-    - monthly_budget
     - "*"
   workspace_gb:
     ui:widget: updown

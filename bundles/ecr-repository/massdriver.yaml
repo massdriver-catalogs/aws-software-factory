@@ -24,7 +24,6 @@ params:
       untagged_expiry_days: 7
       encryption: KMS
   required:
-    - monthly_budget
     - region
     - tag_mutability
     - scan_on_push
@@ -130,7 +129,6 @@ ui:
     - keep_images
     - untagged_expiry_days
     - encryption
-    - monthly_budget
     - "*"
   untagged_expiry_days:
     ui:widget: updown

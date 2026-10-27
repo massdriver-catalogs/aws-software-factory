@@ -22,7 +22,6 @@ params:
       throttle_burst: 2000
       access_log_retention_days: 30
   required:
-    - monthly_budget
     - region
     - cors_allowed_origins
     - throttle_rate
@@ -120,7 +119,6 @@ ui:
     - throttle_rate
     - throttle_burst
     - access_log_retention_days
-    - monthly_budget
     - "*"
   throttle_rate:
     ui:widget: updown

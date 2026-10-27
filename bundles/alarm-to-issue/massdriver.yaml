@@ -18,7 +18,6 @@ params:
       hand_to_agent: true
       send_test_alarm: false
   required:
-    - monthly_budget
     - region
     - hand_to_agent
     - send_test_alarm
@@ -87,5 +86,4 @@ ui:
     - region
     - hand_to_agent
     - send_test_alarm
-    - monthly_budget
     - "*"

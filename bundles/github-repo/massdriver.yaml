@@ -41,7 +41,6 @@ params:
       release_instance: ""
       release_groups: []
   required:
-    - monthly_budget
     - repository_name
     - visibility
     - seed_starter_files
@@ -178,5 +177,4 @@ ui:
     - default_branch
     - release_instance
     - release_groups
-    - monthly_budget
     - "*"

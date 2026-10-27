@@ -23,7 +23,6 @@ params:
       price_class: PriceClass_All
       default_cache_seconds: 300
   required:
-    - monthly_budget
     - single_page_app
     - price_class
     - default_cache_seconds
@@ -86,7 +85,6 @@ ui:
     - single_page_app
     - price_class
     - default_cache_seconds
-    - monthly_budget
     - "*"
   default_cache_seconds:
     ui:widget: updown

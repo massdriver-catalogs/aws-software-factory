@@ -26,7 +26,6 @@ params:
       deletion_protection: true
       table_class: STANDARD
   required:
-    - monthly_budget
     - region
     - partition_key
     - point_in_time_recovery
@@ -169,5 +168,4 @@ ui:
     - point_in_time_recovery
     - deletion_protection
     - table_class
-    - monthly_budget
     - "*"

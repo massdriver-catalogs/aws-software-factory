@@ -16,7 +16,6 @@ params:
       activate_cost_allocation_tag: true
       monthly_budget: 1
   required:
-    - monthly_budget
     - bucket_region
     - activate_cost_allocation_tag
   properties:
@@ -58,5 +57,4 @@ ui:
   ui:order:
     - bucket_region
     - activate_cost_allocation_tag
-    - monthly_budget
     - "*"

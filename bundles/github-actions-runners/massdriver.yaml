@@ -21,7 +21,6 @@ params:
       disk_gb: 60
       extra_labels: []
   required:
-    - monthly_budget
     - runner_count
     - size
     - disk_gb
@@ -107,7 +106,6 @@ ui:
     - size
     - disk_gb
     - extra_labels
-    - monthly_budget
     - "*"
   runner_count:
     ui:widget: updown

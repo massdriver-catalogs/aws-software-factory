@@ -31,7 +31,6 @@ params:
       environment: []
       log_retention_days: 30
   required:
-    - monthly_budget
     - image_uri
     - routes
     - require_sign_in
@@ -178,7 +177,6 @@ ui:
     - environment
     - table_access
     - log_retention_days
-    - monthly_budget
     - "*"
   environment:
     items:

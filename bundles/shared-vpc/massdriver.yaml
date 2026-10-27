@@ -28,7 +28,6 @@ params:
         - logs
       flow_log_retention_days: 365
   required:
-    - monthly_budget
     - region
     - cidr
     - zone_count
@@ -156,7 +155,6 @@ ui:
     - egress
     - private_endpoints
     - flow_log_retention_days
-    - monthly_budget
     - "*"
   zone_count:
     ui:widget: updown

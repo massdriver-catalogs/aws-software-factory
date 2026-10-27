@@ -29,7 +29,6 @@ params:
       callback_urls: ["http://localhost:5173/"]
       deletion_protection: true
   required:
-    - monthly_budget
     - region
     - allow_self_sign_up
     - mfa
@@ -120,5 +119,4 @@ ui:
     - mfa
     - callback_urls
     - deletion_protection
-    - monthly_budget
     - "*"

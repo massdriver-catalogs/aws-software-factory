@@ -24,7 +24,6 @@ params:
       timezone: UTC
       log_retention_days: 30
   required:
-    - monthly_budget
     - instance_type
     - model
     - idle_stop_minutes
@@ -143,5 +142,4 @@ ui:
     - nightly_stop
     - timezone
     - log_retention_days
-    - monthly_budget
     - "*"

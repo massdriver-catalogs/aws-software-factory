@@ -27,7 +27,6 @@ params:
       monthly_budget_usd: 10
       budget_overrides: []
   required:
-    - monthly_budget
     - bedrock_models
     - log_retention_days
     - monthly_budget_usd
@@ -133,7 +132,6 @@ ui:
     - monthly_budget_usd
     - budget_overrides
     - log_retention_days
-    - monthly_budget
     - "*"
   bedrock_models:
     ui:widget: checkboxes

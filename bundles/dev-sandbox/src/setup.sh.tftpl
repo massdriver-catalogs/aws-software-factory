@@ -314,11 +314,11 @@ EOF
 
 cat > /etc/systemd/system/sandbox-goal.timer <<'EOF'
 [Unit]
-Description=Check the sandbox's standing goal every 5 minutes
+Description=Check whether the sandbox's standing goal is due
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=5min
+OnUnitActiveSec=1min
 
 [Install]
 WantedBy=timers.target

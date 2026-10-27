@@ -8,7 +8,7 @@ locals {
   goal       = local.form_goal != "" ? local.form_goal : try(local.app_env.AGENT_GOAL, "")
   goal_every = local.form_goal != "" ? coalesce(var.goal_every, "once") : try(local.app_env.AGENT_GOAL_EVERY, "once")
 
-  goal_minutes   = { once = 0, "15m" = 15, "1h" = 60, "6h" = 360, "1d" = 1440 }
+  goal_minutes   = { once = 0, "5m" = 5, "15m" = 15, "1h" = 60, "6h" = 360, "1d" = 1440 }
   goal_recurring = local.goal != "" && local.goal_every != "once"
 
   app_agent  = try(local.app_env.AGENT_CLI, "")
@@ -37,7 +37,7 @@ resource "aws_secretsmanager_secret_version" "goal" {
   lifecycle {
     precondition {
       condition     = contains(keys(local.goal_minutes), local.goal_every)
-      error_message = "AGENT_GOAL_EVERY must be one of once, 15m, 1h, 6h or 1d."
+      error_message = "AGENT_GOAL_EVERY must be one of once, 5m, 15m, 1h, 6h or 1d."
     }
     precondition {
       condition     = contains(["opencode", "claude-code"], local.goal_agent)

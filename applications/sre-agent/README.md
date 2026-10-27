@@ -1,6 +1,6 @@
 # SRE Agent
 
-An agent that runs every 15 minutes on its own VM. It reads Massdriver and CloudWatch alarms, finds the cause, and proposes the fix:
+An agent that runs every 5 minutes on its own VM. It reads alarms from Massdriver's API, finds the cause, and proposes the fix:
 
 - **Config:** a proposed deployment of the instance with new params. A person approves it in Massdriver.
 - **Code:** a draft pull request against the bundle's source repository, planned with the Massdriver architect skill.
@@ -13,11 +13,10 @@ Each kind of access is a setting on the instance, and each defaults to nothing:
 
 | Setting | Give it | So it can |
 |---|---|---|
-| **AWS access for agents** | Alarms, metrics, logs and resource lists | Read CloudWatch alarms, metrics and logs |
-| **Massdriver access for agents** | A group with `project:view` and `instance:propose` | Read instances and deployments, and propose deployments |
+| **Massdriver access for agents** | A group with `project:view` and `instance:propose` | Read instances, alarms and deployments, and propose deployments |
 | GitHub App credential | Installed on the organizations that hold your bundle repositories | Clone them and open draft pull requests |
 
-Leave out `instance:deploy` so every change waits for a person.
+Leave out `instance:deploy` so every change waits for a person. It needs no AWS access: everything it reads comes through Massdriver.
 
 ## Changing what it does
 

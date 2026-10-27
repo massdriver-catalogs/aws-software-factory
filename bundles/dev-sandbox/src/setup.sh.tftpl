@@ -185,6 +185,11 @@ EOF
 cat >> /home/dev/.bashrc <<'EOF'
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 [ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+# Checks at most every 5 minutes, so shells stay fast when Massdriver access is off.
+if [ ! -f "$HOME/.config/sandbox/massdriver.env" ] && [ -z "$(find "$HOME/.cache/sandbox/massdriver-checked" -mmin -5 2>/dev/null)" ]; then
+  mkdir -p "$HOME/.cache/sandbox" && touch "$HOME/.cache/sandbox/massdriver-checked"
+  sandbox-massdriver-login >/dev/null 2>&1
+fi
 [ -f "$HOME/.config/sandbox/massdriver.env" ] && . "$HOME/.config/sandbox/massdriver.env"
 command -v mise >/dev/null && eval "$(mise activate bash)"
 [ "$PWD" = "$HOME" ] && cd /workspace
@@ -219,7 +224,24 @@ fi
 EOF
 chown dev:dev /home/dev/.sandbox-setup.sh
 sudo -iu dev bash /home/dev/.sandbox-setup.sh
-sudo -iu dev sandbox-massdriver-login || true
+# Access can be turned on after the VM is built, so the key is loaded at every
+# boot, and by the shell and the goal runner when it's missing.
+cat > /etc/systemd/system/sandbox-massdriver-login.service <<'EOF'
+[Unit]
+Description=Load the sandbox's Massdriver key
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dev
+ExecStart=/bin/bash -lc 'sandbox-massdriver-login || true'
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable --now sandbox-massdriver-login
 
 if [ -n "${browser_access}" ]; then
   cat > /usr/local/bin/sandbox-browser-secret <<'EOF'
@@ -291,6 +313,7 @@ fi
 
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 [ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+[ -f "$HOME/.config/sandbox/massdriver.env" ] || sandbox-massdriver-login >/dev/null 2>&1
 [ -f "$HOME/.config/sandbox/massdriver.env" ] && . "$HOME/.config/sandbox/massdriver.env"
 command -v mise >/dev/null && eval "$(mise activate bash)"
 eval "$(jq -r '.env // {} | to_entries[] | "export \(.key)=\(.value | @sh)"' <<<"$CFG")"

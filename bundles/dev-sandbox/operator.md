@@ -110,7 +110,7 @@ As `dev`:
 sandbox-massdriver-login
 ```
 
-- **"No Massdriver key … tools stay off":** no groups are picked in **Massdriver access for agents**, or the environment has no Massdriver Service Account credential. Pick groups, redeploy, then run `sandbox-massdriver-login` again and open a new shell.
+- **"No Massdriver key … tools stay off":** no groups are picked in **Massdriver access for agents**, or the environment has no Massdriver Service Account credential. Pick groups and redeploy. A new shell picks the key up within 5 minutes; `sandbox-massdriver-login` does it right away.
 - **Tools are on but calls are denied:** the groups picked don't allow that action. Add a policy to the group, or pick another group.
 - **"must be JSON with api_key and organization_id":** the secret holds a bare key. Replace it with the JSON form using `aws secretsmanager put-secret-value`.
 - **The MCP server fails to start in opencode:** run it by hand to see why.

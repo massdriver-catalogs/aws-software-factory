@@ -71,7 +71,7 @@ Agents can drive Massdriver through its MCP server, and the `mass` CLI is on the
 
 To turn them on, connect a Massdriver Service Account credential to the environment and pick groups in **Massdriver access for agents**. The sandbox gets its own service account in those groups, and its agents get exactly those permissions. The key goes to Secrets Manager at `<sandbox-name>/massdriver-api-key` and is loaded at boot.
 
-A sandbox that's already running loads it the next time you run `sandbox-massdriver-login` and open a new shell. Empty the list and redeploy to remove the service account.
+A sandbox that's already running picks it up within 5 minutes in a new shell, or right away with `sandbox-massdriver-login`. Empty the list and redeploy to remove the service account.
 
 ## AWS access
 

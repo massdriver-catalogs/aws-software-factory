@@ -207,7 +207,31 @@ LANGUAGES="${languages}"
 [ -n "$LANGUAGES" ] && mise use -g $LANGUAGES
 for agent in ${agents}; do
   case "$agent" in
-    opencode) curl -fsSL https://opencode.ai/install | bash ;;
+    opencode)
+      curl -fsSL https://opencode.ai/install | bash
+      # opencode reads skills, not Claude Code agents, so the architect agent is
+      # repackaged as a skill next to the Massdriver skill it relies on.
+      PLUGINS="$HOME/.local/share/massdriver-plugins"
+      SKILLS="$HOME/.config/opencode/skills"
+      if [ -d "$PLUGINS" ] || git clone --depth 1 https://github.com/massdriver-cloud/claude-plugins "$PLUGINS"; then
+        mkdir -p "$SKILLS/massdriver-architect"
+        ln -sfn "$PLUGINS/massdriver/skills/massdriver" "$SKILLS/massdriver"
+        {
+          cat <<'SKILL'
+---
+name: massdriver-architect
+description: >-
+  Design and build an app's infrastructure on Massdriver for a citizen developer: projects,
+  environments, bundles, connections and a gated path from dev to production. Use when the
+  user describes an app they want to build or ship.
+---
+SKILL
+          awk '/^---$/ { n++; next } n >= 2' "$PLUGINS/massdriver/agents/architect.md"
+        } > "$SKILLS/massdriver-architect/SKILL.md"
+      else
+        echo "Massdriver skills for opencode didn't install" >&2
+      fi
+      ;;
     claude-code)
       curl -fsSL https://claude.ai/install.sh | bash
       claude plugin marketplace add massdriver-cloud/claude-plugins \

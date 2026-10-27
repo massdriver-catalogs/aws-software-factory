@@ -57,6 +57,14 @@ resource "massdriver_imported_resource" "agent_creator" {
     organization_id = var.organization_id
     token           = massdriver_service_account.agent_creator.token
   })
+
+  # The token exists only in the create response. After an import, or in any
+  # state that lost it, writing the payload again would blank the credential.
+  # The API reports the type pinned to its version, which would otherwise
+  # replace the credential on every plan after an import.
+  lifecycle {
+    ignore_changes = [resource, resource_type]
+  }
 }
 
 resource "massdriver_resource_grant" "agent_creator" {

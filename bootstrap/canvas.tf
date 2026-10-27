@@ -54,7 +54,7 @@ resource "massdriver_component" "this" {
 }
 
 resource "massdriver_component_link" "this" {
-  for_each = local.links
+  for_each = var.link_components ? local.links : {}
 
   from_component_id = massdriver_component.this[each.value.from].id
   from_field        = each.value.from_field

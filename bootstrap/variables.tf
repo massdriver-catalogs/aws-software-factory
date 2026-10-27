@@ -145,3 +145,9 @@ variable "self_hosted_model" {
   type        = bool
   default     = false
 }
+
+variable "link_components" {
+  description = "Link the components on each canvas. Turn it off when adopting an org whose canvases are already linked: links can't be imported."
+  type        = bool
+  default     = true
+}

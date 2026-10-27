@@ -105,20 +105,43 @@ About 40 minutes, emailed ahead as a separate guide. Nothing gets connected to M
 2. **AWS role for Massdriver** (~10 min). Attendees make up their own External ID, create a role trusting account `308878630280` with that External ID and AdministratorAccess, and note the External ID and the role ARN.
 3. **GitHub organization** (~3 min), on the Free plan. GitHub Apps can't create repositories under a personal account.
 4. **GitHub App** (~15 min), with the permissions in step 4 below, installed on all repositories. Note the App ID and Installation ID, and keep the `.pem` key safe.
-5. *Optional:* **GPU quota** for the self-hosted model. Request "Running On-Demand G and VT instances" ≥ 4 in us-east-1 a week ahead. Without it, everything runs on Bedrock.
+5. *Optional, not recommended for the workshop:* **GPU quota** for the self-hosted model. Request "Running On-Demand G and VT instances" ≥ 4 in us-east-1 a week ahead. Without it, everything runs on Bedrock. The GPU costs ~$0.80 an hour while it runs.
 6. *Optional:* **AWS CLI and Session Manager plugin**, for a terminal instead of the browser.
 
 They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installation ID, and the `.pem` file.
 
-## Cost talking points (us-east-1, on-demand, approximate)
+## What it costs (us-east-1, on-demand, approximate)
+
+> [!WARNING]
+> **Three things cost real money:**
+> 1. **The GPU** (step 6, optional): ~$0.80 an hour while it runs. **Skip it for the workshop.**
+> 2. **The SRE agent's tokens** (step 12): it runs every 5 minutes, ~$1.50 an hour. Remove the agents after their tests.
+> 3. **Anything left running afterwards**: ~$125 a month with no GPU, plus tokens. Do step 14 before you leave.
+
+| Step | Workshop (~3 hours) | A month if left running | What stops it |
+|---|---|---|---|
+| Optional shortcut: `bootstrap/` + `deploy.sh` (builds steps 5–8, no GPU) | ~$0.15 (~$0.05 an hour) plus tokens | ~$38, the same as steps 5–8 | Nothing; step 14 |
+| 5. Networking: VPC, Budget Guard, Cost Reports | ~$0.05 | ~$9 | Nothing; step 14 |
+| 6. LLM Gateway | ~$0.06 | ~$14 | Nothing; step 14 |
+| 6. GitHub Actions Runners | ~$0.06 | ~$15 | Nothing; step 14 |
+| ⚠️ 6. vLLM Model Server (optional, **not recommended**) | ~$2.50–3 | ~$10 stopped, ~$150 on workday hours, ~$600 always on | Idle stop (1 hour), nightly stop (8 pm), step 14 |
+| 7. Codebases | ~$0 | Cents | Step 14 |
+| 8. Your app | ~$0 | ~$0 at low traffic | Step 14 |
+| 9. Your sandbox | ~$0.15 | ~$3 stopped, ~$10 on workday hours | Idle stop (30 minutes), nightly stop (8 pm), step 14 |
+| 10–11. opencode and factory agent runs (tokens) | ~$0.50–1.50 | Up to $20 per consumer | The gateway's $20 per consumer per month |
+| ⚠️ 12. SRE Agent and Cost Agent VMs | ~$0.25 | ~$62 (always on) | Nothing; remove them after their tests, or step 14 |
+| ⚠️ 12. SRE Agent tokens | ~$1.50 an hour | $20, reached within a day | The gateway's $20 cap; remove the agent |
+| 12. Cost Agent tokens | ~$0.15 a run | ~$5 (one run a day) | The gateway's $20 cap |
+| ⚠️ 13. Vibe coding (tokens) | ~$1–3 | Up to $20 | The gateway's $20 cap on your sandbox |
 
 | Scenario | Bedrock (default) | Plus your own GPU |
 |---|---|---|
-| The workshop (~3 hours, then teardown) | ~$2–3 | ~$5–6 |
-| A month of solo development, everything auto-stopping | ~$65–85 | ~$205–225 |
-| A month left running 24×7 | ~$95–115 | ~$690+ |
+| The workshop, agents removed after their tests, then teardown | ~$3–5 | ~$6–8 |
+| The workshop with the SRE agent running all 3 hours | ~$7–9 | ~$10–12 |
+| A month of solo development, everything auto-stopping, no agents | ~$60–90 | ~$210–240 |
+| A month left running 24×7, agents included | ~$125 plus up to $20 of tokens per consumer | ~$725+ |
 
-Where the money goes in a month: the platform pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$15), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens (a few cents per agent run on Kimi K2.5; the gateway caps each consumer at $20 a month by default). New-account AWS credits cover the workshop. Forgetting a GPU is the main risk; idle stop, nightly stop and the budget alert exist for it.
+Where the money goes in a month: the pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$15, ~$31 per agent), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens. One agent run on Kimi K2.5 reads ~200,000 tokens: ~$0.10–0.20. The gateway stops each consumer (each sandbox, agent, runner and function) at $20 a month by default. New-account AWS credits cover the workshop.
 
 ## Steps
 
@@ -138,8 +161,6 @@ Costs are per month unless noted. Every pick is the cheapest option that doesn't
    - **Variables → New repository variable:** `MASSDRIVER_ORG_ID` = your Massdriver organization's ID. A secret with that name works too.
 4. **Actions → Publish → Run workflow**, tick **all**, **Run workflow**. In a few minutes every credential type, resource type and bundle is in your Massdriver catalog. From now on, every push to `main` publishes what changed.
 
-*Optional shortcut, for a terminal and Terraform:* once the catalog is published, `bootstrap/` in the fork makes the other groups, the identity maker and its credential (step 11), and every project and environment in steps 5–12 in one `terraform apply` with an Organization Admin key. Skip the **Create project** lines below; you still add the AWS and GitHub credentials and set each environment's defaults.
-
 ### 3. Connect AWS (~2 minutes)
 
 The role was created in the prerequisites; now that the catalog is published, Massdriver has the **AWS IAM Role** credential type to put it in.
@@ -153,6 +174,8 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 
 1. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and paste the whole `.pem` file into **Private Key**. **Save**.
 2. **Share** it with all environments.
+
+*Optional shortcut:* after steps 1–4, in `bootstrap/` run `terraform apply`, then `./deploy.sh --email you@example.com`. It builds steps 5–8 (factory and example app) in about 30 minutes for about $0.05 an hour plus tokens, without the GPU. It needs the GitHub CLI logged in. Paste the Cost Reports values by hand, then continue at step 9.
 
 ### 5. Networking
 
@@ -181,6 +204,9 @@ Add **GitHub Actions OIDC** with the **New account** preset (**Provider already 
 Add **GitHub Actions Runners** with the **Development** preset: one Small runner (~$12) with a 30 GB disk (~$2.40). Connect the gateway to the runners on the canvas.
 
 Plus the token function, schedule and secret: under $1. **Runners: ~$15; ~$0.06 for the workshop.** They sit in the VPC's private subnets, take one job each, and reach the gateway with their own key. Jobs never get the VM's AWS role.
+
+> [!WARNING]
+> **Optional, and not recommended for the workshop.** The GPU costs ~$0.80 an hour while it runs (~$3 for the workshop) and ~$600 a month if it never stops. Everything in the workshop works on Bedrock without it. Add it only if you mean to, and tear it down after.
 
 Optional, the "your own model" moment (needs G/VT quota): add **vLLM Model Server** with the **Development** preset (g6.xlarge with gpt-oss-20b, ~$0.80 per hour running, stops after an hour idle and at 8 pm), set **Time zone for the nightly stop** to yours, and connect it to the gateway on the canvas.
 
@@ -260,16 +286,19 @@ All in the browser again.
 5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to the Lambda Function in dev. Watch the deployment appear on the Lambda Function in Massdriver with the message `Release <commit>`. That deployment is the proof: every route, `/health` included, answers `401` without a signed-in user's token.
 6. **Close the loop.** On **Alarm to Issue**, turn **Hand alarms to the agent** on and deploy. From now on, when one of the app's alarms fires, an issue opens with the `agent` label, the agent proposes a fix, CI and review run, and a person decides whether to merge.
 
-Each agent run costs a few cents in tokens on Kimi K2.5.
+Each agent run costs ~$0.10–0.50 in tokens on Kimi K2.5, charged to the runners' gateway key.
 
 ### 12. Agents that run themselves
+
+> [!WARNING]
+> **The agents never stop on their own.** Each agent's VM stays up for its schedule: ~$31 a month each. The SRE agent also reads ~200,000 tokens every 5 minutes: **~$1.50 an hour**, until the gateway stops it at $20 for the month, usually within a day. Run the tests in this step, then remove both agents (item 7).
 
 The sandbox from step 9 can also be a home for an agent nobody is driving. The **SRE Agent** and **Cost Agent** are that sandbox with a goal, a schedule, and their own Massdriver identity. They read everything through Massdriver, hold no cloud credentials, and only ever propose.
 
 1. **A group for agents.** **Settings → Groups → Factory Agents**: allow `project:view`, `instance:plan` and `instance:propose` on `*`. No `instance:deploy`, so a person approves every change.
 2. **The identity maker** from step 11 makes the agents' identities too.
 3. **The project.** Create **Agents** (`agents`) with environment **Main** (`main`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint, the GitHub App and the Massdriver Service Account as its defaults.
-4. **The agents.** Add **SRE Agent** and **Cost Agent**, each with the **Lowest cost** preset, and pick **Factory Agents** in **Massdriver access for agents**. Each deploy creates a service account for that agent, in that group only. **~$30 each a month**, because a repeating goal keeps the VM up; **a 3-hour workshop: ~$0.15.** Tokens come on top, and the gateway's per-consumer budget caps each agent at $20 a month.
+4. **The agents.** Add **SRE Agent** and **Cost Agent**, each with the **Lowest cost** preset, and pick **Factory Agents** in **Massdriver access for agents**. Each deploy creates a service account for that agent, in that group only. **~$31 each a month**, because a repeating goal keeps the VM up; **~$0.04 an hour each.** Tokens come on top: ~$1.50 an hour for the SRE agent, ~$0.15 a run for the cost agent. The gateway stops each agent at $20 a month.
    - The SRE agent checks Massdriver's alarms every 5 minutes.
    - The cost agent checks every instance's cost against its budget once a day.
 5. **Watch one work.** Shell in to the Cost Agent the same way as step 10, with its **Connect script**, and run:
@@ -280,12 +309,16 @@ The sandbox from step 9 can also be a home for an agent nobody is driving. The *
 
    Cost data takes a day, so the test pretends one instance costs 3 times its budget. Everything else is real. It finds a cheaper config, runs a plan marked **💸 [test]**, and proposes the change with a **💸 [test]** message. Open the instance in Massdriver to see the plan and the pending proposal. Reject it.
 6. **The SRE agent's test.** Shell in to the SRE Agent and run `sandbox-goal --test`. It pretends one of the app's alarms is firing, digs into the instance, and proposes a fix or opens a draft pull request, marked **🚨 [test]**. Reject or close it.
+7. **Remove them.** On the **Agents** canvas, decommission **SRE Agent** and **Cost Agent**. This stops their VMs and their tokens. Their service accounts are deleted with them. Deploy them again whenever you want them back.
 
-Their journals are in `/workspace/sre/journal.md` and `/workspace/cost/journal.md`; every run's output is in `/workspace/.goal/runs`.
+Their journals are in `/workspace/sre/journal.md` and `/workspace/cost/journal.md`; every run's output is in `/workspace/.goal/runs`. Copy anything you want to keep before item 7.
 
 ### 13. Vibe code an app
 
 You are a citizen developer now. You describe an app; the agent in your sandbox designs its infrastructure in Massdriver, writes the code, and ships it to dev. Anything outside dev, it can only propose.
+
+> [!WARNING]
+> **A long agent session reads a few million tokens: ~$1–3 on Kimi K2.5.** It's charged to your sandbox's gateway key, which stops at $20 a month. The app it builds runs in its free tiers, like step 8.
 
 1. **A group for builders.** **Settings → Groups → Citizen Developers**, with two policies:
    - Allow `project:create`, `project:view`, `project:design`, `environment:create`, `repo:view`, `resource:view`, `instance:plan` and `instance:propose` on `*`.
@@ -301,7 +334,7 @@ The sandbox runs as you designed it: it can build and deploy in dev, and nothing
 ### 14. Tear it down
 
 > [!WARNING]
-> **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$36/month together). Decommissioning deletes everything, disks included.
+> **Tear everything down before you leave.** Stopped machines still bill for their disks, including a stopped GPU (~$10 a month). The gateway, NAT instance and factory runner never stop on their own (~$38 a month together), and neither do the agents (~$31 a month each, plus tokens). Decommissioning deletes everything, disks included.
 
 Decommission each environment in this order; the shared pieces go last because everything else runs on them:
 
@@ -309,8 +342,8 @@ Decommission each environment in this order; the shared pieces go last because e
 2. **Your apps** (`todoapp` / `dev` and `notes` / `dev`)
 3. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
 4. **Codebases** (`todoapp` and `notes`). The GitHub repository is archived, not deleted; its images are deleted.
-5. **Software Factory** (`main`)
-6. **Networking** (`dev`)
+5. **Software Factory** (`main`): the gateway, the runners, and the GPU if you added it.
+6. **Networking** (`dev`): the VPC and its NAT instance, Budget Guard and Cost Reports. Then remove the **AWS Cost and Usage Reports** integration in **Settings → Integrations**; its bucket is gone.
 
 Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again. In Massdriver, delete the identity maker's service account and credential; it can make an identity in any group.
 

@@ -17,39 +17,80 @@ Everything before step 10 happens in the browser: GitHub, the AWS Console and Ma
 ## How it fits together
 
 ```mermaid
-flowchart TB
+flowchart LR
   subgraph NET[Networking]
     VPC[Shared VPC]
     BG[Budget Guard]
+    CR[Cost Reports]
   end
   subgraph SF[Software Factory]
-    GPU[vLLM Model Server<br/>optional] -.-> GW[LLM Gateway]
-    GW --> RUN[Factory runners<br/>AI review · issue agent]
+    GPU["vLLM Model Server, optional"] -.-> GW[LLM Gateway]
+    RUN["Factory runners: issue agent, AI review"]
     OIDC[GitHub Actions OIDC]
   end
-  subgraph DS[Developer Sandboxes]
-    SB[Your sandbox<br/>opencode]
-  end
   subgraph CB[Codebases]
-    REPO[GitHub repo] --> ECR[ECR repository]
+    ECR[ECR repository]
+    REPO[GitHub repository]
   end
-  subgraph APP[Your app]
-    API[HTTP API] --> FN[Lambda function]
-    FN --> TBL[DynamoDB table]
+  subgraph APP[Todo App]
+    USR[User pool] --> API[HTTP API]
+    API --> FN[Lambda function]
+    TBL[DynamoDB table] --> FN
     WEB[Static site]
-    USR[User pool] --> API
-    A2I[Alarm → Issue]
+    A2I[Alarm to Issue]
   end
+  subgraph DS[Developer Sandboxes]
+    SB[Your sandbox]
+  end
+  subgraph AG[Agents]
+    SRE[SRE Agent]
+    COST[Cost Agent]
+  end
+  MD{{Massdriver API}}
 
-  VPC --> GW & SB & RUN & FN
-  GW --> SB & FN
+  VPC --> GW & RUN & FN & SB & SRE & COST
+  GW --> RUN & FN & SB & SRE & COST
   OIDC --> REPO
-  ECR -->|image| FN
-  FN -->|alarm| A2I -->|issue| REPO
-  REPO -->|labeled agent| RUN -->|pull request| REPO
+  ECR --> REPO
+  REPO --> A2I
+
+  REPO -->|issue labeled agent| RUN
+  RUN -->|pull request| REPO
+  REPO -->|image on merge| ECR
+  REPO -->|release| MD
+  MD -->|deploy image| FN
+  FN -->|alarm| A2I
+  A2I -->|issue| REPO
+  SRE & COST -->|read, propose| MD
+  SB -->|mass, MCP| MD
 ```
 
 Each project has a job: **Networking** is the shared VPC; the **Software Factory** serves models and runs CI, review and agents, with one environment per GitHub organization; **Developer Sandboxes** has one environment per person; **Codebases** holds each app's repository and images, with one environment per app; and each **app** has its own project.
+
+## Identities and secrets
+
+Every arrow above runs as one of these. Nothing shares a personal token.
+
+| What | Made by | Lives in | Used by, for | Scope |
+|---|---|---|---|---|
+| **AWS IAM Role** credential | You, step 3 | Massdriver, default on every environment | Massdriver, to deploy every bundle | Your account, with your External ID |
+| **GitHub App** credential | You, step 4 | Massdriver, default where repositories, runners, apps, sandboxes and agents run | The bundles below, to manage repositories and mint short tokens | The repositories the App is installed on |
+| **GitHub Actions OIDC** resource | GitHub Actions OIDC bundle, step 6 | An IAM OIDC provider; shared resource | Repository push roles, to trust GitHub's tokens | One per AWS account |
+| Push role `<repo>-push` | GitHub Repository bundle | IAM; Actions variables `AWS_ROLE_ARN`, `AWS_REGION`, `ECR_REPOSITORY_URL` | The `build` workflow, to push images | The default branch of that one repository; push to its ECR repository only |
+| GitHub App key copy | Runners, Developer Sandbox and Alarm to Issue bundles | Secrets Manager, `<instance>/github-app` | Runners: register and mint agent tokens. Sandbox: `git` and `gh`. Alarm to Issue: open issues | Readable only by that instance's role |
+| Agent token | The runners' token function, per job | Memory of one job | `agent.yml`, to push a branch and open a pull request | One repository, `contents`, `pull_requests`, `issues`; only `agent.yml` on issue events; about an hour |
+| Gateway master key | LLM Gateway bundle | Secrets Manager, `<gateway>/master-key` | Admin of the gateway | Everything on the gateway |
+| Gateway consumer key | Runners, Developer Sandbox and Lambda Function bundles, one each | SSM, under the gateway's key prefix | That consumer, to call models | $20 a month per consumer by default |
+| Model server key | vLLM Model Server bundle | Secrets Manager | The gateway, to call your GPU | That model server |
+| **Service Account Managers** group | You, step 11 | Massdriver | Holds the identity maker | `manageServiceAccounts`, `manageGroups`: equal to Organization Admin |
+| Identity maker and **Massdriver Service Account** credential | You, step 11 | Massdriver, shared with `codebases`, `devsandboxes`, `agents` | Repository, sandbox and agent bundles, to make their own service accounts | Can make an identity in any group. Delete it at teardown |
+| **Release to Dev** group | You, step 11 | Massdriver | Release service accounts | `project:view`, `instance:deploy` where `md-environment` is `dev` |
+| Release service account `<org>/<repo> release` | GitHub Repository bundle, when **Release to** is set | Token in the Actions secret `MASSDRIVER_API_KEY`; variables `MASSDRIVER_ORGANIZATION_ID`, `MASSDRIVER_URL`, `MASSDRIVER_RELEASE_INSTANCE` | The `release` workflow, to deploy the new image | The groups picked in **Release permissions**; one-year token |
+| **Factory Agents** group | You, step 12 | Massdriver | Agent service accounts | `project:view`, `instance:plan`, `instance:propose`; no deploy |
+| Sandbox service account `<instance> sandbox agents` | Developer Sandbox bundle, for sandboxes and agents, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass`, the Massdriver MCP and the agents' goals | The groups picked in **Massdriver access for agents**; one-year token |
+| Sandbox access user `<instance>-access` | Developer Sandbox bundle | The **Connect to …** resource; an AWS profile on your laptop after the connect script | `ssh`, to start the VM and open a session | Start that VM and connect as `dev` |
+| Browser password | Developer Sandbox bundle | Secrets Manager, `<instance>/browser-password`; printed by the connect script | You, for opencode in the browser and the preview URL | That sandbox |
+| Cost collector user | Cost Reports bundle | IAM; keys in Secrets Manager, `<instance>/integration` | Massdriver's cost integration, after you paste them in step 5 | Read the cost report bucket and resource tags |
 
 ## Attendee prerequisites (registration email, not day-of)
 

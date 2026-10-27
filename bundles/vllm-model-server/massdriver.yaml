@@ -7,6 +7,22 @@ version: 0.0.0
 
 params:
   examples:
+    - __name: Lowest cost
+      monthly_budget: 300
+      instance_type: g6.xlarge
+      model: gpt-oss-20b
+      idle_stop_minutes: 30
+      nightly_stop: "18:00"
+      timezone: America/Los_Angeles
+      log_retention_days: 1
+    - __name: Demo
+      monthly_budget: 400
+      instance_type: g6.xlarge
+      model: gpt-oss-20b
+      idle_stop_minutes: 0
+      nightly_stop: "22:00"
+      timezone: America/Los_Angeles
+      log_retention_days: 1
     - __name: Development
       monthly_budget: 650
       instance_type: g6.xlarge

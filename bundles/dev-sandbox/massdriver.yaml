@@ -26,6 +26,24 @@ params:
       goal: ""
       goal_every: once
       aws_access: none
+    - __name: Demo
+      monthly_budget: 50
+      size: standard
+      chip: arm
+      workspace_gb: 30
+      network_mode: public
+      idle_stop: never
+      nightly_stop: "00:00"
+      timezone: America/Los_Angeles
+      agents: [opencode]
+      autonomy: free
+      languages: [python, node]
+      dotfiles_repo: ""
+      browser_access: false
+      preview_port: 5173
+      goal: ""
+      goal_every: once
+      aws_access: none
     - __name: In the browser
       monthly_budget: 25
       size: light

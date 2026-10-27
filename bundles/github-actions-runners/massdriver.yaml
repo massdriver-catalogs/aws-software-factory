@@ -8,6 +8,18 @@ version: 0.0.0
 
 params:
   examples:
+    - __name: Lowest cost
+      monthly_budget: 15
+      runner_count: 1
+      size: small
+      disk_gb: 20
+      extra_labels: []
+    - __name: Demo
+      monthly_budget: 60
+      runner_count: 2
+      size: medium
+      disk_gb: 30
+      extra_labels: []
     - __name: Development
       monthly_budget: 30
       runner_count: 1

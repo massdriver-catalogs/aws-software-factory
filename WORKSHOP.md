@@ -218,7 +218,7 @@ The sandbox from step 9 can also be a home for an agent nobody is driving. The *
 1. **Groups.** In Massdriver, **Settings → Groups**:
    - **Service Account Managers:** allow `organization:manageServiceAccounts` and `organization:manageGroups` on `*`.
    - **Factory Agents:** allow `project:view`, `instance:plan` and `instance:propose` on `*`. No `instance:deploy`, so a person approves every change.
-2. **The identity maker.** **Settings → Service Accounts → Create** `Massdriver SW Factory Agent Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token.
+2. **The identity maker.** **Settings → Service Accounts → Create** `Massdriver SW Factory Agent Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token. **Share** it only with the projects `devsandboxes` and `agents`: whoever holds it can make an identity in any group.
 3. **The project.** Create **Agents** (`agents`) with environment **Main** (`main`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint, the GitHub App and the Massdriver Service Account as its defaults.
 4. **The agents.** Add **SRE Agent** and **Cost Agent**, each with the **Lowest cost** preset, and pick **Factory Agents** in **Massdriver access for agents**. Each deploy creates a service account for that agent, in that group only. **~$30 each a month**, because a repeating goal keeps the VM up; **a 3-hour workshop: ~$0.15.** Tokens come on top, and the gateway's per-consumer budget caps each agent at $20 a month.
    - The SRE agent checks Massdriver's alarms every 5 minutes.

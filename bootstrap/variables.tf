@@ -50,6 +50,18 @@ variable "release_environments" {
   default     = ["dev"]
 }
 
+variable "citizen_developer_group" {
+  description = "The group people's sandboxes build with. It can design projects anywhere and change infrastructure only where md-environment matches citizen_developer_environments."
+  type        = string
+  default     = "Citizen Developers"
+}
+
+variable "citizen_developer_environments" {
+  description = "md-environment values citizen developers can configure, deploy and decommission in. Everywhere else they can only plan and propose."
+  type        = list(string)
+  default     = ["dev"]
+}
+
 variable "projects" {
   description = "Projects and their environments, keyed by identifier."
   type = map(object({

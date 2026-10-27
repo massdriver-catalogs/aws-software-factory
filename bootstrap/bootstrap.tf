@@ -88,6 +88,28 @@ resource "massdriver_group_policy" "release" {
   conditions = jsonencode({ md-environment = var.release_environments })
 }
 
+resource "massdriver_group" "citizen_developers" {
+  name        = var.citizen_developer_group
+  description = "People and their sandboxes: design projects and ship to dev. Anything beyond dev is proposed."
+}
+
+resource "massdriver_group_policy" "citizen_developers_everywhere" {
+  group_id = massdriver_group.citizen_developers.id
+  effect   = "ALLOW"
+  actions = [
+    "project:create", "project:view", "project:design", "environment:create",
+    "repo:view", "resource:view", "instance:plan", "instance:propose",
+  ]
+  conditions = "*"
+}
+
+resource "massdriver_group_policy" "citizen_developers_dev" {
+  group_id   = massdriver_group.citizen_developers.id
+  effect     = "ALLOW"
+  actions    = ["environment:configure", "instance:configure", "instance:deploy", "instance:decommission"]
+  conditions = jsonencode({ md-environment = var.citizen_developer_environments })
+}
+
 resource "massdriver_project" "this" {
   for_each = var.projects
 

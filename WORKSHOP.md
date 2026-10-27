@@ -46,6 +46,9 @@ flowchart LR
     SRE[SRE Agent]
     COST[Cost Agent]
   end
+  subgraph NA[Your vibe-coded app]
+    NAPP["Bundles the architect picks"]
+  end
   MD{{Massdriver API}}
 
   VPC --> GW & RUN & FN & SB & SRE & COST
@@ -62,7 +65,8 @@ flowchart LR
   FN -->|alarm| A2I
   A2I -->|issue| REPO
   SRE & COST -->|read, propose| MD
-  SB -->|mass, MCP| MD
+  SB -->|design, deploy to dev| MD
+  MD -->|deploy| NAPP
 ```
 
 Each project has a job: **Networking** is the shared VPC; the **Software Factory** serves models and runs CI, review and agents, with one environment per GitHub organization; **Developer Sandboxes** has one environment per person; **Codebases** holds each app's repository and images, with one environment per app; and each **app** has its own project.
@@ -87,6 +91,7 @@ Every arrow above runs as one of these. Nothing shares a personal token.
 | **Release to Dev** group | You, step 11 | Massdriver | Release service accounts | `project:view`, `instance:deploy` where `md-environment` is `dev` |
 | Release service account `<org>/<repo> release` | GitHub Repository bundle, when **Release to** is set | Token in the Actions secret `MASSDRIVER_API_KEY`; variables `MASSDRIVER_ORGANIZATION_ID`, `MASSDRIVER_URL`, `MASSDRIVER_RELEASE_INSTANCE` | The `release` workflow, to deploy the new image | The groups picked in **Release permissions**; one-year token |
 | **Factory Agents** group | You, step 12 | Massdriver | Agent service accounts | `project:view`, `instance:plan`, `instance:propose`; no deploy |
+| **Citizen Developers** group | You, step 13 | Massdriver | Your sandbox's service account | Create and design projects, plan and propose anywhere; configure, deploy and decommission only where `md-environment` is `dev` |
 | Sandbox service account `<instance> sandbox agents` | Developer Sandbox bundle, for sandboxes and agents, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass`, the Massdriver MCP and the agents' goals | The groups picked in **Massdriver access for agents**; one-year token |
 | Sandbox access user `<instance>-access` | Developer Sandbox bundle | The **Connect to …** resource; an AWS profile on your laptop after the connect script | `ssh`, to start the VM and open a session | Start that VM and connect as `dev` |
 | Browser password | Developer Sandbox bundle | Secrets Manager, `<instance>/browser-password`; printed by the connect script | You, for opencode in the browser and the preview URL | That sandbox |
@@ -278,7 +283,22 @@ The sandbox from step 9 can also be a home for an agent nobody is driving. The *
 
 Their journals are in `/workspace/sre/journal.md` and `/workspace/cost/journal.md`; every run's output is in `/workspace/.goal/runs`.
 
-### 13. Tear it down
+### 13. Vibe code an app
+
+You are a citizen developer now. You describe an app; the agent in your sandbox designs its infrastructure in Massdriver, writes the code, and ships it to dev. Anything outside dev, it can only propose.
+
+1. **A group for builders.** **Settings → Groups → Citizen Developers**, with two policies:
+   - Allow `project:create`, `project:view`, `project:design`, `environment:create`, `repo:view`, `resource:view`, `instance:plan` and `instance:propose` on `*`.
+   - Allow `environment:configure`, `instance:configure`, `instance:deploy` and `instance:decommission` where `md-environment` is `dev`.
+2. **Give your sandbox that identity.** Set the **Massdriver Service Account** credential as a default on your **Developer Sandboxes** environment. On your sandbox from step 9, pick **Citizen Developers** in **Massdriver access for agents** and deploy. The sandbox gets its own service account, in that group only.
+3. **A home for the code.** In **Codebases**, add an environment for the new app, e.g. **Notes** (`notes`), with the same defaults as **Todo App** plus the Massdriver Service Account. Add **ECR Repository** and **GitHub Repository** (repository `notes`) the same way as step 7, and connect them.
+4. **A project for the app.** Create **Notes** (`notes`) with environment **Dev** (`dev`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as its defaults. Leave the canvas empty.
+5. **Vibe code it.** Shell in to your sandbox as in step 10, `git clone https://github.com/<your-org>/notes`, `cd notes`, and run `opencode`. Tell it what you want, e.g. "A notes app with sign-in. Use the Massdriver architect to design its infrastructure in the `notes` project, deploy it to dev, then write the app in this repository and open a pull request." Steer it as it goes.
+6. **Ship it.** The architect adds bundles to the **Notes** canvas and deploys them to dev; watch them appear. When the function exists, set **Release to** on the `notes` repository to its instance ID with **Release to Dev** picked, as in step 11. Merge the pull request, and the `release` workflow ships it.
+
+The sandbox runs as you designed it: it can build and deploy in dev, and nothing else. Try asking it to deploy to production; it can only propose.
+
+### 14. Tear it down
 
 > [!WARNING]
 > **Tear everything down before you leave.** Stopped machines still bill for their disks, and the gateway, NAT instance and factory runner never stop on their own (~$36/month together). Decommissioning deletes everything, disks included.
@@ -286,9 +306,9 @@ Their journals are in `/workspace/sre/journal.md` and `/workspace/cost/journal.m
 Decommission each environment in this order; the shared pieces go last because everything else runs on them:
 
 1. **Agents** (`main`). Their service accounts are deleted with them.
-2. **Your app** (`todoapp` / `dev`)
+2. **Your apps** (`todoapp` / `dev` and `notes` / `dev`)
 3. **Developer Sandboxes** (your environment). Anything in `/workspace` that isn't pushed to git is gone.
-4. **Codebases** (`todoapp`). The GitHub repository is archived, not deleted; its images are deleted.
+4. **Codebases** (`todoapp` and `notes`). The GitHub repository is archived, not deleted; its images are deleted.
 5. **Software Factory** (`main`)
 6. **Networking** (`dev`)
 

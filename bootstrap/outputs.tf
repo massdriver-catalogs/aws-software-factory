@@ -10,6 +10,7 @@ output "groups" {
     service_account_managers = massdriver_group.service_account_managers.id
     agents                   = massdriver_group.agents.id
     release                  = massdriver_group.release.id
+    citizen_developers       = massdriver_group.citizen_developers.id
   }
 }
 

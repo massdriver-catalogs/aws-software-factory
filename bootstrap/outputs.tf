@@ -17,3 +17,16 @@ output "groups" {
 output "environments" {
   value = { for k, e in massdriver_environment.this : k => e.id }
 }
+
+output "deploy" {
+  description = "What deploy.sh reads."
+  value = {
+    environments = { for k, c in var.canvas : k => "${c.project}-${c.environment}" }
+    instances = {
+      for k, c in local.components : k => "${var.canvas[c.at].project}-${var.canvas[c.at].environment}-${k}"
+    }
+    massdriver_credential = massdriver_imported_resource.agent_creator.id
+    release_group         = massdriver_group.release.id
+    repository_name       = var.app_repository_name
+  }
+}

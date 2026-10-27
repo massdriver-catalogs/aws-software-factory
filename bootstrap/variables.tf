@@ -113,3 +113,35 @@ variable "massdriver_credential_recipients" {
   type        = map(list(string))
   default     = { md-project = ["codebases", "devsandboxes", "agents"] }
 }
+
+variable "canvas" {
+  description = "Which project and environment hold the network, the factory, the example app's repositories, and the example app itself."
+  type = map(object({
+    project     = string
+    environment = string
+  }))
+  default = {
+    networking = { project = "networking", environment = "dev" }
+    factory    = { project = "factory", environment = "main" }
+    codebases  = { project = "codebases", environment = "todoapp" }
+    app        = { project = "todoapp", environment = "dev" }
+  }
+}
+
+variable "example_app" {
+  description = "Put the example app and its repositories on the canvas."
+  type        = bool
+  default     = true
+}
+
+variable "app_repository_name" {
+  description = "The GitHub repository the example app gets, in the GitHub App's organization."
+  type        = string
+  default     = "todoapp"
+}
+
+variable "self_hosted_model" {
+  description = "Put the vLLM model server on the factory canvas. It's a GPU: about $0.80 an hour while it runs."
+  type        = bool
+  default     = false
+}

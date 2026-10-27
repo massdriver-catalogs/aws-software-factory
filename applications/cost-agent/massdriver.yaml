@@ -9,7 +9,7 @@ version: 0.0.0
 app:
   runtime: dev-sandbox
   envs:
-    AGENT_CLI: '@text "claude-code"'
+    AGENT_CLI: '@text "opencode"'
     AGENT_GOAL_EVERY: '@text "1d"'
     AGENT_GOAL: >-
       @text "You are the cost agent for this Massdriver organization. Massdriver is your only view

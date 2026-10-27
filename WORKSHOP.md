@@ -115,7 +115,7 @@ They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installatio
 > [!WARNING]
 > **Three things cost real money:**
 > 1. **The GPU** (step 6, optional): ~$0.80 an hour while it runs. **Skip it for the workshop.**
-> 2. **The SRE agent's tokens** (step 12): it runs every 5 minutes, ~$1.50 an hour. Remove the agents after their tests.
+> 2. **The SRE agent's tokens** (step 12): it runs every 10 minutes, ~$0.75 an hour. Remove the agents after their tests.
 > 3. **Anything left running afterwards**: ~$125 a month with no GPU, plus tokens. Do step 14 before you leave.
 
 | Step | Workshop (~3 hours) | A month if left running | What stops it |
@@ -130,7 +130,7 @@ They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installatio
 | 9. Your sandbox | ~$0.15 | ~$3 stopped, ~$10 on workday hours | Idle stop (30 minutes), nightly stop (8 pm), step 14 |
 | 10–11. opencode and factory agent runs (tokens) | ~$0.50–1.50 | Up to $20 per consumer | The gateway's $20 per consumer per month |
 | ⚠️ 12. SRE Agent and Cost Agent VMs | ~$0.25 | ~$62 (always on) | Nothing; remove them after their tests, or step 14 |
-| ⚠️ 12. SRE Agent tokens | ~$1.50 an hour | $20, reached within a day | The gateway's $20 cap; remove the agent |
+| ⚠️ 12. SRE Agent tokens | ~$0.75 an hour | $20, reached in about a day | The gateway's $20 cap; remove the agent |
 | 12. Cost Agent tokens | ~$0.15 a run | ~$5 (one run a day) | The gateway's $20 cap |
 | ⚠️ 13. Vibe coding (tokens) | ~$1–3 | Up to $20 | The gateway's $20 cap on your sandbox |
 
@@ -291,7 +291,7 @@ Each agent run costs ~$0.10–0.50 in tokens on Kimi K2.5, charged to the runner
 ### 12. Agents that run themselves
 
 > [!WARNING]
-> **The agents never stop on their own.** Each agent's VM stays up for its schedule: ~$31 a month each. The SRE agent also reads ~200,000 tokens every 5 minutes: **~$1.50 an hour**, until the gateway stops it at $20 for the month, usually within a day. Run the tests in this step, then remove both agents (item 7).
+> **The agents never stop on their own.** Each agent's VM stays up for its schedule: ~$31 a month each. The SRE agent also reads ~200,000 tokens every 10 minutes: **~$0.75 an hour**, until the gateway stops it at $20 for the month, about a day later. Run the tests in this step, then remove both agents (item 7).
 
 The sandbox from step 9 can also be a home for an agent nobody is driving. The **SRE Agent** and **Cost Agent** are that sandbox with a goal, a schedule, and their own Massdriver identity. They read everything through Massdriver, hold no cloud credentials, and only ever propose.
 
@@ -299,7 +299,7 @@ The sandbox from step 9 can also be a home for an agent nobody is driving. The *
 2. **The identity maker** from step 11 makes the agents' identities too.
 3. **The project.** Create **Agents** (`agents`) with environment **Main** (`main`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint, the GitHub App and the Massdriver Service Account as its defaults.
 4. **The agents.** Add **SRE Agent** and **Cost Agent**, each with the **Lowest cost** preset, and pick **Factory Agents** in **Massdriver access for agents**. Each deploy creates a service account for that agent, in that group only. **~$31 each a month**, because a repeating goal keeps the VM up; **~$0.04 an hour each.** Tokens come on top: ~$1.50 an hour for the SRE agent, ~$0.15 a run for the cost agent. The gateway stops each agent at $20 a month.
-   - The SRE agent checks Massdriver's alarms every 5 minutes.
+   - The SRE agent checks Massdriver's alarms every 10 minutes.
    - The cost agent checks every instance's cost against its budget once a day.
 5. **Watch one work.** Shell in to the Cost Agent the same way as step 10, with its **Connect script**, and run:
 

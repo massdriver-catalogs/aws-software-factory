@@ -1,6 +1,6 @@
 # SRE Agent
 
-An agent that runs every 5 minutes on its own VM. It reads alarms from Massdriver's API, finds the cause, and proposes the fix:
+An agent that runs every 10 minutes on its own VM. It reads alarms from Massdriver's API, finds the cause, and proposes the fix:
 
 - **Config:** a proposed deployment of the instance with new params. A person approves it in Massdriver.
 - **Code:** a draft pull request against the bundle's source repository, planned with the Massdriver architect skill.

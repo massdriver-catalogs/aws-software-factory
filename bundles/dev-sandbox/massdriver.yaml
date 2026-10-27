@@ -305,6 +305,8 @@ params:
           title: Once
         - const: 5m
           title: Every 5 minutes
+        - const: 10m
+          title: Every 10 minutes
         - const: 15m
           title: Every 15 minutes
         - const: 1h

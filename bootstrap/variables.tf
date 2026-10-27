@@ -10,15 +10,12 @@ variable "token_expiration_minutes" {
 }
 
 variable "catalog_publishers" {
-  description = "The group and service account GitHub Actions uses to publish the catalog."
+  description = "The group and service account GitHub Actions uses to publish the catalog. Leave null when publishing is already set up."
   type = object({
     group           = string
     service_account = string
   })
-  default = {
-    group           = "Catalog Publishers"
-    service_account = "github-publisher"
-  }
+  default = null
 }
 
 variable "service_account_managers" {
@@ -30,8 +27,8 @@ variable "service_account_managers" {
   })
   default = {
     group           = "Service Account Managers"
-    service_account = "Massdriver SW Factory Agent Creator"
-    credential      = "Massdriver SW Factory Agent Creator"
+    service_account = "Service Account Creator"
+    credential      = "Service Account Creator"
   }
 }
 

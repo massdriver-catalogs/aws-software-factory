@@ -86,11 +86,13 @@ Costs are per month unless noted. Every pick is the cheapest option that doesn't
 ### 2. Let GitHub publish the catalog to Massdriver
 
 1. In Massdriver: **Settings → Service Accounts → Create**. Name it `github-publisher` and copy its key; it's shown once.
-2. Put it in a group that can publish to the catalog: a group whose policy allows `repo:create`, `repo:push`, `repo:pull`, `repo:update` and `repo:view`. **Organization Admin** also works but grants far more.
+2. Put it in a group that can publish to the catalog, e.g. **Catalog Publishers**, whose policy allows `repo:create`, `repo:push`, `repo:pull`, `repo:update` and `repo:view` on `*`. **Organization Admin** also works but grants far more.
 3. In the fork on GitHub: **Settings → Secrets and variables → Actions**.
    - **Secrets → New repository secret:** `MASSDRIVER_API_KEY` = the key.
    - **Variables → New repository variable:** `MASSDRIVER_ORG_ID` = your Massdriver organization's ID. A secret with that name works too.
 4. **Actions → Publish → Run workflow**, tick **all**, **Run workflow**. In a few minutes every credential type, resource type and bundle is in your Massdriver catalog. From now on, every push to `main` publishes what changed.
+
+*Optional shortcut, for a terminal and Terraform:* once the catalog is published, `bootstrap/` in the fork makes the other groups, the identity maker and its credential (step 11), and every project and environment in steps 5–12 in one `terraform apply` with an Organization Admin key. Skip the **Create project** lines below; you still add the AWS and GitHub credentials and set each environment's defaults.
 
 ### 3. Connect AWS (~2 minutes)
 
@@ -116,7 +118,7 @@ Add **Budget Guard** with the **Free Tier** preset ($25 limit, alerts at 50/80/1
 
 Add **Cost Reports** with the **Member account** preset (**Management account** if this is the payer account). **Cents.** When it's deployed, open its operator guide, run the command it shows, and paste the four values into **Settings → Integrations → AWS Cost and Usage Reports**. Every instance then shows its cost, usually within a day.
 
-Every bundle asks for a **Monthly budget**; the presets fill in a sensible one. That's what the cost agent in step 12 checks against.
+Every bundle has a **Monthly budget (USD)**; each preset fills in one. That's what the cost agent in step 12 checks against.
 
 ### 6. Software Factory
 
@@ -128,7 +130,7 @@ The gateway is a small t4g.small proxy, not a model: it forwards each request to
 
 Kimi K3 is stronger, at ~$3.30 / $16.50 per million tokens, but its multi-turn calls through Bedrock can fail on reasoning content, which is how opencode talks. Leave it for later.
 
-Add **GitHub Actions OIDC**. It exists once per AWS account and lets GitHub Actions push images with no stored AWS keys. If the account already has one, turn on **Adopt the existing provider**. **$0.** **Share** its resource with all environments.
+Add **GitHub Actions OIDC** with the **New account** preset (**Provider already exists** if the account has one). It exists once per AWS account and lets GitHub Actions push images with no stored AWS keys. **$0.** **Share** its resource with all environments.
 
 Add **GitHub Actions Runners** with the **Development** preset: one Small runner (~$12) with a 30 GB disk (~$2.40). Connect the gateway to the runners on the canvas.
 
@@ -207,9 +209,9 @@ All in the browser again.
 3. **CI and review run on it.** The tests, secret scan, build and image scan run, and the gateway's model posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
 4. **Turn on release to dev.** Merged code should reach dev without anyone touching Massdriver. The repository gets its own Massdriver identity for that, made by a credential that can make identities.
    - **Groups.** **Settings → Groups**: **Service Account Managers** allows `organization:manageServiceAccounts` and `organization:manageGroups` on `*`. **Release to Dev** allows `project:view` and `instance:deploy` where `md-environment` is `dev`.
-   - **The identity maker.** **Settings → Service Accounts → Create** `Massdriver SW Factory Agent Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token. **Share** it only with the projects `codebases`, `devsandboxes` and `agents`: whoever holds it can make an identity in any group. Set it as a default on **Codebases / Todo App**.
-   - **The repository.** On the **GitHub Repository**, set **Release to** to `todoapp-dev-fn`, pick **Release to Dev** in **Release permissions**, and deploy. The repository gets a `release` workflow and a service account in that group only.
-5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to the Lambda Function in dev. Watch the deployment appear in Massdriver with the message `Release <commit>`.
+   - **The identity maker.** **Settings → Service Accounts → Create** one, e.g. `Service Account Creator`, copy its token, and add it to **Service Account Managers**. Then **Credentials → Add → Massdriver Service Account** with your organization ID and that token. **Share** it only with the projects `codebases`, `devsandboxes` and `agents`: whoever holds it can make an identity in any group. Set it as a default on **Codebases / Todo App**.
+   - **The repository.** On the **GitHub Repository**, set **Release to** to the Lambda Function's instance ID, e.g. `todoapp-dev-fn`, pick **Release to Dev** in **Release permissions**, and deploy. The repository gets a `release` workflow and a service account in that group only.
+5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to the Lambda Function in dev. Watch the deployment appear on the Lambda Function in Massdriver with the message `Release <commit>`. That deployment is the proof: every route, `/health` included, answers `401` without a signed-in user's token.
 6. **Close the loop.** On **Alarm to Issue**, turn **Hand alarms to the agent** on and deploy. From now on, when one of the app's alarms fires, an issue opens with the `agent` label, the agent proposes a fix, CI and review run, and a person decides whether to merge.
 
 Each agent run costs a few cents in tokens on Kimi K2.5.
@@ -249,10 +251,10 @@ Decommission each environment in this order; the shared pieces go last because e
 5. **Software Factory** (`main`)
 6. **Networking** (`dev`)
 
-Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again.
+Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again. In Massdriver, delete the identity maker's service account and credential; it can make an identity in any group.
 
 ## Messaging
 
 - The default model, Kimi K2.5 on Bedrock, is a strong coding agent at pennies a run. Your own GPU with gpt-oss-20b is the "your model, your hardware" option: it works, it's private, and it's weaker than Kimi. Switching is one setting, and the sandbox never changes.
 - The agent never holds cloud credentials. Infrastructure changes go through Massdriver, and code changes go through pull requests a person merges.
-- "Production alarm → issue → agent PR → review → merge → deploy" is the closing demo.
+- "Issue → agent PR → review → merge → deploy to dev" is the closing demo. Alarms open issues the same way.

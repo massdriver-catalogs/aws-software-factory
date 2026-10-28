@@ -138,6 +138,7 @@ Every arrow above runs as one of these. Nothing shares a personal token.
 | Builder group, e.g. **Citizen Developers** | You, step 5 | Massdriver | Your sandbox's service account | Create and design projects, plan and propose anywhere; configure, deploy and decommission only where `md-environment` is `dev`, and in every Codebases environment, where its apps' repositories live |
 | Sandbox service account, named after the instance | Developer Sandbox bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in your sandbox | The groups picked in **Massdriver access for agents**; one-year token |
 | Agent service account, named after the instance | Agent bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in the agent's runs | The groups picked in **Massdriver groups**; one-year token |
+| Agent's AWS role | Agent bundle | IAM, on the agent's VM | The agent's runs, to read AWS directly | Its own secrets, plus what **AWS access** adds: nothing, CloudWatch and view-only, or ReadOnlyAccess. Read-only at every level |
 | Access user `<instance>-access` | Developer Sandbox and Agent bundles | The **Connect to …** resource; an AWS profile on your laptop after the connect script | `ssh`, to start the VM and open a session | Start that VM and connect as `dev` |
 | Browser password | Developer Sandbox bundle | Secrets Manager, `<instance>/browser-password`; printed by the connect script | You, for opencode in the browser and the preview URL | That sandbox |
 | Cost collector user | Cost Reports bundle | IAM; keys in Secrets Manager, `<instance>/integration` | Massdriver's cost integration, after you paste them in step 6 | Read the cost report bucket and resource tags |
@@ -160,7 +161,7 @@ They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installatio
 > [!WARNING]
 > **Three things cost real money:**
 > 1. **The GPU** (step 7, optional): ~$0.80 an hour while it runs. **Skip it for the workshop.**
-> 2. **The SRE agent's tokens** (step 11): it runs every 10 minutes, ~$0.75 an hour. Remove the agents after their tests.
+> 2. **The SRE agent's tokens** (step 11): its test run costs ~$0.15, but on duty it runs every 10 minutes, ~$0.75 an hour. Remove the agents when you're done.
 > 3. **Anything left running afterwards**: ~$125 a month with no GPU, plus tokens. Do step 14 before you leave.
 
 | Step | Workshop (~3 hours) | A month if left running | What stops it |
@@ -175,15 +176,15 @@ They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installatio
 | 9. Your app | ~$0 | ~$0 at low traffic | Step 14 |
 | 10, 12. Factory agent runs and opencode (tokens) | ~$0.50–1.50 | Up to $20 per consumer | The gateway's $20 per consumer per month |
 | ⚠️ 11. SRE Agent and Cost Agent VMs (Agent bundle) | ~$0.25 | ~$62 (always on) | Nothing; remove them after their tests, or step 14 |
-| ⚠️ 11. SRE Agent tokens | ~$0.75 an hour | $20, reached in about a day | The gateway's $20 cap; remove the agent |
-| 11. Cost Agent tokens | ~$0.15 a run | ~$5 (one run a day) | The gateway's $20 cap |
+| ⚠️ 11. SRE Agent tokens | ~$0.15 for the test run; ~$0.75 an hour on duty | $20 on duty, reached in about a day | The gateway's $20 cap; remove the agent |
+| 11. Cost Agent tokens | ~$0.15 a run | ~$5 on duty (one run a day) | The gateway's $20 cap |
 | 12. Your sandbox | ~$0.15 | ~$3 stopped, ~$10 on workday hours | Idle stop (30 minutes), nightly stop (8 pm), step 14 |
 | ⚠️ 13. Vibe coding (tokens) | ~$1–3 | Up to $20 | The gateway's $20 cap on your sandbox |
 
 | Scenario | Bedrock (default) | Plus your own GPU |
 |---|---|---|
 | The workshop, agents removed after their tests, then teardown | ~$3–5 | ~$6–8 |
-| The workshop with the SRE agent running all 3 hours | ~$7–9 | ~$10–12 |
+| The workshop with the SRE agent on duty all 3 hours | ~$7–9 | ~$10–12 |
 | A month of solo development, everything auto-stopping, no agents | ~$60–90 | ~$210–240 |
 | A month left running 24×7, agents included | ~$125 plus up to $20 of tokens per consumer | ~$725+ |
 
@@ -221,7 +222,7 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 1. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and paste the whole `.pem` file into **Private Key**. **Save**.
 2. **Share** it with all environments.
 
-*Optional shortcut:* after steps 1–4, in `bootstrap/` run `terraform apply`, then `./deploy.sh --email you@example.com`. It makes every group and project, and builds steps 5–9 (the identity maker, the platforms, the codebase and the example app), release to dev from step 10, and the agents from step 11, in about 30 minutes. The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`. It needs the GitHub CLI logged in. The agents cost ~$0.75 an hour in tokens; set `agents = false` in `terraform.tfvars` to leave them out. Paste the Cost Reports values by hand, then continue at step 10, item 3.
+*Optional shortcut:* after steps 1–4, in `bootstrap/` run `terraform apply`, then `./deploy.sh --email you@example.com`. It makes every group and project, and builds steps 5–9 (the identity maker, the platforms, the codebase and the example app), release to dev from step 10, and the agents from step 11, in about 30 minutes. The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`. It needs the GitHub CLI logged in. The agents start on duty, on the **SRE Agent** and **Cost Agent** presets, and cost ~$0.75 an hour in tokens; set `agents = false` in `terraform.tfvars` to leave them out. Paste the Cost Reports values by hand, then continue at step 10, item 3. To see their tests, start step 11 at item 2 on the agents it made: pick their test run presets and deploy.
 
 ### 5. Groups and the identity maker
 
@@ -325,15 +326,23 @@ The software factory is done.
 ### 11. Agents that run themselves
 
 > [!WARNING]
-> **The agents never stop on their own.** Each agent's VM stays up: ~$31 a month each. The SRE agent also reads ~200,000 tokens every 10 minutes: **~$0.75 an hour**, until the gateway stops it at $20 for the month, about a day later. Run the tests in this step, then remove both agents (item 5).
+> **The agents never stop on their own.** Each agent's VM stays up: ~$31 a month each. A test run costs one run's tokens, ~$0.15. On duty, the SRE agent reads ~200,000 tokens every 10 minutes: **~$0.75 an hour**, until the gateway stops it at $20 for the month, about a day later. Remove both agents when you're done (item 6).
 
 An agent is a prompt and a schedule. The **Agent** bundle is a VM that runs a coding agent on a schedule, with the prompt you give it, under its own Massdriver identity. The SRE agent and the cost agent are the same bundle with different presets. They read everything through Massdriver, hold no cloud credentials, and only ever propose.
 
 1. **The project.** Create **Agents** (`agents`) with environment **Main** (`main`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint, the GitHub App and the Massdriver Service Account as its defaults. The identity maker from step 5 makes the agents' identities. One Agents project serves the whole organization: the agents work through Massdriver, so they cover every cloud account it manages.
-2. **The agents.** Add the **Agent** bundle twice. Pick the **SRE Agent** preset on one and the **Cost Agent** preset on the other, and pick your agent group from step 5 in **Massdriver groups** on both. Leave **AWS access** at **None**. Each deploy creates a service account for that agent, in that group only. **~$31 each a month; ~$0.04 an hour each.** Tokens come on top: ~$0.75 an hour for the SRE agent, ~$0.15 a run for the cost agent. The gateway stops each agent at $20 a month.
-   - The SRE agent checks Massdriver's alarms every 10 minutes.
-   - The cost agent checks every instance's cost against its budget once a day.
-3. **Watch one work.** This is the first time you need a terminal.
+2. **Test runs.** Add the **Agent** bundle twice. Pick the **SRE Agent: test run** preset on one and the **Cost Agent: test run** preset on the other. Pick your agent group from step 5 in **Massdriver groups** on both. Leave **AWS access** at **None**, and deploy. Each deploy creates a service account for that agent, in that group only. **~$31 each a month; ~$0.04 an hour each, plus ~$0.15 of tokens for each test run.** The gateway stops each agent at $20 a month.
+
+   The two settings answer different questions. **Massdriver groups** decides what the agent can do to your infrastructure: with the agent group, view, plan and propose, never deploy. **AWS access** decides what it can read straight from AWS, beyond its own secrets: **None**, **Alarms, metrics, logs and resource lists** (AWS's CloudWatch read-only and view-only policies), or **Read everything, including S3 objects and table data** (ReadOnlyAccess). No level can change anything in AWS. The SRE and Cost agents need **None**: alarms, instances, costs and deployment logs all come through Massdriver.
+
+   Their schedule is **Once**: each runs its test after boot, and again whenever its prompt changes. A test pretends the trigger happened and does the rest for real. Within a few minutes, both show up in Massdriver:
+   - The SRE agent pretends one of the app's alarms is firing, digs into the instance, and proposes a fix or opens a draft pull request, marked **🚨 [test]**.
+   - Cost data takes a day, so the cost agent pretends one instance costs 3 times its budget. It finds a cheaper config, runs a plan marked **💸 [test]**, and proposes the change with a **💸 [test]** message.
+
+   Open the instances they picked to see the plan and the pending proposals. Reject them, and close any draft pull request.
+3. **Put them on duty (optional).** Switch each agent to its real preset, **SRE Agent** or **Cost Agent**, and deploy. The SRE agent then checks Massdriver's alarms every 10 minutes, ~$0.75 an hour in tokens. The cost agent checks every instance's cost against its budget once a day, ~$0.15 a run.
+4. **An agent of your own (optional).** Add a third **Agent** with the **Your own** preset. Write its **Prompt** and deploy. It runs once after boot, and again whenever you change the prompt. Pick another **Schedule** to repeat it. Give it **AWS access** only if its prompt needs what Massdriver doesn't show, such as a function's own log lines (**Alarms, metrics, logs and resource lists**) or the rows in a table (**Read everything**).
+5. **Watch one work (optional).** This needs a terminal.
    1. In Massdriver, open the Cost Agent's **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
    2. Install the AWS CLI and the Session Manager plugin. Homebrew's cask for the plugin is disabled, so it comes from AWS:
 
@@ -345,17 +354,15 @@ An agent is a prompt and a schedule. The **Agent** bundle is a VM that runs a co
       ```
 
    3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile and an SSH host for this agent only.
-   4. `ssh agents-main-cost` and run:
+   4. `ssh agents-main-cost`. Its journal is `/workspace/cost/journal.md`, and every run's output is in `/workspace/.goal/runs`. To run its prompt right now:
 
       ```bash
-      sandbox-goal --test
+      sandbox-goal --now
       ```
 
-   Cost data takes a day, so the test prompt pretends one instance costs 3 times its budget. Everything else is real. It finds a cheaper config, runs a plan marked **💸 [test]**, and proposes the change with a **💸 [test]** message. Open the instance in Massdriver to see the plan and the pending proposal. Reject it.
-4. **The SRE agent's test.** Shell in to the SRE Agent the same way and run `sandbox-goal --test`. It pretends one of the app's alarms is firing, digs into the instance, and proposes a fix or opens a draft pull request, marked **🚨 [test]**. Reject or close it.
-5. **Remove them.** On the **Agents** canvas, decommission **SRE Agent** and **Cost Agent**. This stops their VMs and their tokens. Their service accounts are deleted with them. Deploy them again whenever you want them back.
+6. **Remove them.** On the **Agents** canvas, decommission **SRE Agent** and **Cost Agent**. This stops their VMs and their tokens. Their service accounts are deleted with them. Deploy them again whenever you want them back.
 
-Their journals are in `/workspace/sre/journal.md` and `/workspace/cost/journal.md`; every run's output is in `/workspace/.goal/runs`. Copy anything you want to keep before item 5. To change what an agent does, edit its **Prompt** or **Schedule** and deploy.
+The SRE agent's journal is in `/workspace/sre/journal.md`. Copy anything you want to keep before item 6. To change what an agent does, edit its **Prompt** or **Schedule** and deploy.
 
 ### 12. Your sandbox
 
@@ -370,7 +377,7 @@ Private mode means no public address (saving ~$4 a month) and nothing on the int
 **Shell in.**
 
 1. In Massdriver, open the sandbox's **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
-2. If you skipped step 11, install the AWS CLI and the Session Manager plugin as shown there.
+2. If you skipped step 11, item 5, install the AWS CLI and the Session Manager plugin as shown there.
 3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile and an SSH host for this sandbox only, and prints the browser URLs with their username and password.
 4. Either open the **opencode** URL in the browser, or `ssh devsandboxes-<you>-sandbox` and run `opencode`. If the sandbox has stopped itself, `ssh` starts it; give it a minute.
 
@@ -447,12 +454,12 @@ The issue agent, AI review and vibe-coding figures are estimates scaled from thi
 ### Totals
 
 - **Workshop, agents removed after their tests:** ~$3–5 on Bedrock, ~$6–8 with the GPU.
-- **Workshop with the SRE agent running all 3 hours:** ~$7–9.
+- **Workshop with the SRE agent on duty all 3 hours:** ~$7–9.
 - **A month left running 24×7 without the GPU:** ~$125, plus up to $20 per gateway consumer. That's about 6 consumers (runners, sandbox, two functions, two agents), so up to ~$120 of tokens.
 
 ### Biggest risks
 
-1. **The SRE agent burns tokens fast.** Every 10 minutes it reads ~200K tokens: ~$0.75 an hour, ~$18 a day. The per-consumer cap ($20 on Development) stops it in about a day, and after that it silently does nothing for the rest of the month. To slow it, pick a longer **Schedule** on the instance. Remove both agents after their tests (step 11, item 5).
+1. **The SRE agent burns tokens fast on duty.** Every 10 minutes it reads ~200K tokens: ~$0.75 an hour, ~$18 a day. The per-consumer cap ($20 on Development) stops it in about a day, and after that it silently does nothing for the rest of the month. To slow it, pick a longer **Schedule** on the instance. Remove both agents when you're done (step 11, item 6).
 2. **A forgotten GPU.** ~$0.80 an hour and ~$600 a month if it never stops. The Development preset idles out after an hour and stops at 8 pm, but a stopped GPU still bills ~$10 a month for its disk. It also needs G/VT quota that most new accounts lack. Skip it for the workshop.
 3. **Forgotten teardown.** The VPC, gateway and runners never stop (~$38 a month). Agents never stop (~$31 a month each). Token caps stack per consumer. A stopped sandbox still bills ~$3 a month for its disks.
 4. **Token caps run on the gateway's own estimates.** The real bill is in Cost Explorer. Bedrock bills per token with no minimum, so nothing bills after teardown.

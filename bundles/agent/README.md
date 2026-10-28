@@ -19,7 +19,6 @@ Work goes in `/workspace`. It's a separate disk that survives the VM being rebui
 |---|---|
 | **Prompt** (`prompt`) | The standing goal. Read on every run, so changing it never rebuilds the VM |
 | **Schedule** (`schedule`) | `once`, `5m`, `10m`, `15m`, `1h`, `6h` or `1d`. **Once** runs after boot and again whenever the prompt changes |
-| **Test prompt** (`test_prompt`) | A one-off run that fakes the trigger and does the rest for real. `sandbox-goal --test` runs it |
 | **Agent CLI** (`cli`) | `opencode` or `claude-code` |
 | **Massdriver groups** (`massdriver_groups`) | The agent gets its own service account in these groups. Needs a Massdriver Service Account credential on the environment |
 | **AWS access** (`aws_access`) | None, alarms/metrics/logs/resource lists, or read everything. It can never change anything |
@@ -44,10 +43,13 @@ Set them as environment defaults; nothing is linked on the canvas.
 
 | Preset | Schedule | What it does |
 |---|---|---|
+| **Your own** | Once | A blank **Prompt** for you to write |
+| **SRE Agent: test run** | Once | Pretends an alarm is firing and does the rest for real, marked **🚨 [test]** |
 | **SRE Agent** | Every 10 minutes | Finds firing alarms through Massdriver. A config problem becomes a 🚨 proposed deployment; a code problem becomes a 🚨 draft pull request. Journal in `/workspace/sre/journal.md` |
+| **Cost Agent: test run** | Once | Pretends an instance costs 3 times its budget and does the rest for real, marked **💸 [test]** |
 | **Cost Agent** | Every day | Checks each instance's cost against its **Monthly budget**. Over budget: plans the smallest cheaper config, checks nothing holding data gets replaced, then proposes it, all with 💸 messages. Journal in `/workspace/cost/journal.md` |
 
-Both test prompts pretend the trigger happened (an alarm firing, an instance at 3 times its budget) and do everything else for real, marked **🚨 [test]** or **💸 [test]**.
+To test an agent, deploy it with its test run preset. It runs once after boot; its proposals and pull requests are real, so reject or close them. Then pick the real preset and deploy to put it on duty.
 
 ## Permissions
 

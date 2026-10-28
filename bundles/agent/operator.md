@@ -53,18 +53,9 @@ The SRE Agent preset keeps its journal in `/workspace/sre/journal.md`; the Cost 
 sandbox-goal --now
 ```
 
-## Run the test
+## Run a test
 
-```bash
-sandbox-goal --test
-```
-
-{{#params.test_prompt}}
-The test fakes its trigger and does everything else for real. Proposals and pull requests it opens are real: reject or close them afterwards.
-{{/params.test_prompt}}
-{{^params.test_prompt}}
-This agent has no **Test prompt**. Set one and redeploy.
-{{/params.test_prompt}}
+Pick the **SRE Agent: test run** or **Cost Agent: test run** preset and deploy. It fakes its trigger and does everything else for real, once. Proposals and pull requests it opens are real: reject or close them afterwards. Pick the real preset again and deploy to put it back on duty.
 
 ## Change what it does
 

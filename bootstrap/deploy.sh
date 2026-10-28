@@ -108,11 +108,17 @@ deploy() {
     jq "$patch" >"$params"
   [ -s "$params" ] || die "$id has no '$preset' preset."
   echo "Deploying $id ($preset)..."
-  mass instance deploy "$id" -p "$params" -m "Bootstrap: $preset preset" >/dev/null ||
-    die "$id didn't deploy. Read its deployment log in Massdriver, fix it, and run this again."
+  # The CLI stops waiting before the slowest deploys finish, so the instance's status decides.
+  mass instance deploy "$id" -p "$params" -m "Bootstrap: $preset preset" >/dev/null || true
   rm -f "$params"
-  [ "$(status "$id")" = PROVISIONED ] ||
-    die "$id isn't provisioned. Read its deployment log in Massdriver, fix it, and run this again."
+  for _ in $(seq 1 120); do
+    case $(status "$id") in
+      PROVISIONED) return ;;
+      FAILED) break ;;
+    esac
+    sleep 15
+  done
+  die "$id isn't provisioned. Read its deployment log in Massdriver, fix it, and run this again."
 }
 
 resource_payload() {

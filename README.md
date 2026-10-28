@@ -29,6 +29,10 @@ Bundles exchange resource types, not internals, so one side can change without t
 
 ```mermaid
 flowchart LR
+  subgraph Account[AWS Account]
+    BG[budget-guard]
+    CR[cost-reports]
+  end
   subgraph Networking
     VPC[shared-vpc]
   end
@@ -54,6 +58,12 @@ flowchart LR
     DDB[dynamodb-table] -->|aws-dynamodb-table| FN
     A2I[alarm-to-issue]
     WEB[static-site]
+  end
+  subgraph Apps[An app on the runtime]
+    T1[dynamodb-table] -->|aws-dynamodb-table| APPL["linkly · pollbox · guestlog<br/>on the lambda-function runtime"]
+    T2[dynamodb-table] -->|aws-dynamodb-table| APPL
+    API2[http-api] -->|aws-http-api| APPL
+    WEB2[static-site]
   end
 
   VPC -->|aws-vpc| GW & VLLM & SB & RUN & AG & FN

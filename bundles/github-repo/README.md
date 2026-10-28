@@ -36,7 +36,7 @@ With **Add the factory workflows** on, the repository also gets two workflows an
 - **`agent.yml`:** label an issue `agent`, or comment `/agent` with extra instructions, and a coding agent works on it and opens a pull request.
 - **`ai-review.yml`:** every pull request gets one review comment from the AI Platform's default model.
 
-Both run on the Software Factory's runners (`runs-on: [self-hosted, factory]`), which need an LLM Endpoint connected. Without those runners the jobs wait in the queue. Keep the name `agent.yml`: the runners' token service only hands a push token to a workflow with that name. Like the starter app, these files are written once and then belong to the team.
+Both run on the CI Platform's factory runners (`runs-on: [self-hosted, factory]`), which need an LLM Endpoint connected. Without those runners the jobs wait in the queue. Keep the name `agent.yml`: the runners' token service only hands a push token to a workflow with that name. Like the starter app, these files are written once and then belong to the team.
 
 ## Release to dev
 

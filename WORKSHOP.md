@@ -31,20 +31,22 @@ flowchart LR
   AI["AI Platform · main"]
   CI["CI Platform · main"]
   AG["Agents · main"]
-  CB["Codebases · todoapp"]
+  CB["Codebases · todoapp, your app"]
   APP["Todo App · dev"]
+  YA["Your app · dev"]
   DS["Developer Sandboxes · cory"]
   MD{{Massdriver}}
 
-  CRED --> ACCT & NET & AI & CI & AG & CB & APP & DS
+  CRED --> ACCT & NET & AI & CI & AG & CB & APP & YA & DS
   MDSA --> CB & AG & DS
   NET -->|network| AI & CI & AG & APP & DS
   AI -->|LLM endpoint| CI & AG & APP & DS
   CI -->|GitHub OIDC| CB
   CB -->|repository, remote reference| APP
-  AG & DS -->|read, plan, propose| MD
+  AG -->|read, plan, propose| MD
   CB -->|release to dev| MD
-  MD --> APP
+  DS -->|design, deploy in dev| MD
+  MD --> APP & YA
 ```
 
 ### On the canvas
@@ -81,6 +83,12 @@ flowchart LR
     WEB[Static Site]
     A2I[Alarm to Issue]
   end
+  subgraph YA[Your app]
+    YT1[DynamoDB Table] -->|its first table| YAPP["Your app: an application on lambda-function"]
+    YT2[DynamoDB Table] -->|its second table| YAPP
+    YAPI[HTTP API] -->|api| YAPP
+    YWEB[Static Site]
+  end
   subgraph DS[Developer Sandboxes]
     SB[Developer Sandbox]
   end
@@ -88,6 +96,7 @@ flowchart LR
   VPC -.-> GW & RUN & SRE & COST & FN & SB
   GW -.-> RUN & SRE & COST & FN & SB
   OIDC -.-> REPO
+  SB -.->|designs and deploys| YA
   REPO -.->|remote reference| A2I
 ```
 

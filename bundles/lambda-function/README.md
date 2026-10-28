@@ -24,6 +24,10 @@ With **Require sign-in** on, API Gateway rejects requests to this function's rou
 
 With a DynamoDB table connected, the function gets the table's read-write policy, or read with **Table access**, plus `TABLE_NAME` and `TABLE_PARTITION_KEY` environment variables.
 
+## Runtime
+
+This bundle is also a runtime. An application on it is one `massdriver.yaml`: the DynamoDB tables it needs, as dependencies, and the environment variables that name them, under `app.envs`. The function gets every one of those variables and each extra table's read-write policy. The runtime owns every param: image, routes, memory, sign-in. Applications add none.
+
 ## AI Platform
 
 ```mermaid

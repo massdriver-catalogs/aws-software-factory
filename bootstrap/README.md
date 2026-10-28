@@ -30,7 +30,7 @@ Tokens end up in the state file, so keep the state somewhere private.
 | Group that makes service accounts, its service account, and a Massdriver Service Account credential holding its token | Service Account Managers, Service Account Creator |
 | Group repositories release with: `project:view`, `instance:deploy` in `dev` | Release to Dev |
 | Group agents are put in: `project:view`, `instance:plan`, `instance:propose` | Factory Agents |
-| Group people's sandboxes build with: design projects anywhere; configure, deploy and decommission in `dev` | Citizen Developers |
+| Group people's sandboxes build with: design projects anywhere; configure, deploy and decommission in `dev` and in Codebases | Citizen Developers |
 | AWS Account/Workshop | Budget Guard, Cost Reports |
 | Networking/Shared | Shared VPC |
 | AI Platform/Main | LLM Gateway, and a vLLM Model Server linked to it |
@@ -42,6 +42,8 @@ Tokens end up in the state file, so keep the state somewhere private.
 | *Optional:* group that publishes the catalog, and its service account | set `catalog_publishers` |
 
 Every name is a variable. Add an environment per person under `projects.devsandboxes.environments`, and one per app under `projects.codebases.environments`.
+
+Citizen Developers can create, configure, deploy and decommission environments in Codebases because each app's repository and image repository live there, outside `dev`. `citizen_developer_projects` sets which projects that covers.
 
 Service Account Managers can add anything to any group, so it is equal to Organization Admin. The credential holding its token is shared only with environments whose attributes match `massdriver_credential_recipients`; by default that is the Codebases, Developer Sandboxes and Agents projects.
 

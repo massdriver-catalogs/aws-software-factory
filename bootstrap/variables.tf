@@ -62,6 +62,12 @@ variable "citizen_developer_environments" {
   default     = ["dev"]
 }
 
+variable "citizen_developer_projects" {
+  description = "Projects citizen developers can change in every environment: where their apps' repositories live."
+  type        = list(string)
+  default     = ["codebases"]
+}
+
 variable "projects" {
   description = "Projects and their environments, keyed by identifier."
   type = map(object({

@@ -81,11 +81,23 @@ Three credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), 
 | `github-repo` | A GitHub repository with a write-once starter app and a pipeline that tests, scans and pushes an arm64 image to ECR. Can adopt an existing repository |
 | `ecr-repository` | A container image repository with push and pull policies |
 | `http-api` | An API Gateway HTTP API; functions attach their own routes. Optional sign-in |
-| `lambda-function` | A function behind the API, with an optional table and access to the gateway's models |
+| `lambda-function` | A function behind the API, with an optional table and access to the gateway's models. Also a runtime that applications run on |
 | `dynamodb-table` | An on-demand table with read and read-write policies |
 | `user-pool` | Cognito sign-in with a hosted page and a browser app client |
 | `static-site` | A private S3 bucket behind CloudFront |
 | `alarm-to-issue` | Opens a GitHub issue when one of the environment's alarms fires |
+
+## Applications
+
+An application is one `massdriver.yaml` on a runtime: its own tables as dependencies, and the environment variables that name them. It has no IaC and no params. The runtime owns the function, its image, routes, memory and sign-in, and gives the app read-write access to every table it brings.
+
+| Application | Runtime | What it is | Tables |
+|---|---|---|---|
+| `linkly` | `lambda-function` | A link shortener with click counts and a stats page per link | `links`, `clicks` |
+| `pollbox` | `lambda-function` | Live polls: one vote each, results update as votes come in | `polls`, `votes` |
+| `guestlog` | `lambda-function` | An event guestbook with a live wall of messages | `events`, `messages` |
+
+Each runs in its own project with a `dev` environment: a Static Site, an HTTP API, an optional User Pool, and the application linked to the API and its two tables. Its GitHub and ECR repositories sit in a Codebases environment named after it.
 
 Each bundle's README explains its design; its runbook covers what to do when it breaks. Most have presets named for when to use them: **Free Tier** where the defaults stay inside AWS's always-free allowances, **Development** for the cheapest settings that still work well, **Production** for durability and safety.
 
@@ -95,6 +107,7 @@ Each bundle's README explains its design; its runbook covers what to do when it 
 platforms/        Credential types (AWS IAM Role, GitHub App, Massdriver Service Account)
 resource-types/   Contracts between bundles
 bundles/          OpenTofu bundles
+applications/     Applications on the bundles' runtimes
 bootstrap/        The projects, groups and canvases above, from one terraform apply
 .github/workflows Publishing
 ```

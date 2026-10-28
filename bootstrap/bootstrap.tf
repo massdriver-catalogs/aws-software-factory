@@ -118,6 +118,15 @@ resource "massdriver_group_policy" "citizen_developers_dev" {
   conditions = jsonencode({ md-environment = var.citizen_developer_environments })
 }
 
+# An app's repository and image repository live in Codebases, outside dev, and
+# the sandbox that builds the app has to set them up.
+resource "massdriver_group_policy" "citizen_developers_codebases" {
+  group_id   = massdriver_group.citizen_developers.id
+  effect     = "ALLOW"
+  actions    = ["environment:create", "environment:configure", "instance:configure", "instance:deploy", "instance:decommission"]
+  conditions = jsonencode({ md-project = var.citizen_developer_projects })
+}
+
 resource "massdriver_project" "this" {
   for_each = var.projects
 

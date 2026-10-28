@@ -135,3 +135,7 @@ bootstrap/        The projects, groups and canvases above, from one terraform ap
 ## Versioning
 
 Everything publishes as `0.0.0`, which can be republished in place for bundles and resource types alike. Publishing any other version to a repository ends that: once a repository holds a real version, `0.0.0` can no longer be overwritten there.
+
+## License
+
+[Apache License 2.0](LICENSE).

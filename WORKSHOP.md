@@ -2,7 +2,7 @@
 
 Building a Citizen Developer Agentic Software Factory on Self-Hosted Models in Your Own VM Sandbox in Under an Hour
 
-Free workshop paired with the Product Hunt launch of the Massdriver Architect / Context Engine. The catalog in this repo is the product; the workshop is one path through it.
+The catalog in this repo is the product; the workshop is one path through it.
 
 **Slides:** [Building an agentic software factory](https://docs.google.com/presentation/d/1ARGwirwTusiV72yduIwURHrtN1WamnfgGqjFEQkX7m8/edit?usp=sharing)
 
@@ -447,12 +447,6 @@ Decommission each environment in this order; the shared pieces go last because e
 8. **AWS Account** (`workshop`): Budget Guard and Cost Reports. Then remove the **AWS Cost and Usage Reports** integration in **Settings → Integrations**; its bucket is gone.
 
 Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't use them again. In Massdriver, delete the identity maker's service account and credential from step 5; it can make an identity in any group.
-
-## Messaging
-
-- The default model, Kimi K2.5 on Bedrock, is a strong coding agent at pennies a run. Your own GPU with gpt-oss-20b is the "your model, your hardware" option: it works, it's private, and it's weaker than Kimi. Switching is one setting, and the sandbox never changes.
-- The agent never holds cloud credentials. Infrastructure changes go through Massdriver, and code changes go through pull requests a person merges.
-- "Issue → agent PR → review → merge → deploy to dev" is the main demo. Alarms open issues the same way.
 
 ## Appendix
 

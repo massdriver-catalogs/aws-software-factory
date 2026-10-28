@@ -4,6 +4,8 @@ A Massdriver catalog for running an agentic software factory in your own AWS acc
 
 Agents never hold cloud credentials. Every infrastructure change goes through Massdriver, under the same policy and approvals as a person.
 
+> This catalog was built for a hands-on workshop: a software factory from an empty AWS account to an issue that becomes a pull request and ships to dev, then agents and sandboxes on top. Follow it in [WORKSHOP.md](WORKSHOP.md), with [the slides](https://docs.google.com/presentation/d/1ARGwirwTusiV72yduIwURHrtN1WamnfgGqjFEQkX7m8/edit?usp=sharing).
+
 ## Projects
 
 Together these projects are the software factory. Shared foundations are deployed once; per-developer and per-app pieces get an environment each.

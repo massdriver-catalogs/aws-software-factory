@@ -4,6 +4,8 @@ Building a Citizen Developer Agentic Software Factory on Self-Hosted Models in Y
 
 Free workshop paired with the Product Hunt launch of the Massdriver Architect / Context Engine. The catalog in this repo is the product; the workshop is one path through it.
 
+**Slides:** [Building an agentic software factory](https://docs.google.com/presentation/d/1ARGwirwTusiV72yduIwURHrtN1WamnfgGqjFEQkX7m8/edit?usp=sharing)
+
 ## Scope
 
 Everything runs live; nothing is take-home. The factory is the point of the workshop.

@@ -217,4 +217,10 @@ resource "aws_lambda_permission" "api" {
   function_name = aws_lambda_function.main.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${var.api.execution_arn}/*/*"
+
+  # Swapping the placeholder for an image replaces the function, and AWS drops
+  # its permissions with it.
+  lifecycle {
+    replace_triggered_by = [aws_lambda_function.main]
+  }
 }

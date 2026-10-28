@@ -142,6 +142,42 @@ They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installatio
 
 Costs are per month unless noted. Every pick is the cheapest option that doesn't hurt the experience.
 
+### 0. Set up the mass CLI
+
+The walkthrough runs in the browser; the CLI is for the bootstrap shortcut, the agents and your sandbox.
+
+**Install on Mac:**
+
+```bash
+brew install massdriver
+```
+
+**Install on Linux** (or on a Mac without Homebrew):
+
+```bash
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
+curl -fsSL "https://github.com/massdriver-cloud/mass/releases/download/2.5.0/mass-2.5.0-$OS-$ARCH.tar.gz" | tar -xz mass
+sudo mv mass /usr/local/bin/
+```
+
+**Sign in with an access token.** In Massdriver, click your name at the top right, then **Access tokens → New Token**. Copy it; it's shown once. Your organization ID is the part of any Massdriver URL right after `/orgs/`.
+
+```bash
+mkdir -p ~/.config/massdriver
+cat > ~/.config/massdriver/config.yaml <<'YAML'
+version: 1
+profiles:
+  default:
+    organization_id: <your-org-id>
+    api_key: <your-access-token>
+YAML
+chmod 600 ~/.config/massdriver/config.yaml
+mass whoami
+```
+
+`mass whoami` prints your name and organization. `MASSDRIVER_ORGANIZATION_ID` and `MASSDRIVER_API_KEY` in the environment work too, and override the file.
+
 ### 1. Get the catalog into your GitHub organization
 
 1. Open `github.com/massdriver-catalogs/aws-software-factory` and **Fork** it into your organization (or **Use this template → Create a new repository**).

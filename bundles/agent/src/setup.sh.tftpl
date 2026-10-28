@@ -309,7 +309,12 @@ STATE=/workspace/.goal
 MODE="$${1:-}"
 mkdir -p "$STATE/runs"
 exec 9>"$STATE/lock"
-flock -n 9 || { echo "A goal run is already in progress." >&2; exit 0; }
+if ! flock -n 9; then
+  # The schedule just skips a busy turn; someone who asked for a run waits for it.
+  [ -n "$MODE" ] || { echo "A goal run is already in progress." >&2; exit 0; }
+  echo "Waiting for the current goal run to finish..." >&2
+  flock 9
+fi
 
 CFG=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${goal_secret} --query SecretString --output text)
 AGENT=$(jq -r '.agent // "opencode"' <<<"$CFG")

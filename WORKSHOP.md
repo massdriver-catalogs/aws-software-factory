@@ -2,14 +2,6 @@
 
 Building a Citizen Developer Agentic Software Factory on Self-Hosted Models in Your Own VM Sandbox in Under an Hour
 
-## Welcome
-
-I'm Cory O'Daniel, CEO and co-founder of [Massdriver](https://massdriver.cloud). I've spent over 20 years building software and operating cloud infrastructure. We built Massdriver to give developers, automation and AI agents one governed path to changing things in the cloud, without handing everyone cloud credentials. Platform teams package infrastructure as bundles with the guardrails built in; everyone else composes them on a canvas and ships.
-
-Today you'll build an agentic software factory in your own AWS account with this catalog: an LLM gateway in front of Amazon Bedrock, self-hosted GitHub runners, and a workflow that turns issues labeled `agent` into pull requests. Merge one, and the app ships to dev. Then you'll add SRE and cost agents that propose changes without making them, and vibe-code an app in your own sandbox with the Massdriver architect.
-
-Your agents should have badges, not passwords. Every infrastructure change goes through the same policies, permissions and approvals as one a person makes.
-
 The catalog in this repo is the product; the workshop is one path through it.
 
 **Slides:** [Building an agentic software factory](https://docs.google.com/presentation/d/1ARGwirwTusiV72yduIwURHrtN1WamnfgGqjFEQkX7m8/edit?usp=sharing)

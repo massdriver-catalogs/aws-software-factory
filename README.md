@@ -12,12 +12,12 @@ Together these projects are the software factory. Shared foundations are deploye
 |---|---|---|
 | AWS Account (`aws`) | Budget Guard, Cost Reports | One per AWS account, e.g. `workshop` |
 | Networking (`networking`) | Shared VPC | One per account and region, e.g. `shared` |
-| CI Platform (`ci`) | GitHub Actions OIDC, GitHub Actions Runners (AI review, issue → PR agent) | One per GitHub organization, e.g. `main` |
 | AI Platform (`ai`) | LLM Gateway, optional vLLM Model Server | One per AWS account, e.g. `main` |
-| Agents (`agents`) | Agents, e.g. an SRE agent and a cost agent | One for the organization, e.g. `main` |
+| CI Platform (`ci`) | GitHub Actions OIDC, GitHub Actions Runners (AI review, issue → PR agent) | One per GitHub organization, e.g. `main` |
 | Codebases (`codebases`) | GitHub Repository, ECR Repository | One per app, named after the app's project, e.g. `todoapp` |
-| Developer Sandboxes (`devsandboxes`) | Developer Sandbox | One per developer, e.g. `cory` |
 | Each app, e.g. Todo App (`todoapp`) | HTTP API, Lambda Function, DynamoDB Table, User Pool, Static Site, Alarm to Issue | dev, prod, … |
+| Agents (`agents`) | Agents, e.g. an SRE agent and a cost agent | One for the organization, e.g. `main` |
+| Developer Sandboxes (`devsandboxes`) | Developer Sandbox | One per developer, e.g. `cory` |
 
 Agents read Massdriver and propose through Massdriver, so one Agents project covers every cloud account the organization manages.
 
@@ -116,7 +116,10 @@ bootstrap/        The projects, groups and canvases above, from one terraform ap
 
 1. **Publish from GitHub Actions.** Create a Massdriver service account in a group allowed to publish to the catalog. In the repository's **Settings → Secrets and variables → Actions**, add its key as the secret `MASSDRIVER_API_KEY` and your organization ID as `MASSDRIVER_ORG_ID` (a variable or a secret). Then run **Actions → Publish → Run workflow** with *all* ticked. After that, every push to `main` publishes whatever changed since the last successful publish: credential types and resource types first, then bundles.
 2. **Add credentials** in Massdriver: an **AWS IAM Role** and a **GitHub App**, each following the instructions on its form. Share both with every environment.
-3. **Build the foundations:** AWS Account, Networking, AI Platform and CI Platform. Then add Agents, Developer Sandboxes, Codebases and apps as people and apps arrive.
+3. **Add the identity maker:** a **Massdriver Service Account** credential, which lets repositories, sandboxes and agents make their own identities. Share it only with the Codebases, Developer Sandboxes and Agents projects.
+4. **Build the foundations:** AWS Account, Networking, AI Platform and CI Platform.
+5. **Add each app as it arrives:** its repository and image repository in a Codebases environment named after it, then its own project. Set **Release to** on the repository, and every merge deploys to dev.
+6. **Add Agents and Developer Sandboxes** as people arrive.
 
 ## Versioning
 

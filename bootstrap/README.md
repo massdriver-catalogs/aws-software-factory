@@ -33,7 +33,7 @@ Tokens end up in the state file, so keep the state somewhere private.
 | Group people's sandboxes build with: design projects anywhere; configure, deploy and decommission in `dev` | Citizen Developers |
 | AWS Account/Workshop | Budget Guard, Cost Reports |
 | Networking/Shared | Shared VPC |
-| AI Platform/Main | LLM Gateway; vLLM Model Server with `self_hosted_model = true` |
+| AI Platform/Main | LLM Gateway, and a vLLM Model Server linked to it |
 | CI Platform/Main | GitHub Actions OIDC, Factory Runners |
 | Agents/Main | SRE Agent, Cost Agent, in the agent group; `agents = false` leaves them out |
 | Codebases/Todo App | Image Repository, Source Repository (`todoapp`), releasing to dev |
@@ -49,7 +49,7 @@ Service Account Managers can add anything to any group, so it is equal to Organi
 
 **About $0.05 an hour, ~$38 a month**, plus model tokens and the agents' runs: the VPC's NAT instance (~$9 a month), the gateway (~$14) and one runner (~$15). The rest is free tier or cents at workshop traffic. The gateway caps each consumer's tokens at $20 a month.
 
-**`self_hosted_model = true` adds a GPU: ~$0.80 an hour while it runs**, ~$10 a month stopped. It is off by default; leave it off unless you mean it.
+The vLLM Model Server sits on the canvas undeployed. **`./deploy.sh --gpu` deploys it: a GPU at ~$0.80 an hour while it runs**, ~$10 a month stopped. Leave it off unless you mean it. `self_hosted_model = false` leaves it off the canvas.
 
 ## What it leaves to you
 

@@ -33,7 +33,7 @@ locals {
     var.self_hosted_model ? {
       gateway_model = { from = "gpu", from_field = "model_server", to = "gateway", to_field = "model_server" }
     } : {},
-    var.example_app ? {
+    var.example_app && !var.example_app_linked ? {
       repo_registry = { from = "ecr", from_field = "repository", to = "repo", to_field = "registry" }
       api_auth      = { from = "users", from_field = "user_pool", to = "api", to_field = "auth" }
       fn_api        = { from = "api", from_field = "api", to = "fn", to_field = "api" }
@@ -59,7 +59,7 @@ resource "massdriver_component" "this" {
 }
 
 resource "massdriver_component_link" "this" {
-  for_each = var.link_components ? local.links : {}
+  for_each = local.links
 
   from_component_id = massdriver_component.this[each.value.from].id
   from_field        = each.value.from_field

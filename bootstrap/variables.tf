@@ -158,13 +158,13 @@ variable "app_repository_name" {
 }
 
 variable "self_hosted_model" {
-  description = "Put the vLLM model server on the AI platform canvas. It's a GPU: about $0.80 an hour while it runs."
-  type        = bool
-  default     = false
-}
-
-variable "link_components" {
-  description = "Link the components on each canvas. Turn it off when adopting an org whose canvases are already linked: links can't be imported."
+  description = "Put the vLLM model server on the AI platform canvas, linked to the gateway. deploy.sh deploys it only with --gpu: it's about $0.80 an hour while it runs."
   type        = bool
   default     = true
+}
+
+variable "example_app_linked" {
+  description = "The example app's canvas is already linked, as when adopting an org that built it by hand. Links can't be imported."
+  type        = bool
+  default     = false
 }

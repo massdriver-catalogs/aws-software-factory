@@ -15,6 +15,7 @@ Usage: ./deploy.sh [options]
   --oidc-exists          The AWS account already has GitHub's OIDC provider
   --management-account   Cost Reports runs in the payer account, not a member account
   --image URI            The example app's first image, instead of waiting for its first build
+  --gpu                  Deploy the vLLM model server too (~$0.80 an hour while it runs)
   --redeploy             Deploy instances that are already provisioned, too
 EOF
 }
@@ -28,6 +29,7 @@ OIDC_PRESET="New account"
 COSTS_PRESET="Member account"
 IMAGE=""
 REDEPLOY=false
+GPU=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -38,6 +40,7 @@ while [ $# -gt 0 ]; do
     --oidc-exists) OIDC_PRESET="Provider already exists"; shift ;;
     --management-account) COSTS_PRESET="Management account"; shift ;;
     --image) IMAGE=$2; shift 2 ;;
+    --gpu) GPU=true; shift ;;
     --redeploy) REDEPLOY=true; shift ;;
     -h | --help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -99,7 +102,7 @@ deploy() {
     echo "$id is already provisioned."
     return
   fi
-  params=$(mktemp)
+  params=$(mktemp).json
   mass instance get "$id" -o json |
     jq --arg p "$preset" '.paramsSchema.examples[] | select(.__name == $p) | del(.__name)' |
     jq "$patch" >"$params"
@@ -139,7 +142,7 @@ share "$NETWORK"
 
 say "AI Platform ($AI)"
 defaults "$AI" "$AWS_ROLE" "$NETWORK"
-if has gpu; then
+if has gpu && [ "$GPU" = true ]; then
   deploy "$(inst gpu)" Development "if \"$TIMEZONE\" == \"\" then . else .timezone = \"$TIMEZONE\" end"
 fi
 deploy "$(inst gateway)" Development
@@ -172,7 +175,10 @@ if has repo; then
   say "Codebases ($CODEBASES)"
   defaults "$CODEBASES" "$AWS_ROLE" "$GITHUB_APP" "$OIDC" "$MASSDRIVER"
   deploy "$(inst ecr)" Development
-  deploy "$(inst repo)" "Private app" ".repository_name = \"$REPO_NAME\""
+  # A repository that already exists is adopted rather than recreated.
+  ADOPT=false
+  gh repo view "$OWNER/$REPO_NAME" >/dev/null 2>&1 && ADOPT=true
+  deploy "$(inst repo)" "Private app" ".repository_name = \"$REPO_NAME\" | .adopt_existing_repository = $ADOPT"
   share "$REPO"
 
   say "Example app ($APP)"

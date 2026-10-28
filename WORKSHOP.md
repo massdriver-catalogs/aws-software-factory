@@ -467,6 +467,8 @@ Private mode means no public address (saving ~$4 a month) and nothing on the int
 
 Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5. `/models` switches to Kimi K3 if the gateway serves it (the **Demo** preset), or to `self-hosted-gpt-oss-20b` if you added the GPU.
 
+The Massdriver opencode plugin isn't on npm yet, so the sandbox wires up the same pieces itself: the Massdriver MCP server, the `massdriver` and `massdriver-architect` skills, and the `mass` CLI.
+
 ### 13. Vibe code an app
 
 You are a citizen developer now. You describe an app; the agent in your sandbox designs its infrastructure in Massdriver, writes the code, and ships it to dev. Anything outside dev, it can only propose.

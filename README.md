@@ -86,7 +86,7 @@ Three credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), 
 | `cost-reports` | The account's Cost and Usage Report and a read-only user, so Massdriver shows what each instance costs |
 | `llm-gateway` | One OpenAI-compatible URL in front of Bedrock models and any self-hosted model; per-consumer keys, usage and budgets |
 | `vllm-model-server` | An open-weight model on a GPU you run, reachable only through the gateway |
-| `dev-sandbox` | A coding-agent VM per developer: opencode (and optionally Claude Code), the gateway, GitHub through the App, Massdriver tools; reached by SSH over Session Manager or in the browser |
+| `dev-sandbox` | A coding-agent VM per developer: opencode (and optionally Claude Code), the gateway, GitHub through the App, Massdriver tools; reached by SSH over Session Manager or in the browser. The Massdriver opencode plugin isn't on npm yet, so the MCP server and skills are installed directly |
 | `agent` | A VM that runs a coding agent on a schedule with a prompt you give it, under its own Massdriver identity. Presets for an SRE agent and a cost agent, a test run of each, and a blank one for your own prompt |
 | `github-actions-oidc` | Lets GitHub Actions get short-lived AWS credentials. Once per account |
 | `github-actions-runners` | Ephemeral self-hosted runners in the VPC's private subnets, with the gateway, plus the AI review and issue → PR agent workflows |

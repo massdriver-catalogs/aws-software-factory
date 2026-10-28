@@ -341,6 +341,13 @@ Add **ECR Repository** with the **Development** preset (immutable tags, scan on 
 
 The repository arrives with a starter app and a pipeline: every pull request runs tests, a secret scan, an arm64 image build and an image scan; every push to `main` also pushes the image to ECR, tagged with the commit. It also gets the factory workflows (the issue agent and AI review) and an `agent` label, which run on the CI Platform's runners. Starter files are written once and then belong to the team; redeploys never overwrite them. **Codebases: ~$0** (a private build uses a few of the free plan's 2,000 Actions minutes). When it's deployed, **Share** the repository's resource with all environments.
 
+| Workflow | Runs when | Does | Runs on |
+|---|---|---|---|
+| `build.yml` | Every pull request and push to `main` | Tests, secret scan, arm64 image build and scan; on `main`, pushes the image to ECR | GitHub's runners |
+| `agent.yml` | An issue gets the `agent` label, or someone comments `/agent` | A coding agent works the issue and opens or updates a pull request | Factory runners |
+| `ai-review.yml` | Every pull request | Posts one review comment from the gateway's default model | Factory runners |
+| `release.yml` | `build` succeeds on `main` (added in step 10) | Deploys the new image to the **Release to** instance in dev | GitHub's runners |
+
 Watch the first build under the repository's **Actions** tab. When it's green, the image URI is in ECR: `<account>.dkr.ecr.us-east-1.amazonaws.com/codebases-todoapp-ecr:<commit>`.
 
 ![The Codebases canvas: the ECR Repository linked to the GitHub Repository](assets/images/step-08-codebases-canvas.jpg)

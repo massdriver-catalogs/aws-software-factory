@@ -49,7 +49,7 @@ params:
     bedrock_models:
       title: Bedrock models
       description: >-
-        Open-weight models served by Bedrock, billed per token. The first one is the default. A
+        Open-weight models served by Bedrock, billed per token. Kimi K2.5 is the default whenever it's ticked; otherwise the first one. A
         connected model server is added alongside these. ***Bigger models cost more per token.***
       type: array
       uniqueItems: true
@@ -59,10 +59,10 @@ params:
       items:
         type: string
         oneOf:
-          - const: kimi-k3
-            title: Kimi K3 — best for coding agents, ~$3.30 in / $16.50 out per M tokens
           - const: kimi-k2-5
             title: Kimi K2.5 — strong coding agent, ~$0.60 in / $3 out per M tokens
+          - const: kimi-k3
+            title: Kimi K3 — best for coding agents, ~$3.30 in / $16.50 out per M tokens
           - const: qwen3-coder-next
             title: Qwen3 Coder Next — coding-tuned
           - const: gpt-oss-120b

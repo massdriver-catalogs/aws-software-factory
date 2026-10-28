@@ -27,7 +27,7 @@ An admin key lives in Secrets Manager at `<gateway>/master-key`.
 
 The gateway serves two kinds of model:
 
-- **Bedrock models**, picked in **Bedrock models**. AWS runs them; there's nothing to start or size, and you pay per token. The first one picked is the default.
+- **Bedrock models**, picked in **Bedrock models**. AWS runs them; there's nothing to start or size, and you pay per token. Kimi K2.5 is the default whenever it's picked; otherwise the first one.
 - **A self-hosted model**, only when a vLLM Model Server is connected to this gateway on the canvas. It's added as `self-hosted-<model>` alongside the Bedrock models, not instead of them. Connecting it is optional.
 
 Consumers see every model in the list and choose per request; in opencode that's `/models`. The list is published on this gateway's **LLM Endpoint** resource, and connected sandboxes pick it up on their next deploy.

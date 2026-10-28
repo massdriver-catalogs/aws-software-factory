@@ -55,7 +55,9 @@ locals {
   }] : []
 
   models        = concat(var.bedrock_models, local.has_model_server ? [local.self_hosted_model] : [])
-  default_model = local.models[0]
+  # Checkbox order follows the form, not the person, so the default is fixed:
+  # the cheap, strong coding model whenever it's served.
+  default_model = contains(local.models, "kimi-k2-5") ? "kimi-k2-5" : local.models[0]
 
   private_subnets = [for s in var.network.subnets : s if s.tier == "private"]
 }

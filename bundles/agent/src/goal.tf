@@ -30,7 +30,7 @@ resource "aws_secretsmanager_secret_version" "goal" {
     goal          = local.goal
     every_minutes = local.goal_minutes[local.goal_every]
     agent         = local.goal_agent
-    test_goal     = var.test_prompt
+    test_goal     = ""
     env           = {}
   })
 }

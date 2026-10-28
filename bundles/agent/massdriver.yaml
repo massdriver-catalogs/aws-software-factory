@@ -7,8 +7,8 @@ source_url: >-
 version: 0.0.0
 params:
   examples:
-  - __name: SRE Agent
-    monthly_budget: 30
+  - __name: Your own
+    monthly_budget: 15
     size: light
     chip: arm
     workspace_gb: 20
@@ -16,6 +16,35 @@ params:
     languages: &id001
     - python
     - node
+    aws_access: none
+    cli: opencode
+    prompt: ''
+    schedule: once
+  - __name: 'SRE Agent: test run'
+    monthly_budget: 30
+    size: light
+    chip: arm
+    workspace_gb: 20
+    network_mode: public
+    languages: *id001
+    aws_access: none
+    cli: opencode
+    prompt: >-
+      This is a test run of the SRE agent, to show how it works. Everything is real except the alarm.
+      Pick one PROVISIONED instance that has alarms, preferring one in an environment named dev and never
+      this agent's own instance. Pretend its first alarm is firing, with a message that fits the alarm's
+      metric and threshold. Then do steps 2 to 4 of your standing goal for that alarm, for real, and start
+      the proposal message and any pull request title with '🚨 [test]' instead of '🚨'. Explain each step
+      as you go, and finish with the instance, the alarm, and links to what you proposed or opened. Add
+      the run to /workspace/sre/journal.md, marked as a test.
+    schedule: once
+  - __name: SRE Agent
+    monthly_budget: 30
+    size: light
+    chip: arm
+    workspace_gb: 20
+    network_mode: public
+    languages: *id001
     aws_access: none
     cli: opencode
     prompt: >-
@@ -36,14 +65,24 @@ params:
       one that is still open. 6. Add to the journal what fired, what you found, and what you proposed,
       with links. If nothing is firing, add one line to the journal and stop.
     schedule: 10m
-    test_prompt: >-
-      This is a test run of the SRE agent, to show how it works. Everything is real except the alarm.
-      Pick one PROVISIONED instance that has alarms, preferring one in an environment named dev and never
-      this agent's own instance. Pretend its first alarm is firing, with a message that fits the alarm's
-      metric and threshold. Then do steps 2 to 4 of your standing goal for that alarm, for real, and start
-      the proposal message and any pull request title with '🚨 [test]' instead of '🚨'. Explain each step
-      as you go, and finish with the instance, the alarm, and links to what you proposed or opened. Add
-      the run to /workspace/sre/journal.md, marked as a test.
+  - __name: 'Cost Agent: test run'
+    monthly_budget: 30
+    size: light
+    chip: arm
+    workspace_gb: 20
+    network_mode: public
+    languages: *id001
+    aws_access: none
+    cli: opencode
+    prompt: >-
+      This is a test run of the cost agent, to show how it works. Everything is real except the cost data.
+      Pick one PROVISIONED instance that has params.monthly_budget, preferring one in an environment named
+      dev and never this agent's own instance. Pretend its last month cost was 3 times its monthly_budget,
+      whatever Massdriver reports. Then do steps 2 to 4 of your standing goal for that one instance, for
+      real. Use the same message templates with '💸 [test]' in place of the leading '💸', so every message
+      starts with '💸 [test]'. Explain each step as you go, and finish with the instance, the plan's deployment
+      id, and a link to the proposal. Add the run to /workspace/cost/journal.md, marked as a test.
+    schedule: once
   - __name: Cost Agent
     monthly_budget: 30
     size: light
@@ -76,14 +115,6 @@ params:
       cost, budget, what you planned, and what you proposed. If nothing is over budget, add one line to
       the journal and stop.
     schedule: 1d
-    test_prompt: >-
-      This is a test run of the cost agent, to show how it works. Everything is real except the cost data.
-      Pick one PROVISIONED instance that has params.monthly_budget, preferring one in an environment named
-      dev and never this agent's own instance. Pretend its last month cost was 3 times its monthly_budget,
-      whatever Massdriver reports. Then do steps 2 to 4 of your standing goal for that one instance, for
-      real. Use the same message templates with '💸 [test]' in place of the leading '💸', so every message
-      starts with '💸 [test]'. Explain each step as you go, and finish with the instance, the plan's deployment
-      id, and a link to the proposal. Add the run to /workspace/cost/journal.md, marked as a test.
   required:
   - prompt
   - schedule
@@ -106,8 +137,9 @@ params:
     schedule:
       title: Schedule
       description: >-
-        Once runs it after boot and again whenever the prompt changes. ***The VM runs around the clock
-        and bills every hour.***
+        Once runs it after boot and again whenever the prompt changes; the test run presets use it to
+        show what the agent does. Every other choice repeats it. ***The VM runs around the clock and bills
+        every hour.***
       type: string
       default: once
       oneOf:
@@ -125,13 +157,6 @@ params:
         title: Every 6 hours
       - const: 1d
         title: Every day
-    test_prompt:
-      title: Test prompt
-      description: >-
-        A one-off run that shows what the agent does, started on the VM with sandbox-goal --test.
-      type: string
-      default: ''
-      maxLength: 8000
     cli:
       title: Agent CLI
       description: The coding agent that works on the prompt.
@@ -268,7 +293,6 @@ ui:
   ui:order:
   - prompt
   - schedule
-  - test_prompt
   - cli
   - massdriver_groups
   - aws_access
@@ -283,10 +307,6 @@ ui:
     ui:widget: textarea
     ui:options:
       rows: 12
-  test_prompt:
-    ui:widget: textarea
-    ui:options:
-      rows: 6
   workspace_gb:
     ui:widget: updown
   languages:

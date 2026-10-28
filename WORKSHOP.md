@@ -220,7 +220,7 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 ![The GitHub App form](assets/images/step-04-github-app.jpg)
 
 > [!TIP]
-> ## ⏩ OPTIONAL SHORTCUT: skip from here to step 10
+> ## ⏩ OPTIONAL SHORTCUT: skip from here to [step 10](#10-the-factory-live)
 >
 > **After steps 1–4, one Terraform apply and one script build steps 5–9 for you:** the groups and identity maker, every project, the platforms, the codebase and the example app, release to dev, and the agents. About 30 minutes, mostly waiting on deploys. Needs Terraform, the GitHub CLI logged in to your GitHub organization, and an Organization Admin access token.
 >
@@ -233,7 +233,7 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 > ./deploy.sh --email you@example.com
 > ```
 >
-> **Then:** paste the Cost Reports values by hand (step 6), and **continue at step 10, item 3**.
+> **Then:** paste the Cost Reports values by hand (step 6), and **continue at [step 10](#10-the-factory-live), item 3**.
 >
 > - The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`.
 > - The agents start on duty on the **SRE Agent** and **Cost Agent** presets: ~$0.75 an hour in tokens. Set `agents = false` in `terraform.tfvars` to leave them out. To see their tests, start step 11 at item 2: pick their test run presets and deploy.

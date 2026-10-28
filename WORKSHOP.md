@@ -163,7 +163,9 @@ curl -fsSL "https://github.com/massdriver-cloud/mass/releases/download/2.5.0/mas
 sudo mv mass /usr/local/bin/
 ```
 
-**Sign in with an access token.** In Massdriver, click your name at the top right, then **Access tokens → New Token**. Copy it; it's shown once. Your organization ID is the part of any Massdriver URL right after `/orgs/`.
+**Sign in with an access token.** In Massdriver, click your email at the top right, then **Access tokens → New token**. A token works in one organization, so pick yours. Copy it; it's shown once. Your organization ID is the part of any Massdriver URL right after `/orgs/`.
+
+![Account → Access tokens → New token](assets/images/step-00-access-tokens.png)
 
 ```bash
 mkdir -p ~/.config/massdriver

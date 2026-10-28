@@ -25,6 +25,8 @@ locals {
       edit     = local.opencode_permission
       bash     = local.opencode_permission
       webfetch = local.opencode_permission
+      # A headless run that hits a question auto-rejects it and stops.
+      external_directory = local.opencode_permission
     }
     plugin = local.opencode_plugin_spec != "" ? [local.opencode_plugin_spec] : null
     mcp = local.opencode_plugin_spec == "" ? {

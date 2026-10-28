@@ -1,0 +1,3 @@
+skip-check:
+  # Agents install packages, clone from arbitrary git hosts and call the AI Platform; outbound is open by design and nothing is allowed in
+  - CKV_AWS_382

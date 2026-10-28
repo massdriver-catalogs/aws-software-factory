@@ -303,7 +303,7 @@ fi
 cat > /usr/local/bin/sandbox-goal <<'SH'
 #!/bin/bash
 # Works on the sandbox's standing goal when it's due. --now runs it regardless;
-# --test runs the application's test goal instead, without touching the schedule.
+# --test runs the test goal instead, without touching the schedule.
 set -euo pipefail
 STATE=/workspace/.goal
 MODE="$${1:-}"

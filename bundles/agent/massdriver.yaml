@@ -1,0 +1,293 @@
+name: agent
+description: >-
+  A cloud VM running a coding agent on a schedule, with the prompt you give it. It gets its own Massdriver
+  identity in the groups you pick, reached through Session Manager, with no inbound ports.
+source_url: >-
+  https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/agent
+version: 0.0.0
+params:
+  examples:
+  - __name: SRE Agent
+    monthly_budget: 30
+    size: light
+    chip: arm
+    workspace_gb: 20
+    network_mode: public
+    languages: &id001
+    - python
+    - node
+    aws_access: none
+    cli: opencode
+    prompt: >-
+      You are the SRE agent for this Massdriver organization. Massdriver is your only view of the infrastructure:
+      use the Massdriver MCP tools, the mass CLI, or the GraphQL API at $MASSDRIVER_URL/api/v2 (header:
+      Authorization: Bearer $MASSDRIVER_API_KEY). Do not use cloud CLIs. Work in /workspace/sre and keep
+      a journal at /workspace/sre/journal.md. Each run: 1. Find what is firing. Page through instances(organizationId:
+      $MASSDRIVER_ORGANIZATION_ID) with { id name status alarms { items { displayName threshold comparisonOperator
+      currentState { status message occurredAt } } } } and keep the alarms whose currentState.status is
+      ALARM. 2. For each firing alarm, read the instance: its params, its bundle and version, its recent
+      deployments and their logs, and its connections. Find the cause. 3. If changing the instance's params
+      fixes it, propose the change with `mass instance deploy <instance-id> --patch '<jq>' --propose -m
+      '🚨 <alarm>: <cause>. Proposing <fix>.'` Never deploy without --propose. 4. If the bundle's code
+      is at fault, use the Massdriver architect skill to plan the fix. Then clone the bundle's source
+      repository (its source_url), make the change on a branch, and open a draft pull request titled '🚨
+      <alarm>: <fix>' that names the alarm and explains the cause. 5. Before you propose or open anything,
+      check the journal, the instance's proposed deployments and the open pull requests. Never repeat
+      one that is still open. 6. Add to the journal what fired, what you found, and what you proposed,
+      with links. If nothing is firing, add one line to the journal and stop.
+    schedule: 10m
+    test_prompt: >-
+      This is a test run of the SRE agent, to show how it works. Everything is real except the alarm.
+      Pick one PROVISIONED instance that has alarms, preferring one in an environment named dev and never
+      this agent's own instance. Pretend its first alarm is firing, with a message that fits the alarm's
+      metric and threshold. Then do steps 2 to 4 of your standing goal for that alarm, for real, and start
+      the proposal message and any pull request title with '🚨 [test]' instead of '🚨'. Explain each step
+      as you go, and finish with the instance, the alarm, and links to what you proposed or opened. Add
+      the run to /workspace/sre/journal.md, marked as a test.
+  - __name: Cost Agent
+    monthly_budget: 30
+    size: light
+    chip: arm
+    workspace_gb: 20
+    network_mode: public
+    languages: *id001
+    aws_access: none
+    cli: opencode
+    prompt: >-
+      You are the cost agent for this Massdriver organization. Massdriver is your only view of the infrastructure:
+      use the Massdriver MCP tools, the mass CLI, or the GraphQL API at $MASSDRIVER_URL/api/v2 (header:
+      Authorization: Bearer $MASSDRIVER_API_KEY). Do not use cloud CLIs. Work in /workspace/cost and keep
+      a journal at /workspace/cost/journal.md. Each run: 1. Find what is over budget. Page through instances(organizationId:
+      $MASSDRIVER_ORGANIZATION_ID) with { id name status params cost { lastMonth { amount currency } dailyAverage
+      { amount } } }. An instance is over budget when params.monthly_budget is set and the larger of cost.lastMonth.amount
+      and 30 times cost.dailyAverage.amount is above it. Skip instances with no cost data. 2. For each
+      instance over budget, read its params schema, its presets and what connects to it. Find the smallest
+      param change that brings it under budget without breaking anything that depends on it: a smaller
+      size, fewer replicas, shorter retention, an earlier stop. 3. Plan it first: `mass instance deploy
+      <instance-id> --patch '<jq>' --plan -m '💸 Plan: $<cost>/mo against a $<budget> budget. <change>
+      should bring it to about $<estimate>/mo.'` Read the plan's logs and confirm it changes only what
+      you expect and replaces nothing that holds data. 4. If the plan is clean, propose it: `mass instance
+      deploy <instance-id> --patch '<jq>' --propose -m '💸 Over budget: $<cost>/mo against $<budget>. Proposing
+      <change>, about $<estimate>/mo. Plan: <deployment id>.'` Never deploy without --propose. Use both
+      message templates word for word, filling only the angle brackets; every message starts with the
+      💸 emoji. 5. If no param change gets it under budget, propose nothing. Journal whether the budget
+      or the bundle should change. 6. Before you plan anything, check the journal and the instance's proposed
+      deployments. Never repeat a proposal that is still pending. 7. Add to the journal each instance's
+      cost, budget, what you planned, and what you proposed. If nothing is over budget, add one line to
+      the journal and stop.
+    schedule: 1d
+    test_prompt: >-
+      This is a test run of the cost agent, to show how it works. Everything is real except the cost data.
+      Pick one PROVISIONED instance that has params.monthly_budget, preferring one in an environment named
+      dev and never this agent's own instance. Pretend its last month cost was 3 times its monthly_budget,
+      whatever Massdriver reports. Then do steps 2 to 4 of your standing goal for that one instance, for
+      real. Use the same message templates with '💸 [test]' in place of the leading '💸', so every message
+      starts with '💸 [test]'. Explain each step as you go, and finish with the instance, the plan's deployment
+      id, and a link to the proposal. Add the run to /workspace/cost/journal.md, marked as a test.
+  required:
+  - prompt
+  - schedule
+  - cli
+  - size
+  - chip
+  - workspace_gb
+  - network_mode
+  - languages
+  properties:
+    prompt:
+      title: Prompt
+      description: >-
+        The agent's standing task. It runs headless in /workspace with every tool and permission the agent
+        has, and writes each run's output to /workspace/.goal/runs. Changing it takes effect on the next
+        run, without rebuilding the VM.
+      type: string
+      minLength: 1
+      maxLength: 8000
+    schedule:
+      title: Schedule
+      description: >-
+        Once runs it after boot and again whenever the prompt changes. ***The VM runs around the clock
+        and bills every hour.***
+      type: string
+      default: once
+      oneOf:
+      - const: once
+        title: Once
+      - const: 5m
+        title: Every 5 minutes
+      - const: 10m
+        title: Every 10 minutes
+      - const: 15m
+        title: Every 15 minutes
+      - const: 1h
+        title: Every hour
+      - const: 6h
+        title: Every 6 hours
+      - const: 1d
+        title: Every day
+    test_prompt:
+      title: Test prompt
+      description: >-
+        A one-off run that shows what the agent does, started on the VM with sandbox-goal --test.
+      type: string
+      default: ''
+      maxLength: 8000
+    cli:
+      title: Agent CLI
+      description: The coding agent that works on the prompt.
+      type: string
+      default: opencode
+      oneOf:
+      - const: opencode
+        title: opencode
+      - const: claude-code
+        title: Claude Code
+    massdriver_groups:
+      title: Massdriver groups
+      description: >-
+        Groups whose permissions the agent gets in Massdriver, through a service account made for it.
+        Needs a Massdriver Service Account credential on this environment.
+      type: array
+      uniqueItems: true
+      default: []
+      items:
+        type: string
+        $md.list:
+          resource: group
+    aws_access:
+      title: AWS access
+      description: >-
+        What the agent can see in this AWS account, beyond its own secrets. It can never change anything.
+      type: string
+      default: none
+      oneOf:
+      - const: none
+        title: None
+      - const: observe
+        title: Alarms, metrics, logs and resource lists
+      - const: read_only
+        title: Read everything, including S3 objects and table data
+    size:
+      title: Size
+      description: >-
+        Light runs agents, docker and normal builds comfortably. Go bigger for large monorepos or parallel
+        agents.
+      type: string
+      default: light
+      oneOf:
+      - const: light
+        title: Light — 2 vCPU, 4 GB (~$25/month if never stopped)
+      - const: standard
+        title: Standard — 2 vCPU, 8 GB (~$49/month if never stopped)
+      - const: heavy
+        title: Heavy — 4 vCPU, 16 GB (~$98/month if never stopped)
+    chip:
+      title: Chip
+      description: >-
+        ARM is cheaper and runs almost everything. Intel is ~20% more and only needed for tools without
+        ARM builds. Changing it rebuilds the VM; the workspace disk is kept.
+      type: string
+      default: arm
+      oneOf:
+      - const: arm
+        title: ARM (Graviton)
+      - const: intel
+        title: Intel
+    workspace_gb:
+      title: Workspace disk (GB)
+      description: >-
+        Mounted at /workspace and kept when the VM is rebuilt. Can grow, never shrink. ***~$0.08/GB-month,
+        billed even while stopped.***
+      type: integer
+      default: 20
+      minimum: 20
+      maximum: 500
+    network_mode:
+      title: Network
+      description: Either way nothing can connect in; you reach it through Session Manager.
+      type: string
+      default: public
+      oneOf:
+      - const: public
+        title: Public IP, no inbound — ~$4/month for the address, no NAT needed
+      - const: private
+        title: Private — goes out through the VPC's egress, which must be on
+    languages:
+      title: Languages to install
+      description: Installed with mise. Agents can add others themselves.
+      type: array
+      uniqueItems: true
+      default:
+      - python
+      - node
+      items:
+        type: string
+        oneOf:
+        - const: python
+          title: Python
+        - const: node
+          title: Node.js
+        - const: go
+          title: Go
+        - const: java
+          title: Java
+        - const: rust
+          title: Rust
+    monthly_budget:
+      title: Monthly budget (USD)
+      description: >-
+        What this instance should cost in a month. When Massdriver's cost data goes over it, a cheaper
+        configuration is proposed for review.
+      type: number
+      minimum: 0
+      default: 25
+dependencies:
+  aws_authentication:
+    resource_type: aws-iam-role@0.0.0
+    required: true
+  network:
+    resource_type: aws-vpc@0.0.0
+    required: true
+  llm:
+    resource_type: llm-endpoint@0.0.0
+    required: false
+  github:
+    resource_type: github-app@0.0.0
+    required: false
+  massdriver:
+    resource_type: massdriver-service-account@0.0.0
+    required: false
+resources:
+  access:
+    resource_type: dev-sandbox-access@0.0.0
+    required: true
+steps:
+- path: src
+  provisioner: opentofu:1.10
+ui:
+  ui:order:
+  - prompt
+  - schedule
+  - test_prompt
+  - cli
+  - massdriver_groups
+  - aws_access
+  - size
+  - chip
+  - workspace_gb
+  - network_mode
+  - languages
+  - monthly_budget
+  - '*'
+  prompt:
+    ui:widget: textarea
+    ui:options:
+      rows: 12
+  test_prompt:
+    ui:widget: textarea
+    ui:options:
+      rows: 6
+  workspace_gb:
+    ui:widget: updown
+  languages:
+    ui:widget: checkboxes

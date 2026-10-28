@@ -91,19 +91,6 @@ Give the sandbox a **Goal** and it works without anyone attached. A timer checks
 
 The goal is read on each run, so changing it never rebuilds the VM. Run it on demand with `sandbox-goal --now`. With **Ask before editing** set, a headless agent can't ask, so actions that need permission are refused.
 
-## Applications
-
-This bundle is a runtime. An application on it ships a ready-made agent through three app envs:
-
-| Env | Value |
-|---|---|
-| `AGENT_GOAL` | The goal |
-| `AGENT_GOAL_EVERY` | `once`, `5m`, `15m`, `1h`, `6h` or `1d` |
-| `AGENT_CLI` | `claude-code` or `opencode`, installed even if it isn't picked |
-| `AGENT_TEST_GOAL` | A run that fakes the trigger, to show the agent working; `sandbox-goal --test` runs it |
-
-Its other app envs and secrets are exported to each goal run. A goal typed into the form replaces the application's, schedule included.
-
 ## GitHub
 
 ```mermaid

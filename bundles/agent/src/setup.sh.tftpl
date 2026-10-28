@@ -1,0 +1,388 @@
+#!/bin/bash
+set -euxo pipefail
+exec > >(tee -a /var/log/dev-sandbox-setup.log) 2>&1
+
+REGION="${region}"
+WORKSPACE_DEVICE="${workspace_device}"
+KEY_PARAMETER="${key_parameter_name}"
+
+dnf install -y git tmux docker jq tar gzip unzip gcc gcc-c++ make
+id dev >/dev/null 2>&1 || useradd -m -s /bin/bash dev
+usermod -aG docker dev
+echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-dev
+
+# The workspace volume attaches after boot starts; wait for it.
+for _ in $(seq 1 120); do [ -e "$WORKSPACE_DEVICE" ] && break; sleep 5; done
+blkid "$WORKSPACE_DEVICE" || mkfs.xfs "$WORKSPACE_DEVICE"
+UUID=$(blkid -s UUID -o value "$WORKSPACE_DEVICE")
+mkdir -p /workspace
+grep -q "$UUID" /etc/fstab || echo "UUID=$UUID /workspace xfs defaults,nofail 0 2" >> /etc/fstab
+mount -a
+chown dev:dev /workspace
+
+# Images and build cache live with the work, not on the root disk.
+mkdir -p /workspace/.docker /etc/docker
+echo '{"data-root": "/workspace/.docker"}' > /etc/docker/daemon.json
+systemctl enable --now docker
+
+case "$(uname -m)" in
+  aarch64) MASS_ARCH=arm64 ;;
+  *) MASS_ARCH=amd64 ;;
+esac
+MASS_VERSION="${mass_cli_version}"
+mkdir -p /tmp/mass
+curl -fsSL "https://github.com/massdriver-cloud/mass/releases/download/$MASS_VERSION/mass-$MASS_VERSION-linux-$MASS_ARCH.tar.gz" | tar -xz -C /tmp/mass
+install -m 0755 "$(find /tmp/mass -type f -name mass | head -n 1)" /usr/local/bin/mass
+
+for _ in $(seq 1 10); do docker pull "${mcp_image}" && break; sleep 15; done
+
+cat > /usr/local/bin/sandbox-massdriver-login <<'SH'
+#!/bin/bash
+set -euo pipefail
+ENV_FILE="$HOME/.config/sandbox/massdriver.env"
+OPENCODE="$HOME/.config/opencode/opencode.json"
+
+set_mcp() {
+  [ -f "$OPENCODE" ] && jq -e '.mcp.massdriver' "$OPENCODE" >/dev/null 2>&1 || return 0
+  jq --argjson on "$1" '.mcp.massdriver.enabled = $on' "$OPENCODE" > "$OPENCODE.tmp" && mv "$OPENCODE.tmp" "$OPENCODE"
+}
+
+if ! VALUE=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${massdriver_secret} --query SecretString --output text 2>/dev/null); then
+  rm -f "$ENV_FILE"
+  set_mcp false
+  echo "No Massdriver key in Secrets Manager at ${massdriver_secret}; Massdriver tools stay off." >&2
+  exit 0
+fi
+
+KEY=$(jq -r '.api_key // empty' <<<"$VALUE" 2>/dev/null || true)
+ORG=$(jq -r '.organization_id // empty' <<<"$VALUE" 2>/dev/null || true)
+URL=$(jq -r '.url // empty' <<<"$VALUE" 2>/dev/null || true)
+if [ -z "$KEY" ] || [ -z "$ORG" ]; then
+  echo "${massdriver_secret} must be JSON with api_key and organization_id." >&2
+  exit 1
+fi
+URL="$${URL:-${massdriver_url}}"
+
+umask 077
+cat > "$ENV_FILE" <<ENV
+export MASSDRIVER_API_KEY="$KEY"
+export MASSDRIVER_ORGANIZATION_ID="$ORG"
+export MASSDRIVER_ORG_ID="$ORG"
+export MASSDRIVER_URL="$URL"
+ENV
+mkdir -p "$HOME/.config/massdriver"
+cat > "$HOME/.config/massdriver/config.yaml" <<CFG
+version: 1
+profiles:
+  default:
+    organization_id: $ORG
+    api_key: $KEY
+    url: $URL
+CFG
+set_mcp true
+echo "Massdriver tools are on for $ORG. Open a new shell, then restart opencode or Claude Code."
+SH
+chmod 0755 /usr/local/bin/sandbox-massdriver-login
+
+GH_VERSION="${gh_cli_version}"
+mkdir -p /tmp/gh /usr/local/lib/gh
+curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_$${GH_VERSION}_linux_$MASS_ARCH.tar.gz" | tar -xz -C /tmp/gh
+install -m 0755 "$(find /tmp/gh -type f -path '*/bin/gh' | head -n 1)" /usr/local/lib/gh/gh
+
+# Mints GitHub App installation tokens on demand. The App key is read from
+# Secrets Manager into memory for each mint and never written to disk; only the
+# short-lived token is cached.
+cat > /usr/local/bin/sandbox-github-token <<'SH'
+#!/bin/bash
+set -euo pipefail
+SECRET_ID="${github_secret}"
+ORG="${github_owner}"
+CACHE="$HOME/.cache/sandbox/github-token.json"
+
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+mint() {
+  local app now header payload sig jwt
+  app=$(aws secretsmanager get-secret-value --region ${region} --secret-id "$SECRET_ID" --query SecretString --output text)
+  now=$(date +%s)
+  header=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
+  payload=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$(jq -r .app_id <<<"$app")" | b64url)
+  sig=$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign <(jq -r .private_key <<<"$app") | b64url)
+  jwt="$header.$payload.$sig"
+  mkdir -p "$(dirname "$CACHE")"
+  umask 077
+  curl -fsS -X POST -H "Authorization: Bearer $jwt" -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/app/installations/$(jq -r .installation_id <<<"$app")/access_tokens" > "$CACHE.tmp"
+  mv "$CACHE.tmp" "$CACHE"
+}
+
+token() {
+  if [ ! -s "$CACHE" ] || [ $(( $(date -d "$(jq -r .expires_at "$CACHE")" +%s) - $(date +%s) )) -lt 300 ]; then
+    mint
+  fi
+  jq -r .token "$CACHE"
+}
+
+case "$${1:-token}" in
+  token) token ;;
+  git-credential)
+    [ "$${2:-}" = "get" ] || exit 0
+    declare -A req
+    while IFS='=' read -r k v && [ -n "$k" ]; do req[$k]=$v; done
+    [ "$${req[host]:-}" = "github.com" ] || exit 0
+    case "$${req[path]:-}" in "$ORG"/*) ;; *) exit 0 ;; esac
+    printf 'username=x-access-token\npassword=%s\n' "$(token)"
+    ;;
+  *) echo "usage: sandbox-github-token [token|git-credential get]" >&2; exit 2 ;;
+esac
+SH
+chmod 0755 /usr/local/bin/sandbox-github-token
+
+cat > /usr/local/bin/gh <<'SH'
+#!/bin/bash
+if [ -z "$${GH_TOKEN:-}" ] && [ -n "${github_secret}" ]; then
+  GH_TOKEN=$(sandbox-github-token token 2>/dev/null) && export GH_TOKEN
+fi
+exec /usr/local/lib/gh/gh "$@"
+SH
+chmod 0755 /usr/local/bin/gh
+
+install -d -o dev -g dev -m 0700 /home/dev/.config/sandbox /home/dev/.config/opencode /home/dev/.claude
+
+sudo -iu dev git config --global user.name "${git_name}"
+sudo -iu dev git config --global user.email "${git_email}"
+sudo -iu dev git config --global init.defaultBranch main
+if [ -n "${github_secret}" ]; then
+  sudo -iu dev git config --global credential.https://github.com.helper '!sandbox-github-token git-credential'
+  sudo -iu dev git config --global credential.https://github.com.useHttpPath true
+fi
+
+if [ -n "$KEY_PARAMETER" ]; then
+  for _ in $(seq 1 30); do
+    KEY=$(aws ssm get-parameter --region "$REGION" --name "$KEY_PARAMETER" --with-decryption --query Parameter.Value --output text) && break
+    sleep 5
+  done
+  cat > /home/dev/.config/sandbox/llm.env <<EOF
+export AIPLATFORM_BASE_URL="${base_url}"
+export AIPLATFORM_API_KEY="$KEY"
+export AIPLATFORM_MODEL="${default_model}"
+export ANTHROPIC_BASE_URL="${anthropic_base_url}"
+export ANTHROPIC_AUTH_TOKEN="$KEY"
+export ANTHROPIC_MODEL="${default_model}"
+EOF
+else
+  : > /home/dev/.config/sandbox/llm.env
+fi
+
+cat > /home/dev/.config/opencode/opencode.json <<'EOF'
+${opencode_config}
+EOF
+
+cat > /home/dev/.claude/settings.json <<'EOF'
+${claude_settings}
+EOF
+
+cat >> /home/dev/.bashrc <<'EOF'
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+[ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+# Checks at most every 5 minutes, so shells stay fast when Massdriver access is off.
+if [ ! -f "$HOME/.config/sandbox/massdriver.env" ] && [ -z "$(find "$HOME/.cache/sandbox/massdriver-checked" -mmin -5 2>/dev/null)" ]; then
+  mkdir -p "$HOME/.cache/sandbox" && touch "$HOME/.cache/sandbox/massdriver-checked"
+  sandbox-massdriver-login >/dev/null 2>&1
+fi
+[ -f "$HOME/.config/sandbox/massdriver.env" ] && . "$HOME/.config/sandbox/massdriver.env"
+command -v mise >/dev/null && eval "$(mise activate bash)"
+[ "$PWD" = "$HOME" ] && cd /workspace
+EOF
+
+chown -R dev:dev /home/dev
+chmod 600 /home/dev/.config/sandbox/llm.env
+
+cat > /home/dev/.sandbox-setup.sh <<'EOF'
+set -euxo pipefail
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+curl -fsSL https://herdr.dev/install.sh | sh
+curl -fsSL https://mise.run | sh
+LANGUAGES="${languages}"
+[ -n "$LANGUAGES" ] && mise use -g $LANGUAGES
+for agent in ${agents}; do
+  case "$agent" in
+    opencode)
+      curl -fsSL https://opencode.ai/install | bash
+      # opencode reads skills, not Claude Code agents, so the architect agent is
+      # repackaged as a skill next to the Massdriver skill it relies on.
+      PLUGINS="$HOME/.local/share/massdriver-plugins"
+      SKILLS="$HOME/.config/opencode/skills"
+      if [ -d "$PLUGINS" ] || git clone --depth 1 https://github.com/massdriver-cloud/claude-plugins "$PLUGINS"; then
+        mkdir -p "$SKILLS/massdriver-architect"
+        ln -sfn "$PLUGINS/massdriver/skills/massdriver" "$SKILLS/massdriver"
+        {
+          cat <<'SKILL'
+---
+name: massdriver-architect
+description: >-
+  Design and build an app's infrastructure on Massdriver for a citizen developer: projects,
+  environments, bundles, connections and a gated path from dev to production. Use when the
+  user describes an app they want to build or ship.
+---
+SKILL
+          awk '/^---$/ { n++; next } n >= 2' "$PLUGINS/massdriver/agents/architect.md"
+        } > "$SKILLS/massdriver-architect/SKILL.md"
+      else
+        echo "Massdriver skills for opencode didn't install" >&2
+      fi
+      ;;
+    claude-code)
+      curl -fsSL https://claude.ai/install.sh | bash
+      claude plugin marketplace add massdriver-cloud/claude-plugins \
+        && claude plugin install massdriver@massdriver \
+        || echo "Massdriver Claude Code plugin didn't install; run: claude plugin install massdriver@massdriver" >&2
+      ;;
+  esac
+done
+DOTFILES="${dotfiles_repo}"
+if [ -n "$DOTFILES" ] && [ ! -d "$HOME/dotfiles" ]; then
+  git clone "$DOTFILES" "$HOME/dotfiles"
+  [ -x "$HOME/dotfiles/install.sh" ] && (cd "$HOME/dotfiles" && ./install.sh) || true
+fi
+EOF
+chown dev:dev /home/dev/.sandbox-setup.sh
+sudo -iu dev bash /home/dev/.sandbox-setup.sh
+# Access can be turned on after the VM is built, so the key is loaded at every
+# boot, and by the shell and the goal runner when it's missing.
+cat > /etc/systemd/system/sandbox-massdriver-login.service <<'EOF'
+[Unit]
+Description=Load the sandbox's Massdriver key
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dev
+ExecStart=/bin/bash -lc 'sandbox-massdriver-login || true'
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable --now sandbox-massdriver-login
+
+if [ -n "${browser_access}" ]; then
+  cat > /usr/local/bin/sandbox-browser-secret <<'EOF'
+#!/bin/bash
+set -euo pipefail
+PW=$(aws secretsmanager get-secret-value --region ${region} --secret-id "${browser_secret}" --query SecretString --output text)
+install -d -m 0700 -o dev -g dev /run/opencode-web
+umask 077
+printf 'OPENCODE_SERVER_PASSWORD=%s\n' "$PW" > /run/opencode-web/env
+chown dev:dev /run/opencode-web/env
+EOF
+  chmod 0755 /usr/local/bin/sandbox-browser-secret
+
+  cat > /etc/systemd/system/opencode-web.service <<'EOF'
+[Unit]
+Description=opencode in the browser
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dev
+WorkingDirectory=/workspace
+ExecStartPre=+/usr/local/bin/sandbox-browser-secret
+ExecStart=/bin/bash -lc 'set -a; . /run/opencode-web/env; set +a; exec opencode web --hostname 0.0.0.0 --port 4096'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable --now opencode-web
+fi
+
+cat > /usr/local/bin/sandbox-goal <<'SH'
+#!/bin/bash
+# Works on the sandbox's standing goal when it's due. --now runs it regardless;
+# --test runs the test goal instead, without touching the schedule.
+set -euo pipefail
+STATE=/workspace/.goal
+MODE="$${1:-}"
+mkdir -p "$STATE/runs"
+exec 9>"$STATE/lock"
+flock -n 9 || { echo "A goal run is already in progress." >&2; exit 0; }
+
+CFG=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${goal_secret} --query SecretString --output text)
+AGENT=$(jq -r '.agent // "opencode"' <<<"$CFG")
+if [ "$MODE" = "--test" ]; then
+  GOAL=$(jq -r '.test_goal // empty' <<<"$CFG")
+  [ -n "$GOAL" ] || { echo "This sandbox has no test goal." >&2; exit 1; }
+  EVERY=0
+else
+  GOAL=$(jq -r '.goal // empty' <<<"$CFG")
+  [ -n "$GOAL" ] || exit 0
+  EVERY=$(jq -r '.every_minutes // 0' <<<"$CFG")
+fi
+HASH=$(printf '%s' "$GOAL" | sha256sum | cut -c1-16)
+
+if [ "$MODE" = "--test" ]; then
+  :
+elif [ "$MODE" != "--now" ] && [ -f "$STATE/last" ]; then
+  read -r LAST_HASH LAST_AT < "$STATE/last"
+  if [ "$LAST_HASH" = "$HASH" ]; then
+    [ "$EVERY" -eq 0 ] && exit 0
+    [ $(( $(date +%s) - LAST_AT )) -lt $(( EVERY * 60 )) ] && exit 0
+  fi
+fi
+[ "$MODE" = "--test" ] || echo "$HASH $(date +%s)" > "$STATE/last"
+
+export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+[ -f "$HOME/.config/sandbox/llm.env" ] && . "$HOME/.config/sandbox/llm.env"
+[ -f "$HOME/.config/sandbox/massdriver.env" ] || sandbox-massdriver-login >/dev/null 2>&1
+[ -f "$HOME/.config/sandbox/massdriver.env" ] && . "$HOME/.config/sandbox/massdriver.env"
+command -v mise >/dev/null && eval "$(mise activate bash)"
+eval "$(jq -r '.env // {} | to_entries[] | "export \(.key)=\(.value | @sh)"' <<<"$CFG")"
+
+LOG="$STATE/runs/$(date -u +%Y%m%dT%H%M%SZ)$${MODE:+-$${MODE#--}}.log"
+cd /workspace
+echo "Goal run with $AGENT; log at $LOG" >&2
+# Someone watching from a shell sees the run as it happens.
+if [ -t 1 ]; then OUT=(tee "$LOG"); else OUT=(cat); exec >"$LOG" 2>&1; fi
+STATUS=0
+case "$AGENT" in
+  claude-code) claude -p "$GOAL" ;;
+  *) opencode run "$GOAL" ;;
+esac 2>&1 | "$${OUT[@]}" || STATUS=$?
+[ "$STATUS" -eq 0 ] || echo "The agent exited with status $STATUS." >> "$LOG"
+
+ls -1t "$STATE/runs" | tail -n +101 | sed "s|^|$STATE/runs/|" | xargs -r rm -f
+SH
+chmod 0755 /usr/local/bin/sandbox-goal
+
+cat > /etc/systemd/system/sandbox-goal.service <<'EOF'
+[Unit]
+Description=Work on the sandbox's standing goal
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dev
+ExecStart=/bin/bash -lc /usr/local/bin/sandbox-goal
+TimeoutStartSec=2h
+EOF
+
+cat > /etc/systemd/system/sandbox-goal.timer <<'EOF'
+[Unit]
+Description=Check whether the sandbox's standing goal is due
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now sandbox-goal.timer
+
+touch /var/lib/dev-sandbox-ready

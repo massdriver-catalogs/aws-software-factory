@@ -4,7 +4,6 @@ description: >-
   Reached through Session Manager, with no inbound ports and no cloud credentials beyond its own.
 source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/dev-sandbox
 version: 0.0.0
-provides: [runtime]
 
 params:
   examples:
@@ -288,8 +287,7 @@ params:
       description: >-
         A standing task for the agent. It runs headless in /workspace, with every tool and permission
         the sandbox has, and writes each run's output to /workspace/.goal/runs. Leave empty for an
-        interactive sandbox, or for an agent like the SRE Agent to use its built-in goal. A goal
-        typed here replaces the built-in one.
+        interactive sandbox.
       type: string
       default: ""
       maxLength: 8000

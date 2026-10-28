@@ -18,6 +18,8 @@ Everything runs live; nothing is take-home. The factory is the point of the work
 
 Everything through step 10 happens in the browser: GitHub, the AWS Console and Massdriver. The terminal only comes out to work inside the agents and the sandbox.
 
+**Short on time?** Do steps 1–4, then take the **⏩ optional shortcut** right after step 4: it builds steps 5–9 for you.
+
 ## How it fits together
 
 ### Projects and environment defaults
@@ -215,7 +217,24 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 
 ![The GitHub App form](assets/images/step-04-github-app.jpg)
 
-*Optional shortcut:* after steps 1–4, in `bootstrap/` run `terraform apply`, then `./deploy.sh --email you@example.com`. It makes every group and project, and builds steps 5–9 (the identity maker, the platforms, the codebase and the example app), release to dev from step 10, and the agents from step 11, in about 30 minutes. The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`. It needs the GitHub CLI logged in. The agents start on duty, on the **SRE Agent** and **Cost Agent** presets, and cost ~$0.75 an hour in tokens; set `agents = false` in `terraform.tfvars` to leave them out. Paste the Cost Reports values by hand, then continue at step 10, item 3. To see their tests, start step 11 at item 2 on the agents it made: pick their test run presets and deploy.
+> [!TIP]
+> ## ⏩ OPTIONAL SHORTCUT: skip from here to step 10
+>
+> **After steps 1–4, one Terraform apply and one script build steps 5–9 for you:** the groups and identity maker, every project, the platforms, the codebase and the example app, release to dev, and the agents. About 30 minutes, mostly waiting on deploys. Needs Terraform, the GitHub CLI logged in to your GitHub organization, and an Organization Admin access token.
+>
+> ```bash
+> cd bootstrap
+> export MASSDRIVER_API_KEY=<admin-access-token>
+> export MASSDRIVER_ORGANIZATION_ID=<your-org-id>
+> export TF_VAR_organization_id=$MASSDRIVER_ORGANIZATION_ID
+> terraform init && terraform apply
+> ./deploy.sh --email you@example.com
+> ```
+>
+> **Then:** paste the Cost Reports values by hand (step 6), and **continue at step 10, item 3**.
+>
+> - The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`.
+> - The agents start on duty on the **SRE Agent** and **Cost Agent** presets: ~$0.75 an hour in tokens. Set `agents = false` in `terraform.tfvars` to leave them out. To see their tests, start step 11 at item 2: pick their test run presets and deploy.
 
 ### 5. Groups and the identity maker
 

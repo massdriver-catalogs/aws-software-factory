@@ -57,7 +57,7 @@ params:
     repository_name:
       title: Repository name
       description: >-
-        Becomes github.com/<organization>/<name>. Changing it means a new repository.
+        Becomes github.com/ORGANIZATION/NAME. Changing it means a new repository.
       type: string
       minLength: 1
       maxLength: 100
@@ -94,7 +94,7 @@ params:
       description: >-
         Commits `agent.yml` (an `agent` label or a `/agent` comment turns an issue into a pull
         request) and `ai-review.yml` (an AI review on every pull request), and creates the `agent`
-        label. Both run on the Software Factory's runners, which need an LLM Endpoint connected;
+        label. Both run on the CI Platform's factory runners, which need an LLM Endpoint connected;
         without those runners these jobs wait in the queue. Written once, like the starter app.
       type: boolean
       default: true

@@ -44,7 +44,7 @@ schema:
         pattern: "Digits only."
     installation_id:
       title: Installation ID
-      description: The number at the end of the installation's URL, github.com/organizations/<org>/settings/installations/<id>.
+      description: The number at the end of the installation's URL, github.com/organizations/ORG/settings/installations/ID.
       type: string
       pattern: ^[0-9]+$
       message:

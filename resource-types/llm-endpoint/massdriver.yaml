@@ -30,7 +30,7 @@ schema:
       title: Key Parameter Prefix
       description: >-
         SSM Parameter Store path consumers write their key under, as a SecureString named
-        <prefix>/<consumer-name>.
+        PREFIX/CONSUMER-NAME.
       type: string
       pattern: ^/[A-Za-z0-9_./-]+$
     default_model:

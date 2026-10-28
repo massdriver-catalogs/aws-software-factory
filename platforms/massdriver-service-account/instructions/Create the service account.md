@@ -11,7 +11,7 @@ Bundles use this service account to make their own service accounts, each scoped
 
 ## 2. Create the service account
 
-1. Open **Settings → Service Accounts → Create service account** and name it `Massdriver SW Factory Agent Creator`.
+1. Open **Settings → Service Accounts → Create service account** and name it e.g. `Service Account Creator`, with a token that lasts **1 year**.
 2. Copy the token. Massdriver shows it only once.
 3. Add the service account to **Service Account Managers**.
 

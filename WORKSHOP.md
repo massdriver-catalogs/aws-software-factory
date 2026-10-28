@@ -115,34 +115,6 @@ Together these projects are the software factory. Each has a job:
 
 The runners get the gateway as a CI Platform default. The agents read Massdriver and propose through it, so one Agents project covers every cloud account.
 
-## Identities and secrets
-
-Every arrow above runs as one of these. Nothing shares a personal token.
-
-| What | Made by | Lives in | Used by, for | Scope |
-|---|---|---|---|---|
-| **AWS IAM Role** credential | You, step 3 | Massdriver, default on every environment | Massdriver, to deploy every bundle | Your account, with your External ID |
-| **GitHub App** credential | You, step 4 | Massdriver, default on CI Platform, Agents, Codebases, Developer Sandboxes and each app | The bundles below, to manage repositories and mint short tokens | The repositories the App is installed on |
-| **GitHub Actions OIDC** resource | GitHub Actions OIDC bundle, step 7 | An IAM OIDC provider; shared resource | Repository push roles, to trust GitHub's tokens | One per AWS account |
-| Push role `<repo>-push` | GitHub Repository bundle | IAM; Actions variables `AWS_ROLE_ARN`, `AWS_REGION`, `ECR_REPOSITORY_URL` | The `build` workflow, to push images | The default branch of that one repository; push to its ECR repository only |
-| GitHub App key copy | Runners, Developer Sandbox, Agent and Alarm to Issue bundles | Secrets Manager, `<instance>/github-app` | Runners: register and mint agent tokens. Sandbox and Agent: `git` and `gh`. Alarm to Issue: open issues | Readable only by that instance's role |
-| Agent token | The runners' token function, per job | Memory of one job | `agent.yml`, to push a branch and open a pull request | One repository, `contents`, `pull_requests`, `issues`; only `agent.yml` on issue events; about an hour |
-| Gateway master key | LLM Gateway bundle | Secrets Manager, `<gateway>/master-key` | Admin of the gateway | Everything on the gateway |
-| Gateway consumer key | Runners, Developer Sandbox, Agent and Lambda Function bundles, one each | SSM, under the gateway's key prefix | That consumer, to call models | $20 a month per consumer by default |
-| Model server key | vLLM Model Server bundle | Secrets Manager | The gateway, to call your GPU | That model server |
-| Identity-maker group, e.g. **Service Account Managers** | You, step 5 | Massdriver | Holds the identity maker | `manageServiceAccounts`, `manageGroups`: equal to Organization Admin |
-| Identity maker and **Massdriver Service Account** credential | You, step 5 | Massdriver, shared with the Codebases, Developer Sandboxes and Agents projects | Repository, sandbox and agent bundles, to make their own service accounts | Can make an identity in any group. Delete it at teardown |
-| Release group, e.g. **Release to Dev** | You, step 5 | Massdriver | Release service accounts | `project:view`, `instance:deploy` where `md-environment` is `dev` |
-| Release service account `<org>/<repo> release` | GitHub Repository bundle, when **Release to** is set | Token in the Actions secret `MASSDRIVER_API_KEY`; variables `MASSDRIVER_ORGANIZATION_ID`, `MASSDRIVER_URL`, `MASSDRIVER_RELEASE_INSTANCE` | The `release` workflow, to deploy the new image | The groups picked in **Release permissions**; one-year token |
-| Agent group, e.g. **Factory Agents** | You, step 5 | Massdriver | Agent service accounts | `project:view`, `instance:plan`, `instance:propose`; no deploy |
-| Builder group, e.g. **Citizen Developers** | You, step 5 | Massdriver | Your sandbox's service account | Create and design projects, plan and propose anywhere; configure, deploy and decommission only where `md-environment` is `dev`, and in every Codebases environment, where its apps' repositories live |
-| Sandbox service account, named after the instance | Developer Sandbox bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in your sandbox | The groups picked in **Massdriver access for agents**; one-year token |
-| Agent service account, named after the instance | Agent bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in the agent's runs | The groups picked in **Massdriver groups**; one-year token |
-| Agent's AWS role | Agent bundle | IAM, on the agent's VM | The agent's runs, to read AWS directly | Its own secrets, plus what **AWS access** adds: nothing, CloudWatch and view-only, or ReadOnlyAccess. Read-only at every level |
-| Access user `<instance>-access` | Developer Sandbox and Agent bundles | The **Connect to …** resource; an AWS profile on your laptop after the connect script | `ssh`, to start the VM and open a session | Start that VM and connect as `dev` |
-| Browser password | Developer Sandbox bundle | Secrets Manager, `<instance>/browser-password`; printed by the connect script | You, for opencode in the browser and the preview URL | That sandbox |
-| Cost collector user | Cost Reports bundle | IAM; keys in Secrets Manager, `<instance>/integration` | Massdriver's cost integration, after you paste them in step 6 | Read the cost report bucket and resource tags |
-
 ## Attendee prerequisites (registration email, not day-of)
 
 About 40 minutes, emailed ahead as a separate guide. Nothing gets connected to Massdriver beforehand: a new org has no credential types until the catalog is published to it in step 2.
@@ -156,39 +128,13 @@ About 40 minutes, emailed ahead as a separate guide. Nothing gets connected to M
 
 They bring: org ID, role ARN, External ID, GitHub org login, App ID, Installation ID, and the `.pem` file.
 
-## What it costs (us-east-1, on-demand, approximate)
-
 > [!WARNING]
 > **Three things cost real money:**
 > 1. **The GPU** (step 7, optional): ~$0.80 an hour while it runs. **Skip it for the workshop.**
 > 2. **The SRE agent's tokens** (step 11): its test run costs ~$0.15, but on duty it runs every 10 minutes, ~$0.75 an hour. Remove the agents when you're done.
 > 3. **Anything left running afterwards**: ~$125 a month with no GPU, plus tokens. Do step 14 before you leave.
-
-| Step | Workshop (~3 hours) | A month if left running | What stops it |
-|---|---|---|---|
-| Optional shortcut: `bootstrap/` + `deploy.sh` (builds steps 5–9, release to dev and step 11, no GPU) | ~$0.13 an hour (~$0.05 without the agents), plus ~$0.75 an hour of SRE agent tokens | ~$100 with the agents, ~$38 without | Nothing; step 14 |
-| 6. AWS Account: Budget Guard, Cost Reports | ~$0 | Cents | Step 14 |
-| 6. Networking: Shared VPC | ~$0.05 | ~$9 | Nothing; step 14 |
-| 7. AI Platform: LLM Gateway | ~$0.06 | ~$14 | Nothing; step 14 |
-| 7. CI Platform: Factory Runners | ~$0.06 | ~$15 | Nothing; step 14 |
-| ⚠️ 7. AI Platform: vLLM Model Server (optional, **not recommended**) | ~$2.50–3 | ~$10 stopped, ~$150 on workday hours, ~$600 always on | Idle stop (1 hour), nightly stop (8 pm), step 14 |
-| 8. Codebases | ~$0 | Cents | Step 14 |
-| 9. Your app | ~$0 | ~$0 at low traffic | Step 14 |
-| 10, 12. Factory agent runs and opencode (tokens) | ~$0.50–1.50 | Up to $20 per consumer | The gateway's $20 per consumer per month |
-| ⚠️ 11. SRE Agent and Cost Agent VMs (Agent bundle) | ~$0.25 | ~$62 (always on) | Nothing; remove them after their tests, or step 14 |
-| ⚠️ 11. SRE Agent tokens | ~$0.15 for the test run; ~$0.75 an hour on duty | $20 on duty, reached in about a day | The gateway's $20 cap; remove the agent |
-| 11. Cost Agent tokens | ~$0.15 a run | ~$5 on duty (one run a day) | The gateway's $20 cap |
-| 12. Your sandbox | ~$0.15 | ~$3 stopped, ~$10 on workday hours | Idle stop (30 minutes), nightly stop (8 pm), step 14 |
-| ⚠️ 13. Vibe coding (tokens) | ~$1–3 | Up to $20 | The gateway's $20 cap on your sandbox |
-
-| Scenario | Bedrock (default) | Plus your own GPU |
-|---|---|---|
-| The workshop, agents removed after their tests, then teardown | ~$3–5 | ~$6–8 |
-| The workshop with the SRE agent on duty all 3 hours | ~$7–9 | ~$10–12 |
-| A month of solo development, everything auto-stopping, no agents | ~$60–90 | ~$210–240 |
-| A month left running 24×7, agents included | ~$125 plus up to $20 of tokens per consumer | ~$725+ |
-
-Where the money goes in a month: the pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$15, ~$31 per agent), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens. One agent run on Kimi K2.5 reads ~200,000 tokens: ~$0.10–0.20. The gateway stops each consumer (each sandbox, agent, runner and function) at $20 a month by default. New-account AWS credits cover the workshop.
+>
+> Every step's cost is in the appendix.
 
 ## Steps
 
@@ -425,11 +371,69 @@ Then delete the IAM role from step 3 and the GitHub App from step 4 if you won't
 - The agent never holds cloud credentials. Infrastructure changes go through Massdriver, and code changes go through pull requests a person merges.
 - "Issue → agent PR → review → merge → deploy to dev" is the main demo. Alarms open issues the same way.
 
-## Addendum: costs in detail
+## Appendix
+
+### Identities and secrets
+
+Every arrow in the diagrams runs as one of these. Nothing shares a personal token.
+
+| What | Made by | Lives in | Used by, for | Scope |
+|---|---|---|---|---|
+| **AWS IAM Role** credential | You, step 3 | Massdriver, default on every environment | Massdriver, to deploy every bundle | Your account, with your External ID |
+| **GitHub App** credential | You, step 4 | Massdriver, default on CI Platform, Agents, Codebases, Developer Sandboxes and each app | The bundles below, to manage repositories and mint short tokens | The repositories the App is installed on |
+| **GitHub Actions OIDC** resource | GitHub Actions OIDC bundle, step 7 | An IAM OIDC provider; shared resource | Repository push roles, to trust GitHub's tokens | One per AWS account |
+| Push role `<repo>-push` | GitHub Repository bundle | IAM; Actions variables `AWS_ROLE_ARN`, `AWS_REGION`, `ECR_REPOSITORY_URL` | The `build` workflow, to push images | The default branch of that one repository; push to its ECR repository only |
+| GitHub App key copy | Runners, Developer Sandbox, Agent and Alarm to Issue bundles | Secrets Manager, `<instance>/github-app` | Runners: register and mint agent tokens. Sandbox and Agent: `git` and `gh`. Alarm to Issue: open issues | Readable only by that instance's role |
+| Agent token | The runners' token function, per job | Memory of one job | `agent.yml`, to push a branch and open a pull request | One repository, `contents`, `pull_requests`, `issues`; only `agent.yml` on issue events; about an hour |
+| Gateway master key | LLM Gateway bundle | Secrets Manager, `<gateway>/master-key` | Admin of the gateway | Everything on the gateway |
+| Gateway consumer key | Runners, Developer Sandbox, Agent and Lambda Function bundles, one each | SSM, under the gateway's key prefix | That consumer, to call models | $20 a month per consumer by default |
+| Model server key | vLLM Model Server bundle | Secrets Manager | The gateway, to call your GPU | That model server |
+| Identity-maker group, e.g. **Service Account Managers** | You, step 5 | Massdriver | Holds the identity maker | `manageServiceAccounts`, `manageGroups`: equal to Organization Admin |
+| Identity maker and **Massdriver Service Account** credential | You, step 5 | Massdriver, shared with the Codebases, Developer Sandboxes and Agents projects | Repository, sandbox and agent bundles, to make their own service accounts | Can make an identity in any group. Delete it at teardown |
+| Release group, e.g. **Release to Dev** | You, step 5 | Massdriver | Release service accounts | `project:view`, `instance:deploy` where `md-environment` is `dev` |
+| Release service account `<org>/<repo> release` | GitHub Repository bundle, when **Release to** is set | Token in the Actions secret `MASSDRIVER_API_KEY`; variables `MASSDRIVER_ORGANIZATION_ID`, `MASSDRIVER_URL`, `MASSDRIVER_RELEASE_INSTANCE` | The `release` workflow, to deploy the new image | The groups picked in **Release permissions**; one-year token |
+| Agent group, e.g. **Factory Agents** | You, step 5 | Massdriver | Agent service accounts | `project:view`, `instance:plan`, `instance:propose`; no deploy |
+| Builder group, e.g. **Citizen Developers** | You, step 5 | Massdriver | Your sandbox's service account | Create and design projects, plan and propose anywhere; configure, deploy and decommission only where `md-environment` is `dev`, and in every Codebases environment, where its apps' repositories live |
+| Sandbox service account, named after the instance | Developer Sandbox bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in your sandbox | The groups picked in **Massdriver access for agents**; one-year token |
+| Agent service account, named after the instance | Agent bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in the agent's runs | The groups picked in **Massdriver groups**; one-year token |
+| Agent's AWS role | Agent bundle | IAM, on the agent's VM | The agent's runs, to read AWS directly | Its own secrets, plus what **AWS access** adds: nothing, CloudWatch and view-only, or ReadOnlyAccess. Read-only at every level |
+| Access user `<instance>-access` | Developer Sandbox and Agent bundles | The **Connect to …** resource; an AWS profile on your laptop after the connect script | `ssh`, to start the VM and open a session | Start that VM and connect as `dev` |
+| Browser password | Developer Sandbox bundle | Secrets Manager, `<instance>/browser-password`; printed by the connect script | You, for opencode in the browser and the preview URL | That sandbox |
+| Cost collector user | Cost Reports bundle | IAM; keys in Secrets Manager, `<instance>/integration` | Massdriver's cost integration, after you paste them in step 6 | Read the cost report bucket and resource tags |
+
+### What it costs (us-east-1, on-demand, approximate)
+
+| Step | Workshop (~3 hours) | A month if left running | What stops it |
+|---|---|---|---|
+| Optional shortcut: `bootstrap/` + `deploy.sh` (builds steps 5–9, release to dev and step 11, no GPU) | ~$0.13 an hour (~$0.05 without the agents), plus ~$0.75 an hour of SRE agent tokens | ~$100 with the agents, ~$38 without | Nothing; step 14 |
+| 6. AWS Account: Budget Guard, Cost Reports | ~$0 | Cents | Step 14 |
+| 6. Networking: Shared VPC | ~$0.05 | ~$9 | Nothing; step 14 |
+| 7. AI Platform: LLM Gateway | ~$0.06 | ~$14 | Nothing; step 14 |
+| 7. CI Platform: Factory Runners | ~$0.06 | ~$15 | Nothing; step 14 |
+| ⚠️ 7. AI Platform: vLLM Model Server (optional, **not recommended**) | ~$2.50–3 | ~$10 stopped, ~$150 on workday hours, ~$600 always on | Idle stop (1 hour), nightly stop (8 pm), step 14 |
+| 8. Codebases | ~$0 | Cents | Step 14 |
+| 9. Your app | ~$0 | ~$0 at low traffic | Step 14 |
+| 10, 12. Factory agent runs and opencode (tokens) | ~$0.50–1.50 | Up to $20 per consumer | The gateway's $20 per consumer per month |
+| ⚠️ 11. SRE Agent and Cost Agent VMs (Agent bundle) | ~$0.25 | ~$62 (always on) | Nothing; remove them after their tests, or step 14 |
+| ⚠️ 11. SRE Agent tokens | ~$0.15 for the test run; ~$0.75 an hour on duty | $20 on duty, reached in about a day | The gateway's $20 cap; remove the agent |
+| 11. Cost Agent tokens | ~$0.15 a run | ~$5 on duty (one run a day) | The gateway's $20 cap |
+| 12. Your sandbox | ~$0.15 | ~$3 stopped, ~$10 on workday hours | Idle stop (30 minutes), nightly stop (8 pm), step 14 |
+| ⚠️ 13. Vibe coding (tokens) | ~$1–3 | Up to $20 | The gateway's $20 cap on your sandbox |
+
+| Scenario | Bedrock (default) | Plus your own GPU |
+|---|---|---|
+| The workshop, agents removed after their tests, then teardown | ~$3–5 | ~$6–8 |
+| The workshop with the SRE agent on duty all 3 hours | ~$7–9 | ~$10–12 |
+| A month of solo development, everything auto-stopping, no agents | ~$60–90 | ~$210–240 |
+| A month left running 24×7, agents included | ~$125 plus up to $20 of tokens per consumer | ~$725+ |
+
+Where the money goes in a month: the pieces that never stop (VPC ~$9, gateway ~$14, one factory runner ~$15, ~$31 per agent), the sandbox (~$3 stopped, ~$10 on workday hours), and tokens. One agent run on Kimi K2.5 reads ~200,000 tokens: ~$0.10–0.20. The gateway stops each consumer (each sandbox, agent, runner and function) at $20 a month by default. New-account AWS credits cover the workshop.
+
+### Costs in detail
 
 us-east-1 on-demand prices, for the presets this walkthrough uses.
 
-### Unit prices used
+#### Unit prices used
 
 | Item | Price |
 |---|---|
@@ -445,19 +449,19 @@ us-east-1 on-demand prices, for the presets this walkthrough uses.
 | Kimi K2.5 on Bedrock | $0.60 in / $3.00 out per M tokens |
 | Kimi K3 on Bedrock | $3.30 in / $16.50 out per M tokens |
 
-### Measured token use
+#### Measured token use
 
 Measured on a running SRE Agent: ~217K tokens per run, **~$0.13–0.15 per agent run** on Kimi K2.5. Runs every 10 minutes come to 6 an hour, **~$0.75–0.90 an hour**.
 
 The issue agent, AI review and vibe-coding figures are estimates scaled from this.
 
-### Totals
+#### Totals
 
 - **Workshop, agents removed after their tests:** ~$3–5 on Bedrock, ~$6–8 with the GPU.
 - **Workshop with the SRE agent on duty all 3 hours:** ~$7–9.
 - **A month left running 24×7 without the GPU:** ~$125, plus up to $20 per gateway consumer. That's about 6 consumers (runners, sandbox, two functions, two agents), so up to ~$120 of tokens.
 
-### Biggest risks
+#### Biggest risks
 
 1. **The SRE agent burns tokens fast on duty.** Every 10 minutes it reads ~200K tokens: ~$0.75 an hour, ~$18 a day. The per-consumer cap ($20 on Development) stops it in about a day, and after that it silently does nothing for the rest of the month. To slow it, pick a longer **Schedule** on the instance. Remove both agents when you're done (step 11, item 6).
 2. **A forgotten GPU.** ~$0.80 an hour and ~$600 a month if it never stops. The Development preset idles out after an hour and stops at 8 pm, but a stopped GPU still bills ~$10 a month for its disk. It also needs G/VT quota that most new accounts lack. Skip it for the workshop.
@@ -465,7 +469,7 @@ The issue agent, AI review and vibe-coding figures are estimates scaled from thi
 4. **Token caps run on the gateway's own estimates.** The real bill is in Cost Explorer. Bedrock bills per token with no minimum, so nothing bills after teardown.
 5. **Kimi K3 is ~5.5× K2.5.** The Demo gateway preset enables it. A K3 session costs ~5.5× as much, and its multi-turn calls can fail through Bedrock. ⚠️ Three vibe-coded apps on K3 burned ~$20 of tokens in rehearsal. Keep K2.5 as the default model.
 
-### The Demo presets, per day
+#### The Demo presets, per day
 
 | Piece | Demo settings | Per day |
 |---|---|---|

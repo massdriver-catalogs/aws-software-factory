@@ -120,29 +120,48 @@ say "Sharing the AWS IAM Role and GitHub App with every environment"
 share "$AWS_ROLE"
 share "$GITHUB_APP"
 
+ACCOUNT=$(envof account)
 NETWORKING=$(envof networking)
-FACTORY=$(envof factory)
+AI=$(envof ai)
+CI=$(envof ci)
+MASSDRIVER=$(jq -r '.massdriver_credential' <<<"$OUT")
+
+say "AWS Account ($ACCOUNT)"
+defaults "$ACCOUNT" "$AWS_ROLE"
+deploy "$(inst budget)" "Free Tier" ".alert_emails = $EMAILS"
+deploy "$(inst costs)" "$COSTS_PRESET"
 
 say "Networking ($NETWORKING)"
 defaults "$NETWORKING" "$AWS_ROLE"
 deploy "$(inst vpc)" Development
-deploy "$(inst budget)" "Free Tier" ".alert_emails = $EMAILS"
-deploy "$(inst costs)" "$COSTS_PRESET"
 NETWORK="$(inst vpc).network"
 share "$NETWORK"
 
-say "Software Factory ($FACTORY)"
-defaults "$FACTORY" "$AWS_ROLE" "$NETWORK" "$GITHUB_APP"
-deploy "$(inst oidc)" "$OIDC_PRESET"
+say "AI Platform ($AI)"
+defaults "$AI" "$AWS_ROLE" "$NETWORK"
 if has gpu; then
   deploy "$(inst gpu)" Development "if \"$TIMEZONE\" == \"\" then . else .timezone = \"$TIMEZONE\" end"
 fi
 deploy "$(inst gateway)" Development
+LLM="$(inst gateway).endpoint"
+share "$LLM"
+
+say "CI Platform ($CI)"
+defaults "$CI" "$AWS_ROLE" "$NETWORK" "$GITHUB_APP" "$LLM"
+deploy "$(inst oidc)" "$OIDC_PRESET"
 deploy "$(inst runners)" Development
 OIDC="$(inst oidc).oidc"
-LLM="$(inst gateway).endpoint"
 share "$OIDC"
-share "$LLM"
+
+if has sre; then
+  AGENTS=$(envof agents)
+  AGENT_GROUP=$(jq -r '.agent_group' <<<"$OUT")
+
+  say "Agents ($AGENTS)"
+  defaults "$AGENTS" "$AWS_ROLE" "$NETWORK" "$LLM" "$GITHUB_APP" "$MASSDRIVER"
+  deploy "$(inst sre)" "SRE Agent" ".massdriver_groups = [\"$AGENT_GROUP\"]"
+  deploy "$(inst cost)" "Cost Agent" ".massdriver_groups = [\"$AGENT_GROUP\"]"
+fi
 
 if has repo; then
   CODEBASES=$(envof codebases)
@@ -151,7 +170,7 @@ if has repo; then
   REPO="$(inst repo).repository"
 
   say "Codebases ($CODEBASES)"
-  defaults "$CODEBASES" "$AWS_ROLE" "$GITHUB_APP" "$OIDC" "$(jq -r '.massdriver_credential' <<<"$OUT")"
+  defaults "$CODEBASES" "$AWS_ROLE" "$GITHUB_APP" "$OIDC" "$MASSDRIVER"
   deploy "$(inst ecr)" Development
   deploy "$(inst repo)" "Private app" ".repository_name = \"$REPO_NAME\""
   share "$REPO"

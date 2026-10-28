@@ -26,6 +26,7 @@ output "deploy" {
       for k, c in local.components : k => "${var.canvas[c.at].project}-${var.canvas[c.at].environment}-${k}"
     }
     massdriver_credential = massdriver_imported_resource.agent_creator.id
+    agent_group           = massdriver_group.agents.id
     release_group         = massdriver_group.release.id
     repository_name       = var.app_repository_name
   }

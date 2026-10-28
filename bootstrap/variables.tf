@@ -73,14 +73,29 @@ variable "projects" {
     }))
   }))
   default = {
+    aws = {
+      name         = "AWS Account"
+      description  = "Account-level setup for the AWS account: budget alerts and cost reports."
+      environments = { workshop = { name = "Workshop" } }
+    }
     networking = {
       name         = "Networking"
       description  = "The shared VPC every other project runs in."
-      environments = { dev = { name = "Dev" } }
+      environments = { shared = { name = "Shared" } }
     }
-    factory = {
-      name         = "Software Factory"
-      description  = "Shared machinery every app uses: the LLM gateway and model servers, CI runners, review and agents."
+    ci = {
+      name         = "CI Platform"
+      description  = "GitHub Actions' AWS access and the self-hosted runners every repository builds on."
+      environments = { main = { name = "Main" } }
+    }
+    ai = {
+      name         = "AI Platform"
+      description  = "The LLM gateway every agent and runner calls, and the optional self-hosted model."
+      environments = { main = { name = "Main" } }
+    }
+    agents = {
+      name         = "Agents"
+      description  = "Org-wide agents that run on their own, each with its own Massdriver identity."
       environments = { main = { name = "Main" } }
     }
     codebases = {
@@ -88,22 +103,15 @@ variable "projects" {
       description  = "Each app's GitHub repository and image repository, one environment per app."
       environments = { todoapp = { name = "Todo App" } }
     }
-    todoapp = {
-      name         = "Todo App"
-      description  = "Example citizen app: HTTP API, Lambda function and DynamoDB table."
-      environments = { dev = { name = "Dev" } }
-    }
     devsandboxes = {
       name         = "Developer Sandboxes"
       description  = "One disposable coding-agent VM per developer; each developer gets an environment."
       environments = {}
     }
-    agents = {
-      name        = "Agents"
-      description = "Agents that run on their own, each with its own Massdriver identity."
-      environments = {
-        main = { name = "Main" }
-      }
+    todoapp = {
+      name         = "Todo App"
+      description  = "Example citizen app: HTTP API, Lambda function and DynamoDB table."
+      environments = { dev = { name = "Dev" } }
     }
   }
 }
@@ -115,17 +123,26 @@ variable "massdriver_credential_recipients" {
 }
 
 variable "canvas" {
-  description = "Which project and environment hold the network, the factory, the example app's repositories, and the example app itself."
+  description = "Which project and environment hold each part of the software factory and the example app."
   type = map(object({
     project     = string
     environment = string
   }))
   default = {
-    networking = { project = "networking", environment = "dev" }
-    factory    = { project = "factory", environment = "main" }
+    account    = { project = "aws", environment = "workshop" }
+    networking = { project = "networking", environment = "shared" }
+    ci         = { project = "ci", environment = "main" }
+    ai         = { project = "ai", environment = "main" }
+    agents     = { project = "agents", environment = "main" }
     codebases  = { project = "codebases", environment = "todoapp" }
     app        = { project = "todoapp", environment = "dev" }
   }
+}
+
+variable "agents" {
+  description = "Put the SRE and Cost agents on the agents canvas."
+  type        = bool
+  default     = true
 }
 
 variable "example_app" {
@@ -141,7 +158,7 @@ variable "app_repository_name" {
 }
 
 variable "self_hosted_model" {
-  description = "Put the vLLM model server on the factory canvas. It's a GPU: about $0.80 an hour while it runs."
+  description = "Put the vLLM model server on the AI platform canvas. It's a GPU: about $0.80 an hour while it runs."
   type        = bool
   default     = false
 }

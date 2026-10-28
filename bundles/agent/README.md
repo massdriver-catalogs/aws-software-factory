@@ -46,7 +46,6 @@ Set them as environment defaults; nothing is linked on the canvas.
 |---|---|---|
 | **SRE Agent** | Every 10 minutes | Finds firing alarms through Massdriver. A config problem becomes a 🚨 proposed deployment; a code problem becomes a 🚨 draft pull request. Journal in `/workspace/sre/journal.md` |
 | **Cost Agent** | Every day | Checks each instance's cost against its **Monthly budget**. Over budget: plans the smallest cheaper config, checks nothing holding data gets replaced, then proposes it, all with 💸 messages. Journal in `/workspace/cost/journal.md` |
-| **Lowest cost** | Yours | The smallest VM, for a prompt of your own |
 
 Both test prompts pretend the trigger happened (an alarm firing, an instance at 3 times its budget) and do everything else for real, marked **🚨 [test]** or **💸 [test]**.
 

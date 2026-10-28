@@ -1,15 +1,19 @@
 locals {
   components = merge(
     {
+      budget  = { at = "account", bundle = "budget-guard", name = "Budget Guard" }
+      costs   = { at = "account", bundle = "cost-reports", name = "Cost Reports" }
       vpc     = { at = "networking", bundle = "shared-vpc", name = "Shared VPC" }
-      budget  = { at = "networking", bundle = "budget-guard", name = "Budget Guard" }
-      costs   = { at = "networking", bundle = "cost-reports", name = "Cost Reports" }
-      gateway = { at = "factory", bundle = "llm-gateway", name = "LLM Gateway" }
-      oidc    = { at = "factory", bundle = "github-actions-oidc", name = "GitHub Actions OIDC" }
-      runners = { at = "factory", bundle = "github-actions-runners", name = "Factory Runners" }
+      gateway = { at = "ai", bundle = "llm-gateway", name = "LLM Gateway" }
+      oidc    = { at = "ci", bundle = "github-actions-oidc", name = "GitHub Actions OIDC" }
+      runners = { at = "ci", bundle = "github-actions-runners", name = "Factory Runners" }
     },
     var.self_hosted_model ? {
-      gpu = { at = "factory", bundle = "vllm-model-server", name = "vLLM Model Server" }
+      gpu = { at = "ai", bundle = "vllm-model-server", name = "vLLM Model Server" }
+    } : {},
+    var.agents ? {
+      sre  = { at = "agents", bundle = "agent", name = "SRE Agent" }
+      cost = { at = "agents", bundle = "agent", name = "Cost Agent" }
     } : {},
     var.example_app ? {
       ecr    = { at = "codebases", bundle = "ecr-repository", name = "Image Repository" }
@@ -23,8 +27,9 @@ locals {
     } : {},
   )
 
+  # Links only join components on one canvas; the runners reach the gateway
+  # through the ci environment's default instead.
   links = merge(
-    { runners_llm = { from = "gateway", from_field = "endpoint", to = "runners", to_field = "llm" } },
     var.self_hosted_model ? {
       gateway_model = { from = "gpu", from_field = "model_server", to = "gateway", to_field = "model_server" }
     } : {},

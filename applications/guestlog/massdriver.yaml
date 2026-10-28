@@ -1,0 +1,20 @@
+name: guestlog
+description: >-
+  An event guestbook. Guests sign an event's page with a name and a message, and the host watches
+  a live wall of them.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/applications/guestlog
+version: 0.0.0
+
+dependencies:
+  events:
+    resource_type: aws-dynamodb-table@0.0.0
+    required: true
+  messages:
+    resource_type: aws-dynamodb-table@0.0.0
+    required: true
+
+app:
+  runtime: lambda-function
+  envs:
+    EVENTS_TABLE: .dependencies.events.name
+    MESSAGES_TABLE: .dependencies.messages.name

@@ -1,0 +1,20 @@
+name: linkly
+description: >-
+  A link shortener. Paste a long URL, get a short code; the short link redirects and counts every
+  click, with a stats page per link.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/applications/linkly
+version: 0.0.0
+
+dependencies:
+  links:
+    resource_type: aws-dynamodb-table@0.0.0
+    required: true
+  clicks:
+    resource_type: aws-dynamodb-table@0.0.0
+    required: true
+
+app:
+  runtime: lambda-function
+  envs:
+    LINKS_TABLE: .dependencies.links.name
+    CLICKS_TABLE: .dependencies.clicks.name

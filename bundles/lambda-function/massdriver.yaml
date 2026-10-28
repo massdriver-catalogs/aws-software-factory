@@ -5,6 +5,10 @@ description: >-
   first deploy.
 source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/lambda-function
 version: 0.0.0
+provides: [runtime]
+
+app:
+  envs: {}
 
 params:
   examples:

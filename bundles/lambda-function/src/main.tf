@@ -15,8 +15,14 @@ locals {
   in_vpc          = local.has_llm && var.network != null
   private_subnets = local.in_vpc ? [for s in var.network.subnets : s.id if s.tier == "private"] : []
 
+  # An application on this runtime brings its own tables as dependencies and
+  # names them in its envs; the function reads and writes every one.
+  app_env    = { for k, v in try(jsondecode(file("/massdriver/envs.json")), {}) : k => tostring(v) }
+  app_tables = { for k, v in try(jsondecode(file("/massdriver/connections.json")), {}) : k => v if k != "storage" && can(v.partition_key) && can(v.policies) }
+
   environment = merge(
     { for e in var.environment : e.name => e.value },
+    local.app_env,
     local.has_storage ? {
       TABLE_NAME          = var.storage.name
       TABLE_PARTITION_KEY = var.storage.partition_key.name
@@ -108,6 +114,12 @@ resource "aws_iam_role_policy_attachment" "table" {
   count      = local.has_storage ? 1 : 0
   role       = aws_iam_role.function.name
   policy_arn = local.table_policy_arn
+}
+
+resource "aws_iam_role_policy_attachment" "app_tables" {
+  for_each   = local.app_tables
+  role       = aws_iam_role.function.name
+  policy_arn = one([for p in each.value.policies : p.arn if p.name == "read-write"])
 }
 
 resource "aws_lambda_function" "main" {

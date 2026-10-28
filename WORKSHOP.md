@@ -195,7 +195,7 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 1. In Massdriver: **Credentials → Add → GitHub App**. Fill in your organization's login, the App ID, the Installation ID, and paste the whole `.pem` file into **Private Key**. **Save**.
 2. **Share** it with all environments.
 
-*Optional shortcut:* after steps 1–4, in `bootstrap/` run `terraform apply`, then `./deploy.sh --email you@example.com`. It makes every project and group, and builds steps 5–8 (the platforms and the example app) and the agents from step 12, in about 30 minutes, without the GPU. It needs the GitHub CLI logged in. The agents cost ~$0.75 an hour in tokens; set `agents = false` in `terraform.tfvars` to leave them out. Paste the Cost Reports values by hand, then continue at step 9.
+*Optional shortcut:* after steps 1–4, in `bootstrap/` run `terraform apply`, then `./deploy.sh --email you@example.com`. It makes every project and group, and builds steps 5–8 (the platforms and the example app) and the agents from step 12, in about 30 minutes. The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`. It needs the GitHub CLI logged in. The agents cost ~$0.75 an hour in tokens; set `agents = false` in `terraform.tfvars` to leave them out. Paste the Cost Reports values by hand, then continue at step 9.
 
 ### 5. AWS Account and Networking
 

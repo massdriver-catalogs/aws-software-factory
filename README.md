@@ -60,10 +60,9 @@ flowchart LR
     WEB[static-site]
   end
   subgraph Apps[An app on the runtime]
-    T1[dynamodb-table] -->|aws-dynamodb-table| APPL["linkly · pollbox · guestlog<br/>on the lambda-function runtime"]
+    T1[dynamodb-table] -->|aws-dynamodb-table| APPL["linkly<br/>on the lambda-function runtime"]
     T2[dynamodb-table] -->|aws-dynamodb-table| APPL
     API2[http-api] -->|aws-http-api| APPL
-    WEB2[static-site]
   end
 
   VPC -->|aws-vpc| GW & VLLM & SB & RUN & AG & FN
@@ -82,6 +81,7 @@ Three credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), 
 |---|---|
 | `shared-vpc` | A VPC with public, private and internal subnets in each zone, egress (NAT instance or gateways), endpoints and flow logs |
 | `budget-guard` | A monthly spending limit for the account, with alerts on actual and forecast spend |
+| `cost-reports` | The account's Cost and Usage Report and a read-only user, so Massdriver shows what each instance costs |
 | `llm-gateway` | One OpenAI-compatible URL in front of Bedrock models and any self-hosted model; per-consumer keys, usage and budgets |
 | `vllm-model-server` | An open-weight model on a GPU you run, reachable only through the gateway |
 | `dev-sandbox` | A coding-agent VM per developer: opencode (and optionally Claude Code), the gateway, GitHub through the App, Massdriver tools; reached by SSH over Session Manager or in the browser |
@@ -97,6 +97,8 @@ Three credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), 
 | `static-site` | A private S3 bucket behind CloudFront |
 | `alarm-to-issue` | Opens a GitHub issue when one of the environment's alarms fires |
 
+Each bundle's README explains its design; its runbook covers what to do when it breaks. Most have presets named for when to use them: **Free Tier** where the defaults stay inside AWS's always-free allowances, **Development** for the cheapest settings that still work well, **Production** for durability and safety.
+
 ## Applications
 
 An application is one `massdriver.yaml` on a runtime: its own tables as dependencies, and the environment variables that name them. It has no IaC and no params. The runtime owns the function, its image, routes, memory and sign-in, and gives the app read-write access to every table it brings.
@@ -104,12 +106,9 @@ An application is one `massdriver.yaml` on a runtime: its own tables as dependen
 | Application | Runtime | What it is | Tables |
 |---|---|---|---|
 | `linkly` | `lambda-function` | A link shortener with click counts and a stats page per link | `links`, `clicks` |
-| `pollbox` | `lambda-function` | Live polls: one vote each, results update as votes come in | `polls`, `votes` |
-| `guestlog` | `lambda-function` | An event guestbook with a live wall of messages | `events`, `messages` |
 
-Each runs in its own project with a `dev` environment: a Static Site, an HTTP API, an optional User Pool, and the application linked to the API and its two tables. Its GitHub and ECR repositories sit in a Codebases environment named after it.
+Linkly runs in its own project with a `dev` environment: an HTTP API, and the application linked to the API and its two tables. It serves its landing page at `/` and its API under `/api`, so it needs no Static Site. Its GitHub and ECR repositories sit in the Codebases environment `linkly`.
 
-Each bundle's README explains its design; its runbook covers what to do when it breaks. Most have presets named for when to use them: **Free Tier** where the defaults stay inside AWS's always-free allowances, **Development** for the cheapest settings that still work well, **Production** for durability and safety.
 
 ## Repository layout
 
@@ -124,7 +123,7 @@ bootstrap/        The projects, groups and canvases above, from one terraform ap
 
 ## Getting started
 
-1. **Publish from GitHub Actions.** Create a Massdriver service account in a group allowed to publish to the catalog. In the repository's **Settings → Secrets and variables → Actions**, add its key as the secret `MASSDRIVER_API_KEY` and your organization ID as `MASSDRIVER_ORG_ID` (a variable or a secret). Then run **Actions → Publish → Run workflow** with *all* ticked. After that, every push to `main` publishes whatever changed since the last successful publish: credential types and resource types first, then bundles.
+1. **Publish from GitHub Actions.** Create a Massdriver service account in a group allowed to publish to the catalog. In the repository's **Settings → Secrets and variables → Actions**, add its key as the secret `MASSDRIVER_API_KEY` and your organization ID as `MASSDRIVER_ORG_ID` (a variable or a secret). Then run **Actions → Publish → Run workflow** with *all* ticked. After that, every push to `main` publishes whatever changed since the last successful publish: credential types and resource types first, then bundles, then applications.
 2. **Add credentials** in Massdriver: an **AWS IAM Role** and a **GitHub App**, each following the instructions on its form. Share both with every environment.
 3. **Add the identity maker:** a **Massdriver Service Account** credential, which lets repositories, sandboxes and agents make their own identities. Share it only with the Codebases, Developer Sandboxes and Agents projects.
 4. **Build the foundations:** AWS Account, Networking, AI Platform and CI Platform.

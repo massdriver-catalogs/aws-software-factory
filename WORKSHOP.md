@@ -374,7 +374,7 @@ Private mode means no public address (saving ~$4 a month) and nothing on the int
 3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile and an SSH host for this sandbox only, and prints the browser URLs with their username and password.
 4. Either open the **opencode** URL in the browser, or `ssh devsandboxes-<you>-sandbox` and run `opencode`. If the sandbox has stopped itself, `ssh` starts it; give it a minute.
 
-Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5; `/models` switches to Kimi K3 or, if you added the GPU, `self-hosted-gpt-oss-20b`.
+Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5. `/models` switches to Kimi K3 if the gateway serves it (the **Demo** preset), or to `self-hosted-gpt-oss-20b` if you added the GPU.
 
 ### 13. Vibe code an app
 
@@ -382,11 +382,15 @@ You are a citizen developer now. You describe an app; the agent in your sandbox 
 
 > [!WARNING]
 > **A long agent session reads a few million tokens: ~$1–3 on Kimi K2.5.** It's charged to your sandbox's gateway key, which stops at $20 a month. The app it builds runs in its free tiers, like step 9.
+>
+> **Stay on Kimi K2.5.** Kimi K3 costs ~5.5× as much. Three vibe-coded apps on K3 burned ~$20 of tokens in rehearsal, a whole Development cap.
 
 1. **Give your sandbox an identity.** Set the **Massdriver Service Account** credential as a default on your **Developer Sandboxes** environment. On your sandbox from step 12, pick your builder group from step 5 in **Massdriver access for agents** and deploy. The sandbox gets its own service account, in that group only.
 2. **A project for the app.** Create **Notes** (`notes`) with environment **Dev** (`dev`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as its defaults. Leave the canvas empty.
 3. **Vibe code it.** Shell in to your sandbox as in step 12, `mkdir notes && cd notes`, and run `opencode`. Tell it what you want, e.g. "A notes app with sign-in. Use the Massdriver architect to build it in the `notes` project as an application on the lambda-function runtime, with its own tables. Put its GitHub repository and ECR repository in a Codebases environment named `notes`. Deploy it to dev, then write the app in that repository and open a pull request." Steer it as it goes.
 4. **Ship it.** The architect adds the Codebases environment and the **Notes** canvas, and deploys them; watch them appear. The app's tables are linked to the app on the canvas. When the app exists, set **Release to** on the `notes` repository to its instance ID with your release group picked, as in step 10. Merge the pull request, and the `release` workflow ships it.
+
+Linkly (`applications/linkly`) is an app built this way: a link shortener whose `massdriver.yaml` names its two tables and the envs that carry them. It serves its landing page at `/` and its API under `/api`, so its canvas has no Static Site.
 
 The sandbox runs as you designed it: it can build and deploy in dev, and nothing else. Try asking it to deploy to production; it can only propose.
 
@@ -452,7 +456,7 @@ The issue agent, AI review and vibe-coding figures are estimates scaled from thi
 2. **A forgotten GPU.** ~$0.80 an hour and ~$600 a month if it never stops. The Development preset idles out after an hour and stops at 8 pm, but a stopped GPU still bills ~$10 a month for its disk. It also needs G/VT quota that most new accounts lack. Skip it for the workshop.
 3. **Forgotten teardown.** The VPC, gateway and runners never stop (~$38 a month). Agents never stop (~$31 a month each). Token caps stack per consumer. A stopped sandbox still bills ~$3 a month for its disks.
 4. **Token caps run on the gateway's own estimates.** The real bill is in Cost Explorer. Bedrock bills per token with no minimum, so nothing bills after teardown.
-5. **Kimi K3 is ~5.5× K2.5.** The Demo gateway preset enables it. A K3 session costs ~5× as much, and its multi-turn calls can fail through Bedrock.
+5. **Kimi K3 is ~5.5× K2.5.** The Demo gateway preset enables it. A K3 session costs ~5.5× as much, and its multi-turn calls can fail through Bedrock. ⚠️ Three vibe-coded apps on K3 burned ~$20 of tokens in rehearsal. Keep K2.5 as the default model.
 
 ### The Demo presets, per day
 
@@ -463,10 +467,10 @@ The issue agent, AI review and vibe-coding figures are estimates scaled from thi
 | Runners | 2× t4g.medium, 30 GB | ~$1.77 |
 | vLLM | never idles out, stops at 10 pm | ~$11.60 if started at 8 am (14 h × $0.80 + disk) |
 | Sandbox | t4g.large, never idles out, stops at midnight | ~$1.85 if up all day |
-| SRE Agent VM | Agent bundle, t4g.large, 24×7 | ~$1.80 |
-| Cost Agent VM | Agent bundle, t4g.large, 24×7 | ~$1.80 |
+| SRE Agent VM | SRE Agent preset, t4g.medium, 24×7 | ~$1.05 |
+| Cost Agent VM | Cost Agent preset, t4g.medium, 24×7 | ~$1.05 |
 | SRE Agent tokens | every 10 min | ~$18 until it reaches its $50 cap (~2.8 days) |
 | Cost Agent tokens | daily | ~$0.15 |
 | App, Codebases, Cost Reports | | ~$0 |
 
-**~$20 a day in infrastructure, ~$8 of it without the GPU, plus up to ~$18 a day of SRE Agent tokens.**
+**~$18 a day in infrastructure, ~$6.50 of it without the GPU, plus up to ~$18 a day of SRE Agent tokens.**

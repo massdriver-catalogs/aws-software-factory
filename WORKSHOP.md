@@ -17,6 +17,39 @@ Everything before step 10 happens in the browser: GitHub, the AWS Console and Ma
 
 ## How it fits together
 
+### Projects and environment defaults
+
+Each box is a project and its environment. Arrows are environment defaults: one project's output, shared to another project's environment, that every bundle there connects to without a link.
+
+```mermaid
+flowchart LR
+  CRED[("Credentials: AWS IAM Role, GitHub App")]
+  MDSA[("Massdriver Service Account credential")]
+  ACCT["AWS Account · workshop"]
+  NET["Networking · shared"]
+  AI["AI Platform · main"]
+  CI["CI Platform · main"]
+  AG["Agents · main"]
+  CB["Codebases · todoapp"]
+  APP["Todo App · dev"]
+  DS["Developer Sandboxes · cory"]
+  MD{{Massdriver}}
+
+  CRED --> ACCT & NET & AI & CI & AG & CB & APP & DS
+  MDSA --> CB & AG & DS
+  NET -->|network| AI & CI & AG & APP & DS
+  AI -->|LLM endpoint| CI & AG & APP & DS
+  CI -->|GitHub OIDC| CB
+  CB -->|repository, remote reference| APP
+  AG & DS -->|read, plan, propose| MD
+  CB -->|release to dev| MD
+  MD --> APP
+```
+
+### On the canvas
+
+Each box is a bundle as it sits on its project's canvas. Solid arrows are canvas links; dashed arrows arrive as environment defaults.
+
 ```mermaid
 flowchart LR
   subgraph ACCT[AWS Account]
@@ -27,51 +60,34 @@ flowchart LR
     VPC[Shared VPC]
   end
   subgraph AI[AI Platform]
-    GPU["vLLM Model Server, optional"] -.-> GW[LLM Gateway]
+    GPU["vLLM Model Server, undeployed"] -->|model_server| GW[LLM Gateway]
   end
   subgraph CI[CI Platform]
-    RUN["Factory Runners: issue agent, AI review"]
     OIDC[GitHub Actions OIDC]
+    RUN[Factory Runners]
+  end
+  subgraph AG[Agents]
+    SRE["SRE Agent: agent"]
+    COST["Cost Agent: agent"]
   end
   subgraph CB[Codebases]
-    ECR[ECR repository]
-    REPO[GitHub repository]
+    ECR[ECR Repository] -->|registry| REPO[GitHub Repository]
   end
   subgraph APP[Todo App]
-    USR[User pool] --> API[HTTP API]
-    API --> FN[Lambda function]
-    TBL[DynamoDB table] --> FN
-    WEB[Static site]
+    USR[User Pool] -->|auth| API[HTTP API]
+    API -->|api| FN[Lambda Function]
+    TBL[DynamoDB Table] -->|storage| FN
+    WEB[Static Site]
     A2I[Alarm to Issue]
   end
   subgraph DS[Developer Sandboxes]
-    SB[Your sandbox]
+    SB[Developer Sandbox]
   end
-  subgraph AG[Agents]
-    SRE["SRE Agent: agent bundle"]
-    COST["Cost Agent: agent bundle"]
-  end
-  subgraph NA[Your vibe-coded app]
-    NAPP["Bundles the architect picks"]
-  end
-  MD{{Massdriver API}}
 
-  VPC --> GW & RUN & FN & SB & SRE & COST
-  GW --> RUN & FN & SB & SRE & COST
-  OIDC --> REPO
-  ECR --> REPO
-  REPO --> A2I
-
-  REPO -->|issue labeled agent| RUN
-  RUN -->|pull request| REPO
-  REPO -->|image on merge| ECR
-  REPO -->|release| MD
-  MD -->|deploy image| FN
-  FN -->|alarm| A2I
-  A2I -->|issue| REPO
-  SRE & COST -->|read, propose| MD
-  SB -->|design, deploy to dev| MD
-  MD -->|deploy| NAPP
+  VPC -.-> GW & RUN & SRE & COST & FN & SB
+  GW -.-> RUN & SRE & COST & FN & SB
+  OIDC -.-> REPO
+  REPO -.->|remote reference| A2I
 ```
 
 Together these projects are the software factory. Each has a job:
@@ -87,7 +103,7 @@ Together these projects are the software factory. Each has a job:
 | **Developer Sandboxes** (`devsandboxes`) | One per person, e.g. `cory` | Each person's sandbox |
 | **Todo App** (`todoapp`) | `dev` | The example app |
 
-Arrows between projects are environment defaults, not canvas links. The runners get the gateway as a CI Platform default. The agents read Massdriver and propose through it, so one Agents project covers every cloud account.
+The runners get the gateway as a CI Platform default. The agents read Massdriver and propose through it, so one Agents project covers every cloud account.
 
 ## Identities and secrets
 

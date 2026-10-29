@@ -201,6 +201,19 @@ resource "aws_apigatewayv2_route" "main" {
   authorizer_id      = local.sign_in_enforced ? var.api.authorizer_id : null
 }
 
+# Browsers send CORS preflights without a token, so an ANY route behind the
+# authorizer rejects them and every call from a website fails.
+resource "aws_apigatewayv2_route" "preflight" {
+  for_each = local.sign_in_enforced ? toset([
+    for r in var.routes : replace(r, "/^ANY /", "OPTIONS ")
+    if startswith(r, "ANY ") && !contains(var.routes, replace(r, "/^ANY /", "OPTIONS "))
+  ]) : toset([])
+  api_id             = var.api.id
+  route_key          = each.value
+  target             = "integrations/${aws_apigatewayv2_integration.main.id}"
+  authorization_type = "NONE"
+}
+
 # Not a precondition: an app is usually deployed before its user pool exists,
 # and failing that first deploy helps no one. The routes stay public until a
 # pool is connected and this function is redeployed, and every deploy says so.

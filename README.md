@@ -135,7 +135,7 @@ bootstrap/        The projects, groups and canvases above, from one terraform ap
 
 ## Versioning
 
-Everything publishes as `0.0.0`, which can be republished in place for bundles and resource types alike. Publishing any other version to a repository ends that: once a repository holds a real version, `0.0.0` can no longer be overwritten there.
+Most things publish as `0.0.0`, which can be republished in place for bundles and resource types alike. Publishing any other version to a repository ends that, development releases included: once a repository holds another version, `0.0.0` can no longer be overwritten there, and the next change needs a version bump. `static-site` and `todoapp` are past that point.
 
 ## License
 

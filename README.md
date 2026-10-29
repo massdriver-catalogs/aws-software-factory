@@ -17,7 +17,7 @@ Together these projects are the software factory. Shared foundations are deploye
 | AI Platform (`ai`) | LLM Gateway, optional vLLM Model Server | One per AWS account, e.g. `main` |
 | CI Platform (`ci`) | GitHub Actions OIDC, GitHub Actions Runners (AI review, issue → PR agent) | One per GitHub organization, e.g. `main` |
 | Codebases (`codebases`) | GitHub Repository, ECR Repository | One per app, named after the app's project, e.g. `todoapp` |
-| Each app, e.g. Todo App (`todoapp`) | HTTP API, Lambda Function, DynamoDB Table, User Pool, Static Site, Alarm to Issue | dev, prod, … |
+| Each app, e.g. Todo App (`todoapp`) | The app on the Lambda Function runtime, HTTP API, DynamoDB Table, User Pool, Static Site, Alarm to Issue | dev, prod, … |
 | Agents (`agents`) | Agents, e.g. an SRE agent and a cost agent | One for the organization, e.g. `main` |
 | Developer Sandboxes (`devsandboxes`) | Developer Sandbox | One per developer, e.g. `cory` |
 
@@ -56,10 +56,10 @@ flowchart LR
   end
   subgraph App[Each app]
     UP[user-pool] -->|aws-user-pool| API[http-api]
-    API -->|aws-http-api| FN[lambda-function]
+    API -->|aws-http-api| FN["todoapp<br/>on the lambda-function runtime"]
     DDB[dynamodb-table] -->|aws-dynamodb-table| FN
+    API -->|aws-http-api| WEB[static-site]
     A2I[alarm-to-issue]
-    WEB[static-site]
   end
   subgraph Apps[An app on the runtime]
     T1[dynamodb-table] -->|aws-dynamodb-table| APPL["linkly<br/>on the lambda-function runtime"]
@@ -86,7 +86,7 @@ Three credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), 
 | `cost-reports` | The account's Cost and Usage Report and a read-only user, so Massdriver shows what each instance costs |
 | `llm-gateway` | One OpenAI-compatible URL in front of Bedrock models and any self-hosted model; per-consumer keys, usage and budgets |
 | `vllm-model-server` | An open-weight model on a GPU you run, reachable only through the gateway |
-| `dev-sandbox` | A coding-agent VM per developer: opencode (and optionally Claude Code), the gateway, GitHub through the App, Massdriver tools; reached by SSH over Session Manager or in the browser. The Massdriver opencode plugin isn't on npm yet, so the MCP server and skills are installed directly |
+| `dev-sandbox` | A coding-agent VM per developer: opencode (and optionally Claude Code), the gateway, GitHub through the App, Massdriver tools; reached by SSH over Session Manager or in the browser, with the [Massdriver opencode plugin](https://www.npmjs.com/package/@massdriver/opencode) |
 | `agent` | A VM that runs a coding agent on a schedule with a prompt you give it, under its own Massdriver identity. Presets for an SRE agent and a cost agent, a test run of each, and a blank one for your own prompt |
 | `github-actions-oidc` | Lets GitHub Actions get short-lived AWS credentials. Once per account |
 | `github-actions-runners` | Ephemeral self-hosted runners in the VPC's private subnets, with the gateway, plus the AI review and issue → PR agent workflows |
@@ -96,7 +96,7 @@ Three credentials sit underneath everything: **AWS IAM Role** (`aws-iam-role`), 
 | `lambda-function` | A function behind the API, with an optional table and access to the gateway's models. Also a runtime that applications run on |
 | `dynamodb-table` | An on-demand table with read and read-write policies |
 | `user-pool` | Cognito sign-in with a hosted page and a browser app client |
-| `static-site` | A private S3 bucket behind CloudFront |
+| `static-site` | A private S3 bucket behind CloudFront; serves a connected API's URL at `/config.json` |
 | `alarm-to-issue` | Opens a GitHub issue when one of the environment's alarms fires |
 
 Each bundle's README explains its design; its runbook covers what to do when it breaks. Most have presets named for when to use them: **Free Tier** where the defaults stay inside AWS's always-free allowances, **Development** for the cheapest settings that still work well, **Production** for durability and safety.
@@ -107,6 +107,7 @@ An application is one `massdriver.yaml` on a runtime: its own tables as dependen
 
 | Application | Runtime | What it is | Tables |
 |---|---|---|---|
+| `todoapp` | `lambda-function` | The example todo app the factory builds | `todos` |
 | `linkly` | `lambda-function` | A link shortener with click counts and a stats page per link | `links`, `clicks` |
 
 Linkly runs in its own project with a `dev` environment: an HTTP API, and the application linked to the API and its two tables. It serves its landing page at `/` and its API under `/api`, so it needs no Static Site. Its GitHub and ECR repositories sit in the Codebases environment `linkly`.

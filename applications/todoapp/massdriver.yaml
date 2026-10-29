@@ -1,0 +1,16 @@
+name: todoapp
+description: >-
+  The example todo app: a Python function behind the HTTP API that keeps its todos in one table.
+source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/applications/todoapp
+version: 0.0.0
+
+dependencies:
+  todos:
+    resource_type: aws-dynamodb-table@0.0.0
+    required: true
+
+app:
+  runtime: lambda-function
+  envs:
+    TABLE_NAME: .dependencies.todos.name
+    TABLE_PARTITION_KEY: .dependencies.todos.partition_key.name

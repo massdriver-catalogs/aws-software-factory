@@ -70,6 +70,9 @@ dependencies:
   aws_authentication:
     resource_type: aws-iam-role@0.0.0
     required: true
+  api:
+    resource_type: aws-http-api@0.0.0
+    required: false
 
 resources:
   site:

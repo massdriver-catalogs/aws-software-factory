@@ -7,7 +7,7 @@ A cloud VM for one developer, where coding agents can work with broad permission
 - `dev` user with passwordless sudo, docker, git, the GitHub CLI (`gh`), tmux and herdr
 - mise with the chosen languages
 - The chosen coding agents, already configured for the AI Platform when it's connected
-- Massdriver tooling: the `mass` CLI, the Massdriver MCP server for agents, and the Massdriver plugin for Claude Code when it's selected
+- Massdriver tooling: the `mass` CLI, the Massdriver MCP server for agents, and the Massdriver plugin for opencode and for Claude Code
 - Your dotfiles, if you gave a repository
 
 Work goes in `/workspace`. It's a separate disk that survives the VM being rebuilt; docker images and build cache live there too. Everything else is rebuilt from scratch on each new release of this bundle.

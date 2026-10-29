@@ -121,6 +121,23 @@ deploy() {
   die "$id isn't provisioned. Read its deployment log in Massdriver, fix it, and run this again."
 }
 
+# allow INSTANCE FIELD VALUE: adds VALUE to the instance's list param FIELD and
+# redeploys, unless it's already there.
+allow() {
+  local id=$1 field=$2 value=$3
+  mass instance get "$id" -o json | jq -e --arg f "$field" --arg v "$value" '.params[$f] // [] | index($v)' >/dev/null && return
+  echo "Adding $value to $id's $field..."
+  mass instance deploy "$id" --patch ".$field += [\"$value\"]" -m "Bootstrap: allow $value" >/dev/null || true
+  for _ in $(seq 1 120); do
+    sleep 15
+    case $(status "$id") in
+      PROVISIONED) return ;;
+      FAILED) break ;;
+    esac
+  done
+  die "$id isn't provisioned. Read its deployment log in Massdriver, fix it, and run this again."
+}
+
 resource_payload() {
   mass instance get "$1" -o json | jq -r --arg f "$2" --arg k "$3" '.resources[] | select(.field == $f) | .payload[$k]'
 }
@@ -190,12 +207,16 @@ if has repo; then
   say "Example app ($APP)"
   defaults "$APP" "$AWS_ROLE" "$NETWORK" "$LLM" "$GITHUB_APP"
   deploy "$(inst table)" Development
+  # The website reads the API's URL from its link, so it comes after the API,
+  # and sign-in and CORS learn the website's URL once it exists.
+  deploy "$(inst users)" "Free Tier" '.callback_urls = ["http://localhost:5173/"]'
+  deploy "$(inst api)" Development
   deploy "$(inst web)" "Single-page app"
   SITE=$(resource_payload "$(inst web)" site url)
-  deploy "$(inst users)" "Free Tier" ".callback_urls = [\"${SITE%/}/\", \"http://localhost:5173/\"]"
-  deploy "$(inst api)" Development
+  allow "$(inst users)" callback_urls "${SITE%/}/"
+  allow "$(inst api)" cors_allowed_origins "${SITE%/}"
 
-  if [ -z "$IMAGE" ] && { [ "$(status "$(inst fn)")" != PROVISIONED ] || [ "$REDEPLOY" = true ]; }; then
+  if [ -z "$IMAGE" ] && { [ "$(status "$(inst app)")" != PROVISIONED ] || [ "$REDEPLOY" = true ]; }; then
     REGISTRY=$(resource_payload "$(inst ecr)" repository url)
     command -v gh >/dev/null ||
       die "waiting for the first build needs the GitHub CLI (gh). Install it, or pass --image $REGISTRY:<commit>."
@@ -208,16 +229,16 @@ if has repo; then
     [ -n "${SHA:-}" ] || die "no successful build on main after 15 minutes. Check the repository's Actions tab, then pass --image $REGISTRY:<commit>."
     IMAGE="$REGISTRY:$SHA"
   fi
-  deploy "$(inst fn)" "Free Tier" ".image_uri = \"$IMAGE\""
+  deploy "$(inst app)" "Free Tier" ".image_uri = \"$IMAGE\""
 
   mass instance remote-reference set "$(inst alarms)" repository "$REPO" >/dev/null
   deploy "$(inst alarms)" "Issues only"
 
-  if [ "$(mass instance get "$(inst repo)" -o json | jq -r '.params.release_instance // ""')" = "" ]; then
+  if [ "$(mass instance get "$(inst repo)" -o json | jq -r '.params.release_instance // ""')" != "$(inst app)" ]; then
     say "Turning on release to dev"
     mass instance deploy "$(inst repo)" \
-      --patch ".release_instance = \"$(inst fn)\" | .release_groups = [\"$(jq -r '.release_group' <<<"$OUT")\"]" \
-      -m "Bootstrap: release merged builds to $(inst fn)" >/dev/null ||
+      --patch ".release_instance = \"$(inst app)\" | .release_groups = [\"$(jq -r '.release_group' <<<"$OUT")\"]" \
+      -m "Bootstrap: release merged builds to $(inst app)" >/dev/null ||
       die "turning on release didn't deploy. Read the repository's deployment log in Massdriver."
   fi
 

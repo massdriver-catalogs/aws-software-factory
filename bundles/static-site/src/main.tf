@@ -67,6 +67,17 @@ resource "aws_s3_object" "placeholder" {
   }
 }
 
+# The app fetches /config.json at startup, so one build runs against whichever
+# API this site is connected to.
+resource "aws_s3_object" "config" {
+  count         = var.api != null ? 1 : 0
+  bucket        = aws_s3_bucket.site.id
+  key           = "config.json"
+  content       = jsonencode({ api_url = var.api.endpoint })
+  content_type  = "application/json"
+  cache_control = "no-cache"
+}
+
 resource "aws_cloudfront_origin_access_control" "site" {
   name                              = local.name
   origin_access_control_origin_type = "s3"

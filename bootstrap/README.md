@@ -37,7 +37,7 @@ Tokens end up in the state file, so keep the state somewhere private.
 | CI Platform/Main | GitHub Actions OIDC, Factory Runners |
 | Agents/Main | SRE Agent, Cost Agent, in the agent group; `agents = false` leaves them out |
 | Codebases/Todo App | Image Repository, Source Repository (`todoapp`), releasing to dev |
-| Todo App/Dev | Website, API, Todos Table, Todos Function, Users, Alarm to Issue |
+| Todo App/Dev | Users, API, Todos Table, Todo App on the Lambda Function runtime, Website linked to the API, Alarm to Issue |
 | Developer Sandboxes | Empty, ready for one environment per person |
 | *Optional:* group that publishes the catalog, and its service account | set `catalog_publishers` |
 

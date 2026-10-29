@@ -82,16 +82,16 @@ flowchart LR
   end
   subgraph APP[Todo App]
     USR[User Pool] -->|auth| API[HTTP API]
-    API -->|api| FN[Lambda Function]
-    TBL[DynamoDB Table] -->|storage| FN
-    WEB[Static Site]
+    API -->|api| FN["Todo App: an application on lambda-function"]
+    TBL[DynamoDB Table] -->|todos| FN
+    API -->|api| WEB[Static Site]
     A2I[Alarm to Issue]
   end
   subgraph YA[Your app]
     YT1[DynamoDB Table] -->|its first table| YAPP["Your app: an application on lambda-function"]
     YT2[DynamoDB Table] -->|its second table| YAPP
     YAPI[HTTP API] -->|api| YAPP
-    YWEB[Static Site]
+    YAPI -->|api| YWEB[Static Site]
   end
   subgraph DS[Developer Sandboxes]
     SB[Developer Sandbox]
@@ -358,20 +358,20 @@ Watch the first build under the repository's **Actions** tab. When it's green, t
 
 Create a project named after the app, e.g. **Todo App** (`todoapp`), with environment **Dev** (`dev`). Set the AWS IAM Role, the Shared VPC, the LLM Gateway's endpoint and the GitHub App as the environment's defaults.
 
-Add these, then connect the API and the table to the function:
+The app itself is an application on the Lambda Function runtime: **Todo App** brings its table as a dependency, and the runtime runs it behind the API. Add these, connect the API and the table to Todo App, and the API to the Static Site:
 
-| Bundle | Preset | Then change | Cost |
+| Add | Preset | Then change | Cost |
 |---|---|---|---|
-| Static Site | Single-page app | — | $0 in CloudFront's free tier |
 | HTTP API | Development | — | ~$1 per million requests |
-| DynamoDB Table | Development | — | ~$1.25 per million writes, $0.25 per million reads |
-| Lambda Function | Free Tier | **Container image**: the image URI from step 8 | $0 in Lambda's free tier |
+| DynamoDB Table (**Todos Table**) | Development | — | ~$1.25 per million writes, $0.25 per million reads |
+| Todo App | Free Tier | **Container image**: the image URI from step 8 | $0 in Lambda's free tier |
+| Static Site | Single-page app | — | $0 in CloudFront's free tier |
 
-With the environment's LLM endpoint default set, the function also runs inside the VPC with its own gateway key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. **App: effectively $0** at workshop traffic; the free tiers cover it.
+Todo App gets the table's name in `TABLE_NAME` and read-write access to it. With the environment's LLM endpoint default set, it also runs inside the VPC with its own gateway key, and gets `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `OPENAI_MODEL`. The Static Site serves the API's URL at `/config.json`. **App: effectively $0** at workshop traffic; the free tiers cover it.
 
 Open the HTTP API's endpoint in a browser: the app answers.
 
-Now add sign-in. Add **User Pool** (**Users**) with the **Free Tier** preset, set **Where to return after sign-in** to the Static Site's URL with its trailing slash, and connect it to the **HTTP API**. **$0** (free for the first 10,000 monthly users). Until now the function's routes have been public: **Require sign-in** is on in its preset, but there was no user pool yet, and its deploy log said so. Redeploy the HTTP API, then redeploy the function. The endpoint now answers `401` without a signed-in user's token.
+Now add sign-in. Add **User Pool** (**Users**) with the **Free Tier** preset, set **Where to return after sign-in** to the Static Site's URL with its trailing slash, and connect it to the **HTTP API**. **$0** (free for the first 10,000 monthly users). On the HTTP API, add the Static Site's URL (no trailing slash) to **Browser origins allowed to call it (CORS)**. Until now the app's routes have been public: **Require sign-in** is on in its preset, but there was no user pool yet, and its deploy log said so. Redeploy the HTTP API, then redeploy Todo App. The endpoint now answers `401` without a signed-in user's token.
 
 Add **Alarm to Issue** with the **Issues only** preset and turn on **Send a test alarm on this deploy** for the first deploy only. Point its **repository** at the Codebases repository with a remote reference. **$0.** The test deploy opens an `Alarm: …` issue in the repository, with links to the alarm and the Massdriver project, environment and instance it came from.
 
@@ -382,7 +382,7 @@ Add **Alarm to Issue** with the **Issues only** preset and turn on **Send a test
 All in the browser.
 
 1. **Check the agents are there.** The `todoapp` repository already has `.github/workflows/agent.yml`, `.github/workflows/ai-review.yml` and an `agent` label, from the factory workflows in step 8.
-2. **Turn on release to dev.** Merged code should reach dev without anyone touching Massdriver. The repository gets its own Massdriver identity for that, made by the identity maker from step 5. On the **GitHub Repository**, set **Release to** to the Lambda Function's instance ID, e.g. `todoapp-dev-fn`, pick your release group in **Release permissions**, and deploy. The repository gets a `release` workflow and a service account in that group only.
+2. **Turn on release to dev.** Merged code should reach dev without anyone touching Massdriver. The repository gets its own Massdriver identity for that, made by the identity maker from step 5. On the **GitHub Repository**, set **Release to** to Todo App's instance ID, e.g. `todoapp-dev-app`, pick your release group in **Release permissions**, and deploy. The repository gets a `release` workflow and a service account in that group only.
 
 ![Release to and Release permissions on the GitHub Repository](assets/images/step-10-release-to.jpg)
 3. **Issue → pull request.** Open an issue, e.g. "Add a `/health` route that returns `{"ok": true}`, with a test", and label it `agent`. Within a few minutes the agent comments, then opens a pull request from `agent/issue-N`.
@@ -391,11 +391,11 @@ All in the browser.
 
 ![The agent's pull request](assets/images/step-10-pull-request.jpg)
 4. **CI and review run on it.** The tests, secret scan, build and image scan run, and the gateway's model posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
-5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to the Lambda Function in dev. Watch the deployment appear on the Lambda Function in Massdriver with the message `Release <commit>`. That deployment is the proof: every route, `/health` included, answers `401` without a signed-in user's token.
+5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to Todo App in dev. Watch the deployment appear on the Lambda Function in Massdriver with the message `Release <commit>`. That deployment is the proof: every route, `/health` included, answers `401` without a signed-in user's token.
 
 ![Agent, AI review, build and release runs](assets/images/step-10-actions.jpg)
 
-![The Release deployment on the Lambda Function](assets/images/step-10-release-deployment.jpg)
+![The Release deployment on Todo App](assets/images/step-10-release-deployment.jpg)
 6. **Close the loop.** On **Alarm to Issue**, turn **Hand alarms to the agent** on and deploy. From now on, when one of the app's alarms fires, an issue opens with the `agent` label, the agent proposes a fix, CI and review run, and a person decides whether to merge.
 
 Each agent run costs ~$0.10–0.50 in tokens on Kimi K2.5, charged to the runners' gateway key.
@@ -474,7 +474,7 @@ Private mode means no public address (saving ~$4 a month) and nothing on the int
 
 Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5. `/models` switches to Kimi K3 if the gateway serves it (the **Demo** preset), or to `self-hosted-gpt-oss-20b` if you added the GPU.
 
-The Massdriver opencode plugin isn't on npm yet, so the sandbox wires up the same pieces itself: the Massdriver MCP server, the `massdriver` and `massdriver-architect` skills, and the `mass` CLI.
+opencode comes with the [Massdriver plugin](https://www.npmjs.com/package/@massdriver/opencode) (the `massdriver` skill and the `massdriver-architect` agent), the Massdriver MCP server and the `mass` CLI.
 
 ### 13. Vibe code an app
 

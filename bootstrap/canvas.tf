@@ -21,7 +21,7 @@ locals {
       web    = { at = "app", bundle = "static-site", name = "Website" }
       api    = { at = "app", bundle = "http-api", name = "API" }
       table  = { at = "app", bundle = "dynamodb-table", name = "Todos Table" }
-      fn     = { at = "app", bundle = "lambda-function", name = "Todos Function" }
+      app    = { at = "app", bundle = "todoapp", name = "Todo App" }
       users  = { at = "app", bundle = "user-pool", name = "Users" }
       alarms = { at = "app", bundle = "alarm-to-issue", name = "Alarm to Issue" }
     } : {},
@@ -36,8 +36,9 @@ locals {
     var.example_app && !var.example_app_linked ? {
       repo_registry = { from = "ecr", from_field = "repository", to = "repo", to_field = "registry" }
       api_auth      = { from = "users", from_field = "user_pool", to = "api", to_field = "auth" }
-      fn_api        = { from = "api", from_field = "api", to = "fn", to_field = "api" }
-      fn_storage    = { from = "table", from_field = "table", to = "fn", to_field = "storage" }
+      app_api       = { from = "api", from_field = "api", to = "app", to_field = "api" }
+      app_todos     = { from = "table", from_field = "table", to = "app", to_field = "todos" }
+      web_api       = { from = "api", from_field = "api", to = "web", to_field = "api" }
     } : {},
   )
 }

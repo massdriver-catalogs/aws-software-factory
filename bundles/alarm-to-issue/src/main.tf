@@ -3,7 +3,8 @@ locals {
 
   # Every instance in this environment is named <project>-<environment>-<component>,
   # and its alarms start with that name.
-  alarm_prefix = "${var.md_metadata.default_tags["md-project"]}-${var.md_metadata.default_tags["md-target"]}-"
+  instance_path = split("-", var.md_metadata.default_tags["md-instance"])
+  alarm_prefix  = "${local.instance_path[0]}-${local.instance_path[1]}-"
 }
 
 resource "aws_secretsmanager_secret" "github_app" {

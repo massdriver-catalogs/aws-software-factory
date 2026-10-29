@@ -70,9 +70,9 @@ resource "aws_cur_report_definition" "massdriver" {
 }
 
 # Billing setting; only the management (payer) account can apply it.
-resource "aws_ce_cost_allocation_tag" "md_package" {
+resource "aws_ce_cost_allocation_tag" "md_instance" {
   count   = var.activate_cost_allocation_tag ? 1 : 0
-  tag_key = "md-package"
+  tag_key = "md-instance"
   status  = "Active"
 }
 

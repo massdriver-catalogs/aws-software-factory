@@ -35,10 +35,11 @@ params:
       pattern: ^[a-z]{2}(-gov)?-[a-z]+-[0-9]$
       $md.immutable: true
     activate_cost_allocation_tag:
-      title: Activate the md-package cost allocation tag
+      title: Activate the md-instance cost allocation tag
       description: >-
         More accurate costs, including deleted resources and Savings Plans. Only works in the AWS
-        management (payer) account; leave off in member accounts.
+        management (payer) account; leave off in member accounts. AWS accepts the tag up to 24
+        hours after the first resource in the account has it.
       type: boolean
       default: false
 

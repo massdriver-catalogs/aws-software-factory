@@ -25,5 +25,5 @@ In Massdriver, open **Settings → Integrations → AWS Cost and Usage Reports**
 
 - **No report yet:** `aws s3 ls s3://<bucket_name>/reports/ --recursive | tail`. AWS writes the first one within 24 hours.
 - **"access_denied" or "bucket_not_found" when enabling:** the values were pasted into the wrong fields, or the key was rotated. Read them again.
-- **Some instances have no cost:** their resources lack the `md-package` tag, or they cost nothing yet.
+- **Some instances have no cost:** their resources lack the `md-instance` tag, or they cost nothing yet.
 

@@ -8,7 +8,7 @@ It creates:
 - an IAM user that can only read that bucket and resource tags, and its access key,
 - a Secrets Manager secret holding the four values Massdriver's integration needs.
 
-Massdriver reads the report every 24 hours and attributes each line to an instance by its `md-package` tag. Costs then show on every instance, environment and project, and in the API.
+Massdriver reads the report every 24 hours and attributes each line to an instance by its `md-instance` tag. Costs then show on every instance, environment and project, and in the API.
 
 ## After the first deploy
 
@@ -18,7 +18,7 @@ AWS writes the first report within 24 hours. Until then, instances show no cost.
 
 ## Cost allocation tag
 
-In the AWS management (payer) account, turn on **Activate the md-package cost allocation tag**. AWS then puts the tag on every report line, so deleted resources and Savings Plans are attributed too. Member accounts can't activate it; leave it off there.
+In the AWS management (payer) account, turn on **Activate the md-instance cost allocation tag**. AWS then puts the tag on every report line, so deleted resources and Savings Plans are attributed too. Member accounts can't activate it; leave it off there.
 
 ## Cost
 

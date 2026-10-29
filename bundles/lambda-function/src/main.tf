@@ -202,7 +202,8 @@ resource "aws_apigatewayv2_route" "main" {
 }
 
 # Browsers send CORS preflights without a token, so an ANY route behind the
-# authorizer rejects them and every call from a website fails.
+# authorizer rejects them and every call from a website fails. With no target,
+# the API's CORS settings answer the preflight instead of the function.
 resource "aws_apigatewayv2_route" "preflight" {
   for_each = local.sign_in_enforced ? toset([
     for r in var.routes : replace(r, "/^ANY /", "OPTIONS ")
@@ -210,7 +211,6 @@ resource "aws_apigatewayv2_route" "preflight" {
   ]) : toset([])
   api_id             = var.api.id
   route_key          = each.value
-  target             = "integrations/${aws_apigatewayv2_integration.main.id}"
   authorization_type = "NONE"
 }
 

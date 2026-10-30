@@ -3,7 +3,7 @@ description: >-
   A website served from a private S3 bucket through CloudFront over HTTPS. Upload the built files
   and invalidate the cache; nothing runs on a server.
 source_url: https://github.com/massdriver-catalogs/aws-software-factory/tree/main/bundles/static-site
-version: 0.0.1
+version: 0.0.0
 
 params:
   examples:

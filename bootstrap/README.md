@@ -35,7 +35,7 @@ Tokens end up in the state file, so keep the state somewhere private.
 | Networking/Shared | Shared VPC |
 | AI Platform/Main | LLM Gateway, and a vLLM Model Server linked to it |
 | CI Platform/Main | GitHub Actions OIDC, Factory Runners |
-| Agents/Main | SRE Agent, Cost Agent, in the agent group; `agents = false` leaves them out |
+| Agents/Main | SRE Agent on its test run (schedule Once), Cost Agent on duty, in the agent group; `agents = false` leaves them out |
 | Codebases/Todo App | Image Repository, Source Repository (`todoapp`), releasing to dev |
 | Todo App/Dev | Users, API, Todos Table, Todo App on the Lambda Function runtime, Website linked to the API, Alarm to Issue |
 | Developer Sandboxes | Empty, ready for one environment per person |

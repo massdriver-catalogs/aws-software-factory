@@ -236,7 +236,7 @@ Bedrock's open-weight models, Kimi included, are enabled by default. Nothing els
 > **Then:** paste the Cost Reports values by hand (step 6), and **continue at [step 10](#10-the-factory-live), item 3**.
 >
 > - The vLLM Model Server goes on the AI Platform canvas, linked to the gateway, but stays undeployed unless you add `--gpu`.
-> - The agents start on duty on the **SRE Agent** and **Cost Agent** presets: ~$0.75 an hour in tokens. Set `agents = false` in `terraform.tfvars` to leave them out. To see their tests, start step 11 at item 2: pick their test run presets and deploy.
+> - The SRE agent starts on its **SRE Agent: test run** preset with the schedule **Once**: it runs its test once after boot, ~$0.15 in tokens. The cost agent starts on duty on **Cost Agent**, once a day. Set `agents = false` in `terraform.tfvars` to leave them out. To run the SRE test again, change its prompt and deploy (step 11, item 2). To put it on duty, step 11, item 3.
 
 ### 5. Groups and the identity maker
 
@@ -548,7 +548,7 @@ Every arrow in the diagrams runs as one of these. Nothing shares a personal toke
 
 | Step | Workshop (~3 hours) | A month if left running | What stops it |
 |---|---|---|---|
-| Optional shortcut: `bootstrap/` + `deploy.sh` (builds steps 5–9, release to dev and step 11, no GPU) | ~$0.13 an hour (~$0.05 without the agents), plus ~$0.75 an hour of SRE agent tokens | ~$100 with the agents, ~$38 without | Nothing; step 14 |
+| Optional shortcut: `bootstrap/` + `deploy.sh` (builds steps 5–9, release to dev and step 11, no GPU) | ~$0.13 an hour (~$0.05 without the agents), plus ~$0.15 for the SRE agent's test run | ~$100 with the agents, ~$38 without | Nothing; step 14 |
 | 6. AWS Account: Budget Guard, Cost Reports | ~$0 | Cents | Step 14 |
 | 6. Networking: Shared VPC | ~$0.05 | ~$9 | Nothing; step 14 |
 | 7. AI Platform: LLM Gateway | ~$0.06 | ~$14 | Nothing; step 14 |

@@ -185,7 +185,7 @@ if has sre; then
 
   say "Agents ($AGENTS)"
   defaults "$AGENTS" "$AWS_ROLE" "$NETWORK" "$LLM" "$GITHUB_APP" "$MASSDRIVER"
-  deploy "$(inst sre)" "SRE Agent" ".massdriver_groups = [\"$AGENT_GROUP\"]"
+  deploy "$(inst sre)" "SRE Agent: test run" ".massdriver_groups = [\"$AGENT_GROUP\"]"
   deploy "$(inst cost)" "Cost Agent" ".massdriver_groups = [\"$AGENT_GROUP\"]"
 fi
 

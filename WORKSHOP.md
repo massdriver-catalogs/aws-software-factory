@@ -432,7 +432,7 @@ An agent is a prompt and a schedule. The **Agent** bundle is a VM that runs a co
    ![The SRE Agent on duty: its prompt, schedule, groups and AWS access](assets/images/step-11-agent-config.jpg)
 4. **An agent of your own (optional).** Add a third **Agent** with the **Your own** preset. Write its **Prompt** and deploy. It runs once after boot, and again whenever you change the prompt. Pick another **Schedule** to repeat it. Give it **AWS access** only if its prompt needs what Massdriver doesn't show, such as a function's own log lines (**Alarms, metrics, logs and resource lists**) or the rows in a table (**Read everything**).
 5. **Watch one work (optional).** This needs a terminal.
-   1. In Massdriver, open the Cost Agent's **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
+   1. Put what `aws sts get-caller-identity --query Arn --output text` prints in the Cost Agent's **Who can connect** and deploy. Then open its **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
    2. Install the AWS CLI and the Session Manager plugin. Homebrew's cask for the plugin is disabled, so it comes from AWS:
 
       ```bash
@@ -442,7 +442,7 @@ An agent is a prompt and a schedule. The **Agent** bundle is a VM that runs a co
       sudo /tmp/sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin
       ```
 
-   3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile and an SSH host for this agent only.
+   3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile that assumes this agent's role from your own, and an SSH host for this agent only. Add a profile name at the end to sign in with one other than `default`.
    4. `ssh agents-main-cost`. Its journal is `/workspace/cost/journal.md`, and every run's output is in `/workspace/.goal/runs`. To run its prompt right now:
 
       ```bash
@@ -465,11 +465,11 @@ Private mode means no public address (saving ~$4 a month) and nothing on the int
 
 **Shell in.**
 
-1. In Massdriver, open the sandbox's **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
+1. Put what `aws sts get-caller-identity --query Arn --output text` prints in **Who can connect** and deploy. Then open the sandbox's **Connect to …** resource and click **Connect script**. It downloads a `.sh` file.
 
    ![The sandbox's Connect to resource](assets/images/step-12-connect-resource.jpg)
 2. If you skipped step 11, item 5, install the AWS CLI and the Session Manager plugin as shown there.
-3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile and an SSH host for this sandbox only, and prints the browser URLs with their username and password.
+3. `sh ~/Downloads/<connect script>`. It sets up an AWS profile that assumes this sandbox's role from your own, and an SSH host for this sandbox only, and prints the browser URLs with their username and password.
 4. Either open the **opencode** URL in the browser, or `ssh devsandboxes-<you>-sandbox` and run `opencode`. If the sandbox has stopped itself, `ssh` starts it; give it a minute.
 
 Inside, `git clone https://github.com/<your-org>/todoapp` works with no login. opencode starts on Kimi K2.5. `/models` switches to Kimi K3 if the gateway serves it (the **Demo** preset), or to `self-hosted-gpt-oss-20b` if you added the GPU.
@@ -540,7 +540,7 @@ Every arrow in the diagrams runs as one of these. Nothing shares a personal toke
 | Sandbox service account, named after the instance | Developer Sandbox bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in your sandbox | The groups picked in **Massdriver access for agents**; one-year token |
 | Agent service account, named after the instance | Agent bundle, when groups are picked | Secrets Manager, `<instance>/massdriver-api-key` | `mass` and the Massdriver MCP in the agent's runs | The groups picked in **Massdriver groups**; one-year token |
 | Agent's AWS role | Agent bundle | IAM, on the agent's VM | The agent's runs, to read AWS directly | Its own secrets, plus what **AWS access** adds: nothing, CloudWatch and view-only, or ReadOnlyAccess. Read-only at every level |
-| Access user `<instance>-access` | Developer Sandbox and Agent bundles | The **Connect to …** resource; an AWS profile on your laptop after the connect script | `ssh`, to start the VM and open a session | Start that VM and connect as `dev` |
+| Access role `<instance>-access` | Developer Sandbox and Agent bundles | Nowhere: assumed from your own AWS sign-in by the profile the connect script adds | The identities in **Who can connect**, through `ssh` | Start that VM and connect as `dev` |
 | Browser password | Developer Sandbox bundle | Secrets Manager, `<instance>/browser-password`; printed by the connect script | You, for opencode in the browser and the preview URL | That sandbox |
 | Cost collector user | Cost Reports bundle | IAM; keys in Secrets Manager, `<instance>/integration` | Massdriver's cost integration, after you paste them in step 6 | Read the cost report bucket and resource tags |
 

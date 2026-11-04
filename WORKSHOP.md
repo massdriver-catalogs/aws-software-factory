@@ -391,7 +391,7 @@ All in the browser.
 
 ![The agent's pull request](assets/images/step-10-pull-request.jpg)
 4. **CI and review run on it.** The tests, secret scan, build and image scan run, and the gateway's model posts a review. If the review has a point, comment `/agent` with it, and the agent updates the same pull request.
-5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to Todo App in dev. Watch the deployment appear on the Lambda Function in Massdriver with the message `Release <commit>`. That deployment is the proof: every route, `/health` included, answers `401` without a signed-in user's token.
+5. **Merge it.** The push to `main` builds a new image and pushes it to ECR. When the build is green, the `release` workflow deploys it to Todo App in dev. Watch the deployment appear on Todo App in Massdriver with the message `Release <commit>`. That deployment is the proof: every route, `/health` included, answers `401` without a signed-in user's token.
 
 ![Agent, AI review, build and release runs](assets/images/step-10-actions.jpg)
 

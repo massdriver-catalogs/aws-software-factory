@@ -14,7 +14,7 @@ Work goes in `/workspace`. It's a separate disk that survives the VM being rebui
 
 ## Connecting for the first time
 
-You don't need an AWS login. Each sandbox comes with its own key, which can only wake this sandbox and open a session on it.
+You connect with your own AWS sign-in; no key is handed out. Put what `aws sts get-caller-identity --query Arn --output text` prints in **Who can connect** and deploy. The sandbox makes a role only those identities can assume, and the role can only wake this sandbox and open a session on it. Each identity needs permission to assume roles, which administrators have; the root user can't.
 
 1. **Install the tools once.** On a Mac:
 
@@ -39,7 +39,7 @@ You don't need an AWS login. Each sandbox comes with its own key, which can only
    sh sandbox.sh
    ```
 
-   It adds an AWS profile and an SSH host, both named after the sandbox, and makes an SSH key just for it. Nothing else on your machine changes.
+   It adds an AWS profile that assumes the sandbox's role from your `default` profile, an SSH host named after the sandbox, and an SSH key just for it. Sign in with another profile with `sh sandbox.sh <profile>`. Nothing else on your machine changes.
 
 4. **Connect.**
 

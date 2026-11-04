@@ -327,6 +327,22 @@ params:
           title: Alarms, metrics, logs and resource lists
         - const: read_only
           title: Read everything, including S3 objects and table data
+    connect_principals:
+      title: Who can connect
+      description: >-
+        The AWS identities that can start this sandbox and shell in from a terminal, by assuming a
+        role made for it. Paste what `aws sts get-caller-identity --query Arn --output text` prints:
+        an IAM user, an IAM role, or a role session such as an Identity Center sign-in. Each needs
+        permission to assume roles, which administrators have. Browser access doesn't use it. Leave
+        empty for no terminal access.
+      type: array
+      uniqueItems: true
+      default: []
+      items:
+        type: string
+        pattern: ^arn:aws[a-z-]*:(iam::[0-9]{12}:(user|role)/.+|sts::[0-9]{12}:assumed-role/[^/]+/.+)$
+        message:
+          pattern: "An IAM user, role or role session ARN. The root user can't assume roles."
     massdriver_groups:
       title: Massdriver access for agents
       description: >-
@@ -379,6 +395,7 @@ ui:
     - agents
     - autonomy
     - languages
+    - connect_principals
     - browser_access
     - preview_port
     - dotfiles_repo

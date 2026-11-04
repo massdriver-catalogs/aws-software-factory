@@ -5,7 +5,7 @@ templating: mustache
 
 ## Connect
 
-No AWS login needed. The sandbox's own key can only wake it and open a session on it.
+You connect with your own AWS sign-in, through a role that can only wake this sandbox's VM and open a session on it. Only the identities in **Who can connect** can assume it; add what `aws sts get-caller-identity --query Arn --output text` prints there and redeploy.
 
 **One-time setup on your machine.** On a Mac:
 
@@ -26,7 +26,7 @@ mass resource download {{id}}.access --format sh > {{id}}.sh
 sh {{id}}.sh
 ```
 
-It adds an AWS profile and an SSH host, both named `{{id}}`, plus an SSH key just for this sandbox. Run it again only if the sandbox is decommissioned and recreated.
+It adds an AWS profile named `{{id}}` that assumes the role from your `default` profile (`sh {{id}}.sh <profile>` for another), an SSH host of the same name, and an SSH key just for this sandbox. Run it again only if the sandbox is decommissioned and recreated.
 {{/resources.access}}
 {{^resources.access}}
 The connect script appears once the sandbox has deployed.
@@ -62,7 +62,7 @@ aws ec2 describe-instances --profile {{id}} --region {{dependencies.network.regi
   ```
 
   Nothing back means no route out. In private network mode, check the shared VPC's egress (its runbook: "Private subnets lost internet access").
-- **`AccessDenied` or `InvalidClientTokenId`:** the sandbox was decommissioned and recreated since you ran the connect script, so it has a new key. Download the connect script again and re-run it.
+- **`AccessDenied` on `AssumeRole`:** your identity isn't in **Who can connect**, your own sign-in has expired (`aws login` or `aws sso login`), or your permissions don't allow `sts:AssumeRole`. If the sandbox was decommissioned and recreated, download the connect script again and re-run it.
 - **`SessionManagerPlugin is not found`:** install the plugin as in **Connect** above. Homebrew's cask is disabled, so it comes from AWS's download.
 
 Without the script, the AWS console works too: EC2 → the instance → **Connect** → **Session Manager**, then `sudo -iu dev`.

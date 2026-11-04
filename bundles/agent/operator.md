@@ -5,7 +5,7 @@ templating: mustache
 
 ## Connect
 
-No AWS login needed. The agent's own key can only wake its VM and open a session on it.
+You connect with your own AWS sign-in, through a role that can only wake this agent's VM and open a session on it. Only the identities in **Who can connect** can assume it; add what `aws sts get-caller-identity --query Arn --output text` prints there and redeploy.
 
 **One-time setup on your machine.** On a Mac:
 
@@ -26,7 +26,7 @@ mass resource download {{id}}.access --format sh > {{id}}.sh
 sh {{id}}.sh
 ```
 
-It adds an AWS profile and an SSH host, both named `{{id}}`, plus an SSH key just for this agent. Run it again only if the agent is decommissioned and recreated.
+It adds an AWS profile named `{{id}}` that assumes the role from your `default` profile (`sh {{id}}.sh <profile>` for another), an SSH host of the same name, and an SSH key just for this agent. Run it again only if the agent is decommissioned and recreated.
 {{/resources.access}}
 {{^resources.access}}
 The connect script appears once the agent has deployed.

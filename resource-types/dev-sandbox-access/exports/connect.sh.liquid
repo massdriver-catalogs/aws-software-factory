@@ -3,6 +3,9 @@ set -eu
 
 NAME="{{ artifact.payload.name }}"
 REGION="{{ artifact.payload.region }}"
+{% if artifact.payload.role_arn %}
+# The profile you already sign in with; the role is assumed from it.
+SOURCE="${1:-${AWS_PROFILE:-default}}"
 
 for tool in aws session-manager-plugin ssh ssh-keygen; do
   if ! command -v "$tool" >/dev/null 2>&1; then
@@ -11,9 +14,19 @@ for tool in aws session-manager-plugin ssh ssh-keygen; do
   fi
 done
 
-aws configure set aws_access_key_id "{{ artifact.payload.access_key_id }}" --profile "$NAME"
-aws configure set aws_secret_access_key "{{ artifact.payload.secret_access_key }}" --profile "$NAME"
+if aws configure get aws_access_key_id --profile "$NAME" >/dev/null 2>&1; then
+  echo "The AWS profile $NAME still has an access key from an older connect script, and it would be used instead of the role. Delete the [$NAME] section from ~/.aws/credentials and run this again." >&2
+  exit 1
+fi
+
+aws configure set role_arn "{{ artifact.payload.role_arn }}" --profile "$NAME"
+aws configure set source_profile "$SOURCE" --profile "$NAME"
 aws configure set region "$REGION" --profile "$NAME"
+
+if ! aws sts get-caller-identity --profile "$NAME" >/dev/null; then
+  echo "Couldn't assume $NAME's role from the AWS profile $SOURCE. Sign in to it first (aws login, or aws sso login --profile $SOURCE), check that what aws sts get-caller-identity --profile $SOURCE prints is in the instance's Who can connect, or pass another profile: sh $0 <profile>" >&2
+  exit 1
+fi
 
 mkdir -p "$HOME/.ssh"
 chmod 700 "$HOME/.ssh"
@@ -64,6 +77,9 @@ fi
 
 echo "Ready. Connect with:  ssh $NAME"
 echo "VS Code / Cursor:     Remote-SSH: Connect to Host... -> $NAME"
+{% else %}
+echo "No one can connect to $NAME from a terminal. Add what aws sts get-caller-identity --query Arn --output text prints to the instance's Who can connect, deploy it, and download this script again."
+{% endif %}
 {% if artifact.payload.browser_url %}
 echo
 echo "In the browser:       {{ artifact.payload.browser_url }}"

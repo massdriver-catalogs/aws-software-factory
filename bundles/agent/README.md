@@ -22,6 +22,7 @@ Work goes in `/workspace`. It's a separate disk that survives the VM being rebui
 | **Agent CLI** (`cli`) | `opencode` or `claude-code` |
 | **Massdriver groups** (`massdriver_groups`) | The agent gets its own service account in these groups. Needs a Massdriver Service Account credential on the environment |
 | **AWS access** (`aws_access`) | None, alarms/metrics/logs/resource lists, or read everything. It can never change anything |
+| **Who can connect** (`connect_principals`) | The AWS identities that can shell in to watch it work, from `aws sts get-caller-identity --query Arn --output text`. Empty means no one |
 | **Size**, **Chip**, **Workspace disk**, **Network**, **Languages** | The VM |
 | **Monthly budget (USD)** | What the instance should cost in a month |
 
